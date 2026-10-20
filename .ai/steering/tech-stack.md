@@ -1,0 +1,71 @@
+# Tech Stack Steering
+
+> Status: Draft
+> Last Updated: 2026-10-21
+
+## Runtime / Platform
+
+- **Runtime:** Go 1.27 — jeden binarny monolit (`denar serve|migrate|token`).
+- **Package manager:** Go modules; npm dla `web/`.
+- **Deployment target:** Self-hosted, pojedyncze binarium z osadzoną SPA (`embed`), obraz Docker (non-root, wolumen `/data`).
+- **Monorepo:** Tak (backend + `web/`).
+
+## Frontend
+
+- **Framework:** React 19 + Vite + TypeScript (SPA osadzona w binarium).
+- **State/data:** `@tanstack/react-query`, `openapi-fetch`; typy z `api/openapi.yaml` przez `openapi-typescript`.
+- **UI/Styling:** do ustalenia w specyfikacji `007-webui`.
+
+## Backend
+
+- **HTTP:** `net/http` + `oapi-codegen` (std-http-server, strict-server).
+- **Database:** SQLite (`modernc.org/sqlite`, bez cgo), migracje `pressly/goose` osadzone; Postgres później za portami.
+- **Auth:** argon2id dla haseł, sesje cookie (hash SHA-256 tokenu w bazie), OIDC (`coreos/go-oidc` + `x/oauth2`, PKCE), Bearer `dnr_…` dla botów (REST i MCP).
+- **MCP:** `modelcontextprotocol/go-sdk`, Streamable HTTP (stateless, JSON) na `/mcp`.
+- **Kursy walut:** API NBP (tabela A), cache w bazie.
+- **Powiadomienia:** outbox w bazie + adaptery SMTP, webhook, ntfy, Telegram, Matrix.
+- **Kontrakty:** `api/openapi.yaml` (REST), `api/mcp-tools.md` (MCP), `internal/usecase/ports.go`.
+
+> Wersje i API bibliotek potwierdzić przez Context7 przy implementacji. Wzorcowa implementacja: `../para-board` (Straylight).
+
+## Testing / Verification Commands
+
+| Purpose | Command | Notes |
+|---------|---------|-------|
+| Install (Go) | `go mod download` | |
+| Vet | `go vet ./...` | |
+| Test | `go test -race ./...` | Domena i use case'y na fake'ach; suity `portstest` na SQLite |
+| Build | `task build` | Buduje web i binarium |
+| Web test | `task web:test` | Vitest + MSW |
+| E2E UI | `task web:e2e` | Playwright na zbudowanym binarium, axe |
+| Full verify | `task verify` | fmt, vet, web build + test, test -race, build |
+
+## Architectural Constraints
+
+- Zależności tylko do środka: `adapter → usecase → domain`; adaptery nie importują się nawzajem (`internal/arch_test.go`).
+- `internal/domain` bez importów spoza stdlib.
+- Pieniądze jako `int64` jednostek minimalnych + waluta ISO 4217; kursy jako dziesiętne `math/big.Rat`.
+- Brak cgo.
+
+## Observability / Operations
+
+- **Logging:** `log/slog`, sekrety jako `config.Secret` (redakcja).
+- **Metrics / Tracing:** poza MVP.
+
+## Technical Decisions
+
+| ID | Decision | Rationale | Link |
+|----|----------|-----------|------|
+| TD-001 | Monolit Go + Clean Architecture; REST i MCP to adaptery na te same use case'y | Jedna logika, wiele interfejsów | PLAN.md |
+| TD-002 | SQLite teraz, Postgres później | Prostota self-hostingu | PLAN.md |
+| TD-003 | Wiele gospodarstw na instancję, role per gospodarstwo | Rodzina + znajomi na jednej instancji | PLAN.md |
+| TD-004 | Bot = scope'y ∩ uprawnienia twórcy, opcjonalnie ograniczony do portfeli | Najmniejsze uprawnienia | PLAN.md |
+| TD-005 | Koperty wyłącznie w walucie bazowej; transakcja przechowuje snapshot `BaseAmount` | Stabilne inwarianty budżetu | PLAN.md |
+| TD-006 | Kursy z NBP z cache | Darmowe, wiarygodne źródło dla PLN | PLAN.md |
+| TD-007 | Integracje zewnętrzne tylko przez porty `BankConnector`/`BillingConnector` i wspólny `ImportTransactions` | Gotowość na banki/dostawców bez zmian domeny | PLAN.md |
+| TD-008 | Powiadomienia przez transakcyjny outbox | Niezawodna dostawa, retry | PLAN.md |
+
+## Open Questions
+
+- Biblioteka UI/styling (`007-webui`).
+- Agregator PSD2 (spec 009).

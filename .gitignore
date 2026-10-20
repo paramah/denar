@@ -1,0 +1,13 @@
+/denar
+*.db
+*.db-shm
+*.db-wal
+/web/node_modules/
+/web/dist/*
+!/web/dist/.gitkeep
+.DS_Store
+.serena/
+.env
+.task/
+.dev/
+.env.dev
