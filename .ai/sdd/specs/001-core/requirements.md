@@ -1,6 +1,6 @@
 # Feature: Core (F01, etap 1)
 
-> Status: Draft
+> Status: Approved (zatwierdzone przez człowieka 2026-10-21 — „Wszystko się zgadza”; odpowiedzi Q-001…Q-006 przyjęte)
 > Source: `.ai/sdd/PLAN.md` (plan:approved), etap 1 `001-core`
 > Last Updated: 2026-10-21
 
@@ -82,7 +82,7 @@ Rdzeń `denar`: szkielet repozytorium i binarium, trwały zapis w SQLite, użytk
 
 ### US-005: Boty
 
-**As a** członek z rolą `owner` lub `admin`  
+**As a** członek z rolą `owner`, `admin` lub `member`  
 **I want to** utworzyć bota z wybranymi scope'ami, opcjonalnie ograniczonego do portfeli i z datą wygaśnięcia  
 **So that** asystent AI ma tylko taki dostęp, jakiego potrzebuje
 
@@ -91,6 +91,7 @@ Rdzeń `denar`: szkielet repozytorium i binarium, trwały zapis w SQLite, użytk
 - [ ] Mogę wyłączyć bota, zrotować token (stary przestaje działać natychmiast) i usunąć bota.
 - [ ] Bot z tokenem wywołuje REST nagłówkiem `Authorization: Bearer dnr_…`.
 - [ ] Bot nie może zarządzać członkami, botami ani ustawieniami gospodarstwa.
+- [ ] `member` zarządza tylko botami, których jest twórcą; `owner`/`admin` — wszystkimi botami gospodarstwa; `viewer` nie tworzy botów.
 - [ ] Gdy twórca traci rolę lub członkostwo, efektywne uprawnienia bota natychmiast się zawężają.
 
 ### US-006: Audit log
@@ -178,7 +179,7 @@ THE SYSTEM SHALL ją odrzucić (409)
 
 ### FR-030: Tworzenie bota — Must Have
 
-WHEN `owner`/`admin` utworzy bota z nazwą, listą scope'ów, opcjonalną listą ID portfeli i opcjonalnym `expires_at`  
+WHEN `owner`, `admin` lub `member` utworzy bota z nazwą, listą scope'ów, opcjonalną listą ID portfeli i opcjonalnym `expires_at`  
 THE SYSTEM SHALL zapisać bota z `created_by`, wygenerować token `dnr_` + 32 bajty losowe (base64url), zapisać tylko jego hash i zwrócić token jeden raz
 
 ### FR-031: Scope'y — Must Have
@@ -259,12 +260,12 @@ THE SYSTEM SHALL zwracać błędy jako `application/problem+json` (RFC 7807) z `
 
 | ID | Question | Proposed answer | Status |
 |----|----------|-----------------|--------|
-| Q-001 | Czy dopuszczamy samodzielną rejestrację kont? | Nie — konta tylko przez konto startowe, zaproszenia lub OIDC (opcja `DENAR_OIDC_AUTO_CREATE` dla dowolnego użytkownika IdP, domyślnie wyłączona). | open |
-| Q-002 | Kto może zakładać gospodarstwa? | Każdy zalogowany człowiek. | open |
-| Q-003 | Czy można zmienić walutę bazową gospodarstwa? | Nie w MVP (zmiana wymagałaby przeliczenia wszystkich snapshotów `BaseAmount`). | open |
-| Q-004 | Czy wysyłać zaproszenia e-mailem? | W 001 tylko link do skopiowania; e-mail po SMTP w etapie 005. | open |
-| Q-005 | Domyślna ważność tokenu bota? | Bez wygaśnięcia, chyba że podano `expires_at`; UI w 007 zasugeruje 90 dni. | open |
-| Q-006 | Czy `member` może tworzyć własne boty? | Tak — skoro bot nie przekracza uprawnień twórcy, `member` może tworzyć i zarządzać botami, których jest twórcą; `owner`/`admin` zarządzają wszystkimi botami gospodarstwa. Wymaga zmiany FR-030 i US-005. | open |
+| Q-001 | Czy dopuszczamy samodzielną rejestrację kont? | Nie — konta tylko przez konto startowe, zaproszenia lub OIDC (opcja `DENAR_OIDC_AUTO_CREATE` dla dowolnego użytkownika IdP, domyślnie wyłączona). | answered |
+| Q-002 | Kto może zakładać gospodarstwa? | Każdy zalogowany człowiek. | answered |
+| Q-003 | Czy można zmienić walutę bazową gospodarstwa? | Nie w MVP (zmiana wymagałaby przeliczenia wszystkich snapshotów `BaseAmount`). | answered |
+| Q-004 | Czy wysyłać zaproszenia e-mailem? | W 001 tylko link do skopiowania; e-mail po SMTP w etapie 005. | answered |
+| Q-005 | Domyślna ważność tokenu bota? | Bez wygaśnięcia, chyba że podano `expires_at`; UI w 007 zasugeruje 90 dni. | answered |
+| Q-006 | Czy `member` może tworzyć własne boty? | Tak — skoro bot nie przekracza uprawnień twórcy, `member` może tworzyć i zarządzać botami, których jest twórcą; `owner`/`admin` zarządzają wszystkimi botami gospodarstwa. Wymaga zmiany FR-030 i US-005. | answered |
 
 ## Decisions
 
@@ -274,6 +275,12 @@ THE SYSTEM SHALL zwracać błędy jako `application/problem+json` (RFC 7807) z `
 | D-002 | Bot = scope'y ∩ uprawnienia twórcy ∩ lista portfeli; boty bez operacji administracyjnych | PLAN.md, TD-004, P-003 |
 | D-003 | Bearer botów akceptowany w REST i (od 006) w MCP | PLAN.md |
 | D-004 | Logowanie lokalne + OIDC | PLAN.md |
+| D-005 | Brak samodzielnej rejestracji; konta z zaproszeń, OIDC lub konta startowego; `DENAR_OIDC_AUTO_CREATE` domyślnie wyłączone | Q-001 |
+| D-006 | Każdy zalogowany człowiek może zakładać gospodarstwa | Q-002 |
+| D-007 | Waluta bazowa niezmienna w MVP | Q-003 |
+| D-008 | Zaproszenia w 001 jako link do skopiowania; e-mail od 005 | Q-004 |
+| D-009 | Token bota domyślnie bez wygaśnięcia; UI sugeruje 90 dni | Q-005 |
+| D-010 | `member` tworzy i zarządza własnymi botami; `owner`/`admin` wszystkimi; `viewer` nie tworzy botów | Q-006 |
 
 ## Traceability
 

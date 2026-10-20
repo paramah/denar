@@ -150,3 +150,17 @@ Przyszłe (poza MVP): 009 PSD2 przez agregatora, 010 OpenAI costs API, 011 Apple
 - REST: testy konformancji z libopenapi-validator; MCP: testy e2e w `cmd/denar` (token bota → `upcoming_renewals`, `record_expense`, brak scope'u → `forbidden`).
 - E2E Playwright na zbudowanej binarce: login → gospodarstwo → portfel → transakcja → przydział koperty → subskrypcja → dopasowanie obciążenia; axe dla dostępności.
 - Ręcznie: `./denar migrate && ./denar serve`, podłączenie Claude (remote MCP) z tokenem bota i zapytanie „co odnawia się w tym tygodniu?”.
+
+## Tryb autonomiczny (przebieg nocny 2026-10-21/22)
+
+Użytkownik 2026-10-21: „Wszystko się zgadza, zacznij pracę. Zorganizuj ją tak, żebym nie musiał potwierdzać. […] rano chciałbym mieć możliwość sprawdzenia lokalnie aplikacji.”
+
+Na tej podstawie, wyłącznie dla tego przebiegu:
+- `001-core/requirements.md` zatwierdził człowiek (odpowiedzi Q-001…Q-006 przyjęte w całości).
+- Pozostałe bramki (`design:approved`, `tasks:approved`, wymagania etapów 002–008) zatwierdza **orkiestrator (Claude) z delegacji użytkownika**. Każde takie zatwierdzenie jest odnotowane w `.status` z dopiskiem `# delegated` i w tabeli poniżej. Użytkownik może je rano zrewidować.
+- Pytania otwarte rozstrzyga agent, wybierając najprostsze rozwiązanie zgodne z planem i zasadami; każde rozstrzygnięcie trafia do sekcji „Decyzje autonomiczne” w `design.md` danego etapu.
+- Bez `git push`, bez zewnętrznych publikacji. Praca na gałęzi `main` (backend sekwencyjnie), Web UI w osobnym worktree scalanym przez orkiestratora.
+
+| Etap | Bramka | Kto | Data |
+|---|---|---|---|
+| 001-core | requirements:approved | człowiek | 2026-10-21 |
