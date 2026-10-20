@@ -1,0 +1,864 @@
+openapi: 3.1.0
+info:
+  title: denar REST API
+  version: 0.1.0
+  description: |
+    Kontrakt REST Denara (etap 001-core). Źródło typów Go (oapi-codegen) i TS
+    (openapi-typescript, etap 007).
+
+    Uwierzytelnianie: sesja w cookie `denar_session` (logowanie hasłem lub
+    OIDC) albo token bota w nagłówku `Authorization: Bearer dnr_…`. Żądanie
+    z cookie i Bearer naraz dostaje 400 (code bad_request). Każda operacja
+    poza publicznymi może zwrócić 401. Bot przekraczający limit żądań
+    (DENAR_BOT_RATE na minutę) i adres z nadmiarem nieudanych prób Bearer
+    dostają 429 z nagłówkiem Retry-After. Żądanie zmieniające stan wysłane
+    przez przeglądarkę z innego originu dostaje 403. Te trzy odpowiedzi
+    dotyczą każdej operacji i nie są powtarzane przy każdej z nich.
+
+    Błędy mają format RFC 7807/9457 (application/problem+json) z polem code;
+    powód 403 i 409 jest ostatnim segmentem type (urn:denar:problem:<powód>):
+    human-only, role, scope (403); last-owner, already-member,
+    duplicate-email, duplicate-name, invitation-used, invitation-expired
+    (409).
+
+    Zasoby gospodarstwa leżą pod /households/{householdId}. Gospodarstwo,
+    w którym nie ma się członkostwa (bot: inne niż jego własne), daje 404,
+    tak jak nieistniejące. Bot nie wykonuje operacji administracyjnych
+    (członkowie, zaproszenia, boty, ustawienia, audyt): 403 human-only.
+    Jawny token bota wraca tylko w odpowiedziach createBot i rotateBotToken
+    (z Cache-Control: no-store). Token zaproszenia wraca tylko w
+    createInvitation; link ma postać <DENAR_BASE_URL>/invite#<token>, a
+    aplikacja przekazuje token w body operacji /invitations/*.
+
+    Listy stronicowane przyjmują cursor i limit (domyślnie 50, maks. 200)
+    i zwracają next_cursor (null na ostatniej stronie).
+servers:
+  - url: /api
+security:
+  - session: []
+  - bot: []
+tags:
+  - name: auth
+  - name: me
+  - name: households
+  - name: members
+  - name: invitations
+  - name: bots
+  - name: audit
+
+paths:
+  /auth/config:
+    get:
+      tags: [auth]
+      operationId: getAuthConfig
+      summary: Co jest włączone na instancji (dla ekranu logowania)
+      security: []
+      responses:
+        "200":
+          description: Konfiguracja logowania
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthConfig" }
+  /auth/login:
+    get:
+      tags: [auth]
+      operationId: loginStart
+      summary: Rozpoczyna logowanie OIDC (Authorization Code + PKCE)
+      security: []
+      parameters:
+        - name: return_to
+          in: query
+          description: Ścieżka w aplikacji, na którą wrócić po zalogowaniu
+          schema: { type: string }
+      responses:
+        "302": { description: Przekierowanie do dostawcy OIDC }
+        "404": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [auth]
+      operationId: loginLocal
+      summary: Logowanie e-mailem i hasłem; ustawia cookie sesji
+      description: |
+        Błędne dane, nieznane konto i wyłączone logowanie lokalne dają tę samą
+        odpowiedź 401. Po przekroczeniu limitu nieudanych prób (na adres i na
+        e-mail) 429 z Retry-After.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LocalLogin" }
+      responses:
+        "200":
+          description: Zalogowano, sesja w cookie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /auth/callback:
+    get:
+      tags: [auth]
+      operationId: loginCallback
+      summary: Powrót od dostawcy OIDC
+      security: []
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: state, in: query, schema: { type: string } }
+        - { name: error, in: query, description: Ustawiane przez dostawcę przy odmowie, schema: { type: string } }
+        - { name: error_description, in: query, schema: { type: string } }
+      responses:
+        "302": { description: Zalogowano, przekierowanie do aplikacji }
+        "401": { $ref: "#/components/responses/Problem" }
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Kończy sesję; bez ważnej sesji też odpowiada 204
+      security: []
+      responses:
+        "204": { description: Wylogowano }
+
+  /me:
+    get:
+      tags: [me]
+      operationId: getMe
+      summary: Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
+      responses:
+        "200":
+          description: Zalogowany użytkownik albo bot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Problem" }
+  /currencies:
+    get:
+      tags: [me]
+      operationId: listCurrencies
+      summary: Obsługiwane waluty ISO 4217 z liczbą miejsc dziesiętnych
+      responses:
+        "200":
+          description: Waluty według kodu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CurrencyList" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /households:
+    get:
+      tags: [households]
+      operationId: listHouseholds
+      summary: Gospodarstwa wywołującego (bot — tylko własne)
+      responses:
+        "200":
+          description: Gospodarstwa z rolą wywołującego
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HouseholdList" }
+        "401": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [households]
+      operationId: createHousehold
+      summary: Zakłada gospodarstwo; twórca zostaje ownerem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HouseholdCreate" }
+      responses:
+        "201":
+          description: Utworzone
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Household" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [households]
+      operationId: getHousehold
+      responses:
+        "200":
+          description: Gospodarstwo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Household" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [households]
+      operationId: updateHousehold
+      summary: Zmienia nazwę, strefę czasową lub dzień startu miesiąca (owner, admin)
+      description: Waluty bazowej nie można zmienić.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HouseholdUpdate" }
+      responses:
+        "200":
+          description: Zmienione
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Household" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [households]
+      operationId: deleteHousehold
+      summary: Usuwa gospodarstwo z członkostwami, zaproszeniami, botami i audytem (owner)
+      responses:
+        "204": { description: Usunięte }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /households/{householdId}/members:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [members]
+      operationId: listMembers
+      responses:
+        "200":
+          description: Członkowie od najdawniejszego
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/members/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - { name: userId, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [members]
+      operationId: updateMember
+      summary: Zmienia rolę członka
+      description: |
+        Owner zmienia każdą rolę; admin nie nadaje, nie odbiera i nie zmienia
+        roli owner (403 role). Ostatniego ownera nie można zdegradować (409
+        last-owner).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MemberUpdate" }
+      responses:
+        "200":
+          description: Zmieniony członek
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Member" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [members]
+      operationId: removeMember
+      summary: Usuwa członka lub pozwala odejść samemu; wyłącza boty, których członek jest twórcą
+      responses:
+        "204": { description: Usunięty }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /households/{householdId}/invitations:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [invitations]
+      operationId: listInvitations
+      summary: Zaproszenia od najnowszego (owner, admin)
+      responses:
+        "200":
+          description: Zaproszenia
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvitationList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [invitations]
+      operationId: createInvitation
+      summary: Zaprasza e-mail z rolą; zwraca jednorazowy link (owner, admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationCreate" }
+      responses:
+        "201":
+          description: Zaproszenie z tokenem, pokazywanym tylko raz
+          headers:
+            Cache-Control:
+              schema: { type: string, enum: [no-store] }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvitationCreated" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/invitations/{invitationId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - { name: invitationId, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [invitations]
+      operationId: revokeInvitation
+      summary: Odwołuje zaproszenie; ponowne odwołanie też daje 204
+      responses:
+        "204": { description: Odwołane }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /invitations/preview:
+    post:
+      tags: [invitations]
+      operationId: previewInvitation
+      summary: Co kryje link zaproszenia (bez logowania)
+      description: Nieznany i odwołany token daje 404; zużyty i wygasły 409.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationToken" }
+      responses:
+        "200":
+          description: Zaproszenie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvitationPreview" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /invitations/accept:
+    post:
+      tags: [invitations]
+      operationId: acceptInvitation
+      summary: Przyjęcie zaproszenia przez zalogowanego człowieka
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationToken" }
+      responses:
+        "200":
+          description: Gospodarstwo, do którego dołączono
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Household" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /invitations/register:
+    post:
+      tags: [invitations]
+      operationId: registerWithInvitation
+      summary: Zakłada konto lokalne na zaproszony e-mail, przyjmuje zaproszenie i loguje
+      description: E-mail, który ma już konto, daje 409 duplicate-email — wtedy należy się zalogować i przyjąć zaproszenie.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationRegister" }
+      responses:
+        "201":
+          description: Konto utworzone, sesja w cookie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Registered" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /households/{householdId}/bots:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [bots]
+      operationId: listBots
+      summary: Boty — owner i admin widzą wszystkie, pozostali własne
+      responses:
+        "200":
+          description: Boty według nazwy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BotList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [bots]
+      operationId: createBot
+      summary: Tworzy bota (owner, admin, member); token pokazywany raz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BotCreate" }
+      responses:
+        "201":
+          description: Bot z tokenem
+          headers:
+            Cache-Control:
+              schema: { type: string, enum: [no-store] }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BotWithToken" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/bots/{botId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/BotId"
+    get:
+      tags: [bots]
+      operationId: getBot
+      responses:
+        "200":
+          description: Bot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bot" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [bots]
+      operationId: updateBot
+      summary: Zmienia nazwę, scope'y, portfele, wygaśnięcie lub wyłącza bota
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BotUpdate" }
+      responses:
+        "200":
+          description: Zmieniony bot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bot" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [bots]
+      operationId: deleteBot
+      summary: Usuwa bota; jego token przestaje działać
+      responses:
+        "204": { description: Usunięty }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/bots/{botId}/token:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/BotId"
+    post:
+      tags: [bots]
+      operationId: rotateBotToken
+      summary: Wymienia token bota; stary przestaje działać natychmiast
+      responses:
+        "200":
+          description: Bot z nowym tokenem
+          headers:
+            Cache-Control:
+              schema: { type: string, enum: [no-store] }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BotWithToken" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /households/{householdId}/audit:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [audit]
+      operationId: listAudit
+      summary: Dziennik zmian od najnowszych (owner, admin)
+      parameters:
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+        - { name: actor_kind, in: query, schema: { $ref: "#/components/schemas/ActorKind" } }
+        - { name: actor_id, in: query, schema: { type: string } }
+        - { name: resource_type, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Strona dziennika
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditPage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: denar_session
+    bot:
+      type: http
+      scheme: bearer
+      description: Token bota dnr_…
+  parameters:
+    HouseholdId:
+      name: householdId
+      in: path
+      required: true
+      schema: { type: string }
+    BotId:
+      name: botId
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Problem:
+      description: Błąd w formacie RFC 7807
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RateLimited:
+      description: Za dużo prób; ponów po Retry-After sekundach
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, description: "URI rodzaju błędu, np. urn:denar:problem:last-owner" }
+        code:
+          type: string
+          enum: [bad_request, validation, unauthenticated, forbidden, not_found, conflict, rate_limited, internal]
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errors:
+          type: array
+          description: Błędy walidacji pól (dla 422)
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+    AuthConfig:
+      type: object
+      required: [oidc_enabled, local_login, instance_name, version]
+      properties:
+        oidc_enabled: { type: boolean }
+        local_login: { type: boolean }
+        instance_name: { type: string }
+        version: { type: string }
+    LocalLogin:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string }
+        password: { type: string }
+    User:
+      type: object
+      required: [id, email, name, instance_admin, created_at]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        name: { type: string }
+        instance_admin: { type: boolean, description: Konto startowe instancji (narzędzia CLI) }
+        created_at: { type: string, format: date-time }
+    Role:
+      type: string
+      enum: [owner, admin, member, viewer]
+    Me:
+      type: object
+      required: [kind, households]
+      properties:
+        kind: { type: string, enum: [user, bot] }
+        user: { $ref: "#/components/schemas/User" }
+        bot: { $ref: "#/components/schemas/Bot" }
+        households:
+          type: array
+          description: Gospodarstwa z rolą (bot — własne, z rolą twórcy)
+          items: { $ref: "#/components/schemas/Household" }
+    Currency:
+      type: object
+      required: [code, decimals]
+      properties:
+        code: { type: string, description: Kod ISO 4217 }
+        decimals: { type: integer, description: Liczba miejsc jednostki minimalnej }
+    CurrencyList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Currency" }
+    Household:
+      type: object
+      required: [id, name, base_currency, timezone, month_start_day, created_at, role]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        base_currency: { type: string, description: Kod ISO 4217; niezmienny }
+        timezone: { type: string, description: Strefa IANA, np. Europe/Warsaw }
+        month_start_day: { type: integer, minimum: 1, maximum: 28 }
+        created_at: { type: string, format: date-time }
+        role:
+          description: Rola wywołującego (bot — rola twórcy; null, gdy twórca nie jest już członkiem)
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - type: "null"
+    HouseholdList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Household" }
+    HouseholdCreate:
+      type: object
+      required: [name, base_currency, timezone, month_start_day]
+      properties:
+        name: { type: string }
+        base_currency: { type: string }
+        timezone: { type: string }
+        month_start_day: { type: integer }
+    HouseholdUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        timezone: { type: string }
+        month_start_day: { type: integer }
+    Member:
+      type: object
+      required: [user_id, email, name, role, joined_at]
+      properties:
+        user_id: { type: string }
+        email: { type: string }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        joined_at: { type: string, format: date-time }
+    MemberList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Member" }
+    MemberUpdate:
+      type: object
+      required: [role]
+      properties:
+        role: { type: string }
+    InvitationState:
+      type: string
+      enum: [pending, accepted, revoked, expired]
+    Invitation:
+      type: object
+      required: [id, email, role, state, created_by, created_at, expires_at, accepted_at, revoked_at]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        state: { $ref: "#/components/schemas/InvitationState" }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        accepted_at: { type: [string, "null"], format: date-time }
+        revoked_at: { type: [string, "null"], format: date-time }
+    InvitationList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Invitation" }
+    InvitationCreate:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string }
+        role: { type: string }
+    InvitationCreated:
+      type: object
+      required: [invitation, token, url]
+      properties:
+        invitation: { $ref: "#/components/schemas/Invitation" }
+        token: { type: string, description: Jednorazowy token; tylko w tej odpowiedzi }
+        url: { type: string, description: "Link do przekazania: <DENAR_BASE_URL>/invite#<token>" }
+    InvitationToken:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    InvitationPreview:
+      type: object
+      required: [household_name, email, role, expires_at, account_exists]
+      properties:
+        household_name: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        expires_at: { type: string, format: date-time }
+        account_exists: { type: boolean, description: Czy zaproszony e-mail ma już konto (wtedy zaloguj i przyjmij) }
+    InvitationRegister:
+      type: object
+      required: [token, name, password]
+      properties:
+        token: { type: string }
+        name: { type: string }
+        password: { type: string, description: 12–128 znaków }
+    Registered:
+      type: object
+      required: [user, household]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        household: { $ref: "#/components/schemas/Household" }
+    Scope:
+      type: string
+      enum:
+        - wallets:read
+        - wallets:write
+        - transactions:read
+        - transactions:write
+        - budget:read
+        - budget:write
+        - subscriptions:read
+        - subscriptions:write
+        - reports:read
+        - notifications:read
+    Bot:
+      type: object
+      required: [id, household_id, name, scopes, effective_scopes, wallet_ids, created_by, creator_role, created_at,
+        expires_at, disabled, token_prefix, last_used_at]
+      properties:
+        id: { type: string }
+        household_id: { type: string }
+        name: { type: string }
+        scopes:
+          type: array
+          items: { $ref: "#/components/schemas/Scope" }
+        effective_scopes:
+          type: array
+          description: Scope'y, na które pozwala obecna rola twórcy (viewer — tylko :read; brak członkostwa — żadne)
+          items: { $ref: "#/components/schemas/Scope" }
+        wallet_ids:
+          type: array
+          description: Portfele, do których bot jest ograniczony; pusta lista — wszystkie widoczne dla twórcy
+          items: { type: string }
+        created_by: { type: string }
+        creator_role:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - type: "null"
+        created_at: { type: string, format: date-time }
+        expires_at: { type: [string, "null"], format: date-time }
+        disabled: { type: boolean }
+        token_prefix: { type: string, description: Początek tokenu, do rozpoznania }
+        last_used_at: { type: [string, "null"], format: date-time }
+    BotList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Bot" }
+    BotCreate:
+      type: object
+      required: [name, scopes]
+      properties:
+        name: { type: string }
+        scopes:
+          type: array
+          items: { type: string }
+        wallet_ids:
+          type: array
+          items: { type: string }
+        expires_at: { type: [string, "null"], format: date-time }
+    BotUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        scopes:
+          type: array
+          items: { type: string }
+        wallet_ids:
+          type: array
+          items: { type: string }
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+          description: null usuwa wygaśnięcie
+        disabled: { type: boolean }
+    BotWithToken:
+      type: object
+      required: [bot, token]
+      properties:
+        bot: { $ref: "#/components/schemas/Bot" }
+        token: { type: string, description: "Token dnr_…; tylko w tej odpowiedzi" }
+    ActorKind:
+      type: string
+      enum: [user, bot, system]
+    Actor:
+      type: object
+      required: [kind, id]
+      properties:
+        kind: { $ref: "#/components/schemas/ActorKind" }
+        id: { type: string }
+    AuditEntry:
+      type: object
+      required: [id, at, actor, action, resource_type, resource_id, changes]
+      properties:
+        id: { type: string }
+        at: { type: string, format: date-time }
+        actor: { $ref: "#/components/schemas/Actor" }
+        action: { type: string, description: "np. bot.created, membership.role_changed" }
+        resource_type: { type: string, description: "household, membership, invitation, bot (kolejne etapy dodają własne)" }
+        resource_id: { type: string }
+        changes:
+          type: object
+          description: Zmienione pola; wartości bez sekretów
+          additionalProperties:
+            type: object
+            required: [from, to]
+            properties:
+              from: {}
+              to: {}
+    AuditPage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AuditEntry" }
+        next_cursor: { type: [string, "null"] }

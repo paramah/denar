@@ -115,3 +115,11 @@ func (d *DB) Close() error {
 	}
 	return first
 }
+
+// Ping checks that both pools reach the database.
+func (d *DB) Ping(ctx context.Context) error {
+	if err := d.writer.PingContext(ctx); err != nil {
+		return err
+	}
+	return d.reader.PingContext(ctx)
+}
