@@ -65,4 +65,3 @@ func (uc *BootstrapAdmin) Do(ctx context.Context, in BootstrapAdminInput) (creat
 	}
 	return created, nil
 }
-

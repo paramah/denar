@@ -32,7 +32,9 @@ func NewHouseholdRepository(s *Store) *HouseholdRepository {
 }
 
 // Cascade registers repositories whose rows belong to households.
-func (r *HouseholdRepository) Cascade(parts ...householdPart) { r.cascade = append(r.cascade, parts...) }
+func (r *HouseholdRepository) Cascade(parts ...householdPart) {
+	r.cascade = append(r.cascade, parts...)
+}
 
 func (r *HouseholdRepository) Snapshot() (restore func()) {
 	saved := maps.Clone(r.households)

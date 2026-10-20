@@ -124,4 +124,3 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 		wantError(t, env.Households.Delete(ctx, "h1"), domain.ErrNotFound)
 	})
 }
-

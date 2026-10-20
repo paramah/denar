@@ -177,4 +177,3 @@ func disableBotsOf(ctx context.Context, d Deps, householdID, creatorID domain.ID
 	}
 	return nil
 }
-
