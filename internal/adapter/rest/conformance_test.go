@@ -192,8 +192,8 @@ var conformanceCases = map[string][]conformanceCase{
 		{status: 200, as: "owner", target: "/api/me"},
 		{status: 200, as: "bot", target: "/api/me"},
 	},
-	"listCurrencies":  {{status: 200, as: "viewer", target: "/api/currencies"}},
-	"listHouseholds":  {{status: 200, as: "owner", target: "/api/households"}, {status: 200, as: "bot", target: "/api/households"}},
+	"listCurrencies": {{status: 200, as: "viewer", target: "/api/currencies"}},
+	"listHouseholds": {{status: 200, as: "owner", target: "/api/households"}, {status: 200, as: "bot", target: "/api/households"}},
 	"createHousehold": {
 		{status: 201, as: "member", target: "/api/households", body: `{"name":"Dom 2","base_currency":"EUR","timezone":"Europe/Berlin","month_start_day":25}`},
 		{status: 403, as: "bot", target: "/api/households", body: `{"name":"X","base_currency":"EUR","timezone":"UTC","month_start_day":1}`},
