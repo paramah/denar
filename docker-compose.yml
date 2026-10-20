@@ -1,0 +1,40 @@
+# Denar: jedno binarium z API i Web UI w kontenerze `denar`.
+# Start: skopiuj .env.example do .env, ustaw hasło i uruchom `task compose:up`.
+services:
+  denar:
+    build:
+      context: .
+      args:
+        VERSION: ${DENAR_VERSION:-dev}
+    image: denar:${DENAR_VERSION:-dev}
+    restart: unless-stopped
+    environment:
+      DENAR_AUTO_MIGRATE: "true"
+      DENAR_BASE_URL: ${DENAR_BASE_URL:-http://localhost:8080}
+      DENAR_ADMIN_EMAIL: ${DENAR_ADMIN_EMAIL:?ustaw DENAR_ADMIN_EMAIL w .env}
+      DENAR_ADMIN_PASSWORD: ${DENAR_ADMIN_PASSWORD:?ustaw DENAR_ADMIN_PASSWORD w .env}
+      DENAR_ADMIN_NAME: ${DENAR_ADMIN_NAME:-Admin}
+      DENAR_INSTANCE_NAME: ${DENAR_INSTANCE_NAME:-}
+      DENAR_LOCAL_LOGIN: ${DENAR_LOCAL_LOGIN:-true}
+      DENAR_SESSION_TTL: ${DENAR_SESSION_TTL:-168h}
+      DENAR_INVITE_TTL: ${DENAR_INVITE_TTL:-168h}
+      DENAR_OIDC_ISSUER: ${DENAR_OIDC_ISSUER:-}
+      DENAR_OIDC_CLIENT_ID: ${DENAR_OIDC_CLIENT_ID:-}
+      DENAR_OIDC_CLIENT_SECRET: ${DENAR_OIDC_CLIENT_SECRET:-}
+      DENAR_OIDC_AUTO_CREATE: ${DENAR_OIDC_AUTO_CREATE:-false}
+      DENAR_TRUSTED_PROXIES: ${DENAR_TRUSTED_PROXIES:-}
+      DENAR_BOT_RATE: ${DENAR_BOT_RATE:-120}
+    # Domyślnie tylko na pętli zwrotnej: ruch nie jest szyfrowany, więc do
+    # sieci wystawia go reverse proxy z TLS, a nie ten port.
+    ports:
+      - "${DENAR_BIND:-127.0.0.1}:${DENAR_PORT:-8080}:8080"
+    volumes:
+      - denar-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+
+volumes:
+  denar-data:

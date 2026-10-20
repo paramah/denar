@@ -164,3 +164,6 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | Etap | Bramka | Kto | Data |
 |---|---|---|---|
 | 001-core | requirements:approved | człowiek | 2026-10-21 |
+| 001-core | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 001-core | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 001-core | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |

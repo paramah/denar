@@ -1,0 +1,113 @@
+version: "3"
+
+vars:
+  # Nadpisz, np. COMPOSE="podman compose" task compose:up
+  COMPOSE: '{{.COMPOSE | default "docker compose"}}'
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+
+tasks:
+  build:
+    desc: Buduje binarium denar (z osadzonym Web UI, jeśli zbudowane)
+    deps: [web:build]
+    cmds:
+      - go build -ldflags {{printf "-X main.version=%s" .VERSION | shellQuote}} -o denar ./cmd/denar
+
+  test:
+    desc: Uruchamia testy z detektorem wyścigów
+    cmds:
+      - go test -race ./...
+
+  vet:
+    desc: Uruchamia go vet
+    cmds:
+      - go vet ./...
+
+  fmt:
+    desc: Sprawdza formatowanie gofmt
+    cmds:
+      - cmd: |
+          files="$(gofmt -l $(git ls-files --cached --others --exclude-standard '*.go'))"
+          if [ -n "$files" ]; then
+            echo "$files"
+            echo "run gofmt -w on the files above"
+            exit 1
+          fi
+        silent: true
+
+  generate:
+    desc: Regeneruje kod z api/openapi.yaml (oapi-codegen)
+    cmds:
+      - go generate ./...
+
+  # Zadania web:* działają, gdy istnieje web/package.json (etap 007);
+  # do tego czasu są pomijane, a serwer podaje stronę zastępczą.
+  web:build:
+    desc: Buduje Web UI do web/dist (pomijane bez web/package.json)
+    cmds:
+      - cmd: |
+          if [ -f web/package.json ]; then
+            cd web && npm ci && npm run build
+          else
+            echo "web/package.json nie istnieje — pomijam budowanie Web UI"
+          fi
+        silent: true
+
+  web:test:
+    desc: Testy Web UI (pomijane bez web/package.json)
+    cmds:
+      - cmd: |
+          if [ -f web/package.json ]; then
+            cd web && npm test
+          else
+            echo "web/package.json nie istnieje — pomijam testy Web UI"
+          fi
+        silent: true
+
+  verify:
+    desc: Format, vet, Web UI (build i testy), testy Go i build
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: web:build
+      - task: web:test
+      - task: test
+      - task: build
+
+  migrate:
+    desc: Migruje bazę z konfiguracją z .env.dev
+    dotenv: [".env.dev"]
+    cmds:
+      - mkdir -p .dev
+      - go run ./cmd/denar migrate
+
+  run:
+    desc: Buduje i uruchamia serwer (konfiguracja ze zmiennych DENAR_*)
+    deps: [build]
+    cmds:
+      - ./denar serve
+
+  dev:api:
+    desc: Uruchamia serwer API z konfiguracją z .env.dev
+    dotenv: [".env.dev"]
+    preconditions:
+      - sh: test -f .env.dev
+        msg: "Brak pliku .env.dev; skopiuj .env.dev.example do .env.dev i ustaw hasło"
+    cmds:
+      - mkdir -p .dev
+      - go run ./cmd/denar serve
+
+  compose:up:
+    desc: Buduje obraz i uruchamia kontener (wymaga pliku .env)
+    cmds:
+      - "{{.COMPOSE}} up --build --detach --wait"
+
+  compose:down:
+    desc: Zatrzymuje kontener; dane zostają w wolumenie denar-data
+    cmds:
+      - "{{.COMPOSE}} down"
+
+  compose:logs:
+    desc: Pokazuje logi kontenera
+    cmds:
+      - "{{.COMPOSE}} logs --follow"

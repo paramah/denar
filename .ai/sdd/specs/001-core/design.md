@@ -178,7 +178,14 @@ Kolejność: `noSniff → logRequests → recoverPanics → protectCrossOrigin (
 | AD-014 | Limity w pamięci procesu (jak Straylight) | Jedna instancja self-hosted |
 | AD-015 | Brak zmiany własnego hasła i administracji kontami instancji w 001 | Poza zakresem FR; do dopisania w 007/później |
 
+| AD-016 | `/healthz` sprawdza bazę (`DB.Ping`, wstrzykiwane jako `rest.Deps.Health`): 200 albo 503 | US-001 („gdy baza jest dostępna”) |
+| AD-017 | `GET /households` i `GET /me` dostępne też dla bota (jego gospodarstwo, rola twórcy) | Introspekcja dla botów i MCP (006) |
+| AD-018 | Limity: 5 nieudanych logowań/min na (IP, e-mail), 20/min na IP; 20/min na IP dla startu OIDC, preview i register; 20 odrzuconych Bearer/min na IP; `DENAR_BOT_RATE` żądań bota/min — wszystkie 429 + `Retry-After` | FR-011, NFR-001 |
+
 ## Ograniczenia
 
 - Brak resetu hasła i zmiany własnego hasła (poza zakresem 001).
-- MCP (006) użyje `AuthenticateBot` i `access`; w 001 brak `/mcp`.
+- MCP (006) użyje `AuthenticateBot` i `access`; w 001 brak `/mcp` (ścieżka zarezerwowana w `rootHandler`, odpowiada 404).
+- Limity żądań trzymane w pamięci procesu (jedna instancja).
+- Bot jest czytany przy uwierzytelnieniu żądania; use case'y zapisujące dane przez bota (002+) powinny na początku transakcji ponownie odczytać bota (`Bots.ByID` + `Usable` + zgodny `TokenHash`), jak `currentPrincipal` w Straylight — w 001 boty niczego nie zapisują.
+- `WalletAllowed` sprawdza tylko listę bota; filtr portfeli widocznych dla twórcy (prywatne portfele) dopisuje 002.

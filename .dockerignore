@@ -1,0 +1,14 @@
+.git
+.ai
+.serena
+.task
+.dev
+web/node_modules
+web/dist/*
+!web/dist/.gitkeep
+denar
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.dev

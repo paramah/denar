@@ -23,7 +23,7 @@
 
 | ID | Name | Status | Path |
 |----|------|--------|------|
-| 001 | core | requirements:draft | `.ai/sdd/specs/001-core/` |
+| 001 | core | implementation:done (delegated) | `.ai/sdd/specs/001-core/` |
 | 002 | wallets-transactions | — | |
 | 003 | envelope-budget | — | |
 | 004 | subscriptions | — | |
