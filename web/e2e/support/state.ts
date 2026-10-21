@@ -10,6 +10,7 @@ import { join } from 'node:path'
 const dirKey = 'DENAR_E2E_DIR'
 const passwordKey = 'DENAR_E2E_ADMIN_PASSWORD'
 const portKey = 'DENAR_E2E_PORT'
+const nbpPortKey = 'DENAR_E2E_NBP_PORT'
 
 async function freePort(): Promise<number> {
   const server = createServer()
@@ -23,6 +24,11 @@ process.env[portKey] ??= String(await freePort())
 export const listenAddress = `127.0.0.1:${process.env[portKey]}`
 /** 127.0.0.1, nie localhost: kontrola originu API porównuje hosty. */
 export const baseURL = `http://${listenAddress}`
+
+process.env[nbpPortKey] ??= String(await freePort())
+/** Atrapa NBP (e2e/support/nbp-stub.mjs): stały kurs 4.0 PLN za każdą walutę. */
+export const nbpPort = Number(process.env[nbpPortKey])
+export const nbpURL = `http://127.0.0.1:${nbpPort}`
 
 export const adminEmail = 'admin-e2e@example.test'
 export const adminName = 'Ada Admin'

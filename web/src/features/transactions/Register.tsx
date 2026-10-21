@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { usePayees } from '../../api/hooks/payees.ts'
 import { useTransactions } from '../../api/hooks/transactions.ts'
@@ -169,6 +169,8 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
   }, [debouncedTag])
 
   const active = (Object.keys(paramNames) as Param[]).filter((name) => params.get(name) && !(walletId && name === 'wallet'))
+  const [expanded, setExpanded] = useState(false)
+  const advancedId = useId()
 
   return (
     <form role="search" aria-label="Filtry transakcji" className={styles.filters} onSubmit={(event) => event.preventDefault()}>
@@ -182,46 +184,60 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
           className={styles.filterSearch}
           maxLength={100}
         />
-        {!walletId && (
+        <Button
+          className={styles.filterToggle}
+          icon="search"
+          aria-expanded={expanded}
+          aria-controls={advancedId}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
+          {active.filter((name) => name !== 'q').length > 0 && ` (${active.filter((name) => name !== 'q').length})`}
+        </Button>
+      </div>
+      <div id={advancedId} className={styles.advanced} data-expanded={expanded}>
+        <div className={styles.filterRow}>
+          {!walletId && (
+            <SelectField
+              label="Portfel"
+              value={params.get('wallet') ?? ''}
+              onChange={(event) => set({ wallet: event.target.value })}
+              options={[
+                { value: '', label: 'Wszystkie' },
+                ...wallets.map((w) => ({ value: w.id, label: w.archived_at ? `${w.name} (archiwum)` : w.name })),
+              ]}
+            />
+          )}
           <SelectField
-            label="Portfel"
-            value={params.get('wallet') ?? ''}
-            onChange={(event) => set({ wallet: event.target.value })}
+            label="Kontrahent"
+            value={params.get('payee') ?? ''}
+            onChange={(event) => set({ payee: event.target.value })}
+            options={[{ value: '', label: 'Wszyscy' }, ...(payees.data ?? []).map((p) => ({ value: p.id, label: p.name }))]}
+          />
+        </div>
+        <div className={styles.filterRow}>
+          <TextField label="Od dnia" type="date" value={params.get('from') ?? ''} onChange={(event) => set({ from: event.target.value })} />
+          <TextField label="Do dnia" type="date" value={params.get('to') ?? ''} onChange={(event) => set({ to: event.target.value })} />
+          <SelectField
+            label="Rodzaj"
+            value={params.get('kind') ?? ''}
+            onChange={(event) => set({ kind: event.target.value })}
             options={[
-              { value: '', label: 'Wszystkie' },
-              ...wallets.map((w) => ({ value: w.id, label: w.archived_at ? `${w.name} (archiwum)` : w.name })),
+              { value: '', label: 'Każdy' },
+              ...(['expense', 'income', 'transfer'] as const).map((k) => ({ value: k, label: kindLabels[k] })),
             ]}
           />
-        )}
-        <SelectField
-          label="Kontrahent"
-          value={params.get('payee') ?? ''}
-          onChange={(event) => set({ payee: event.target.value })}
-          options={[{ value: '', label: 'Wszyscy' }, ...(payees.data ?? []).map((p) => ({ value: p.id, label: p.name }))]}
-        />
-      </div>
-      <div className={styles.filterRow}>
-        <TextField label="Od dnia" type="date" value={params.get('from') ?? ''} onChange={(event) => set({ from: event.target.value })} />
-        <TextField label="Do dnia" type="date" value={params.get('to') ?? ''} onChange={(event) => set({ to: event.target.value })} />
-        <SelectField
-          label="Rodzaj"
-          value={params.get('kind') ?? ''}
-          onChange={(event) => set({ kind: event.target.value })}
-          options={[
-            { value: '', label: 'Każdy' },
-            ...(['expense', 'income', 'transfer'] as const).map((k) => ({ value: k, label: kindLabels[k] })),
-          ]}
-        />
-        <SelectField
-          label="Status"
-          value={params.get('status') ?? ''}
-          onChange={(event) => set({ status: event.target.value })}
-          options={[
-            { value: '', label: 'Każdy' },
-            ...(['pending', 'cleared', 'reconciled'] as const).map((s) => ({ value: s, label: statusLabels[s] })),
-          ]}
-        />
-        <TextField label="Tag" value={tag} onChange={(event) => setTag(event.target.value)} autoComplete="off" maxLength={40} />
+          <SelectField
+            label="Status"
+            value={params.get('status') ?? ''}
+            onChange={(event) => set({ status: event.target.value })}
+            options={[
+              { value: '', label: 'Każdy' },
+              ...(['pending', 'cleared', 'reconciled'] as const).map((s) => ({ value: s, label: statusLabels[s] })),
+            ]}
+          />
+          <TextField label="Tag" value={tag} onChange={(event) => setTag(event.target.value)} autoComplete="off" maxLength={40} />
+        </div>
       </div>
       {active.length > 0 && (
         <div className={styles.filterFoot}>

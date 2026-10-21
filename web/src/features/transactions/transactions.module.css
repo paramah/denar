@@ -247,7 +247,17 @@
 }
 
 .filterSearch {
-  grid-column: span 2;
+  grid-column: 1 / -1;
+}
+
+.advanced {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Na komputerze dodatkowe filtry są zawsze widoczne; przełącznik tylko na telefonie. */
+.filterToggle {
+  display: none;
 }
 
 .filterFoot {
@@ -411,6 +421,15 @@ button.title:hover {
 
   .filterSearch {
     grid-column: auto;
+  }
+
+  .filterToggle {
+    display: inline-flex;
+    justify-self: start;
+  }
+
+  .advanced[data-expanded='false'] {
+    display: none;
   }
 
   .splitLine {

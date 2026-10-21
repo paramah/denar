@@ -6,58 +6,9 @@
   color: var(--ink);
 }
 
-.ledger {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: var(--space-5);
-  padding: var(--space-5);
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) * 2);
-  background: var(--surface);
-}
-
-.ledgerMain {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
-}
-
-.ledgerLabel {
-  color: var(--muted);
-  font-weight: 560;
-}
-
-.ledgerNote {
-  color: var(--muted);
-  font-size: var(--text-sm);
-}
-
-.facts {
-  display: grid;
-  gap: var(--space-3);
-  margin: 0;
-  padding-left: var(--space-5);
-  border-left: 1px solid var(--line);
-}
-
-.facts div {
-  display: grid;
-}
-
-.facts dt {
-  color: var(--muted);
-  font-size: var(--text-sm);
-}
-
-.facts dd {
-  margin: 0;
-  font-weight: 600;
-}
-
 .steps {
   display: grid;
   gap: var(--space-3);
-  margin-top: var(--space-6);
 }
 
 .steps ul {
@@ -100,17 +51,4 @@
 .stepText {
   color: var(--muted);
   font-size: var(--text-sm);
-}
-
-@media (max-width: 47.99rem) {
-  .ledger {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: var(--space-4) 0 0;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
 }

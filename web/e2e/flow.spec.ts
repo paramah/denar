@@ -27,7 +27,7 @@ test('login → household → invitation → bot token → audit', async ({ page
   await expect(page).toHaveURL(/\/h\/[0-9A-Z]+$/)
   const householdUrl = new URL(page.url()).pathname
   await expect(page.getByRole('heading', { level: 1, name: /Ada/ })).toBeVisible()
-  await expect(page.getByText('0,00 €')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Sumy portfeli' })).toContainText('0,00 €')
   await expectAccessible(page, 'pulpit')
 
   // Zaproszenie: link pokazany raz.

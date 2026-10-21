@@ -29,13 +29,19 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 
 > Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
 
-- [ ] **T-101 Spec części B** — sekcje części B w `requirements.md`, `design.md`, `tasks.md`; `.status`.
-- [ ] **T-102 Kwoty i typy** — `lib/money.ts` (`parseAmountInput`, `negateDecimal`, `absDecimal`, `parseRateInput`, `formatRate`, `decimalsOf`), `lib/format.ts` (`todayIn`, `formatDay`), `lib/labels.ts` (typy portfeli, rodzaje, statusy, źródła, akcje audytu 002), `lib/features.ts`, `api/types.ts`, `api/keys.ts`. Testy tabelaryczne. FR-B16.
-- [ ] **T-103 Hooki API** — `api/hooks/{wallets,transactions,payees,fx}.ts`; fabryki MSW. FR-B01…FR-B41.
-- [ ] **T-104 Portfele** — `WalletsPage`, `WalletCard`, `WalletDialog`, `WalletPage`, trasy, menu. Testy. FR-B01…FR-B05.
-- [ ] **T-105 Transakcje** — `TransactionDialog`, `PayeeInput`, `EnvelopeField`, `SplitEditor`, `Register`, `TransactionRow`, `StatusToggle`, `RatePendingBadge`, `TransactionsPage`, skrót `n`. Testy (walidacja, 422/409, splity z flagą). FR-B10…FR-B19.
-- [ ] **T-106 Przelewy** — `TransferDialog`. Testy (wielowalutowy). FR-B20.
-- [ ] **T-107 Kontrahenci i kursy** — `PayeesTab`, `RatesTab`, zakładki ustawień. Testy. FR-B30, FR-B40, FR-B41.
-- [ ] **T-108 Boty — portfele** — `WalletScopePicker` w tworzeniu i dialog „Portfele”. Testy. FR-B50.
-- [ ] **T-109 Pulpit** — `features/dashboard/DashboardPage`. Testy. FR-B60.
-- [ ] **T-110 E2E** — stub NBP, `e2e/wallets.spec.ts`, nowe ekrany w `a11y.spec.ts`/`mobile.spec.ts`. NFR-B01, NFR-B02.
+- [x] **T-101 Spec części B** — sekcje części B w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [x] **T-102 Kwoty i typy** — `lib/money.ts` (`parseAmountInput`, `negateDecimal`, `absDecimal`, `parseRateInput`, `formatRate`, `decimalsOf`), `lib/format.ts` (`todayIn`, `formatDay`), `lib/labels.ts` (typy portfeli, rodzaje, statusy, źródła, akcje audytu 002), `lib/features.ts`, `api/types.ts`, `api/keys.ts`. Testy tabelaryczne. FR-B16.
+- [x] **T-103 Hooki API** — `api/hooks/{wallets,transactions,payees,fx}.ts`; fabryki MSW. FR-B01…FR-B41.
+- [x] **T-104 Portfele** — `WalletsPage`, `WalletCard`, `WalletDialog`, `WalletPage`, trasy, menu. Testy. FR-B01…FR-B05.
+- [x] **T-105 Transakcje** — `TransactionDialog`, `PayeeInput`, `EnvelopeField`, `SplitEditor`, `Register`, `TransactionRow`, `StatusToggle`, `RatePendingBadge`, `TransactionsPage`, skrót `n`. Testy (walidacja, 422/409, splity z flagą). FR-B10…FR-B19.
+- [x] **T-106 Przelewy** — `TransferDialog`. Testy (wielowalutowy). FR-B20.
+- [x] **T-107 Kontrahenci i kursy** — `PayeesTab`, `RatesTab`, zakładki ustawień. Testy. FR-B30, FR-B40, FR-B41.
+- [x] **T-108 Boty — portfele** — `WalletScopePicker` w tworzeniu i dialog „Portfele”. Testy. FR-B50.
+- [x] **T-109 Pulpit** — `features/dashboard/DashboardPage`. Testy. FR-B60.
+- [x] **T-110 E2E** — stub NBP, `e2e/wallets.spec.ts`, nowe ekrany w `a11y.spec.ts`/`mobile.spec.ts`. NFR-B01, NFR-B02.
+
+## Wynik części B
+
+- T-101…T-110 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 177 testów w 19 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
+- `task web:e2e`: 61 testów Playwright zielonych (4 pominięte — testy telefonu w projektach desktopowych): nowy przepływ portfele PLN/USD → wydatek → przelew wielowalutowy → salda → rejestr → pulpit, ręczny kurs (CHF w gospodarstwie EUR), axe na nowych ekranach i dialogach w motywie jasnym, ciemnym i na telefonie, rejestr bez poziomego przewijania na 390 px. NBP zastępuje atrapa `e2e/support/nbp-stub.mjs` (drugi `webServer`, `DENAR_NBP_URL`) — testy nie wychodzą do sieci.
+- Poprawki znalezione przez e2e: pulpit pokazuje teraz kilka kwot „0,00 €” (kafelki), więc test części A sprawdza region „Sumy portfeli”; przycisk „Edytuj” portfela trzeba odróżniać od „Edytuj: <transakcja>” w wierszach rejestru (`exact`).

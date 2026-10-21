@@ -17,20 +17,31 @@ test('invitation without a token', async ({ page }) => {
 
 test.describe('signed in', () => {
   let householdPath = ''
+  let walletPath = ''
 
   test.beforeEach(async ({ page }) => {
     await loginViaApi(page.request)
     const household = await createHousehold(page.request)
     householdPath = `/h/${household.id}`
     // Coś do pokazania na listach.
-    await page.request.post(`/api${householdPath.replace('/h/', '/households/')}/bots`, {
-      data: { name: 'Raporty', scopes: ['reports:read'] },
+    const api = `/api/households/${household.id}`
+    await page.request.post(`${api}/bots`, { data: { name: 'Raporty', scopes: ['reports:read'] } })
+    const wallet = await (
+      await page.request.post(`${api}/wallets`, {
+        data: { name: 'Konto', type: 'checking', currency: 'PLN', opening_balance: { amount: '1200.00', currency: 'PLN' } },
+      })
+    ).json()
+    await page.request.post(`${api}/wallets`, { data: { name: 'Lokata', type: 'savings', currency: 'USD', on_budget: false } })
+    await page.request.post(`${api}/transactions`, {
+      data: { wallet_id: wallet.id, amount: { amount: '-35.90', currency: 'PLN' }, payee_name: 'Apteka', tags: ['zdrowie'], status: 'pending' },
     })
+    walletPath = `/wallets/${wallet.id}`
   })
 
   const screens: [string, string, RegExp | string][] = [
     ['dashboard', '', /Dzień dobry|Dobry wieczór/],
     ['wallets', '/wallets', 'Portfele'],
+    ['transactions', '/transactions', 'Transakcje'],
     ['budget', '/budget', 'Budżet'],
     ['subscriptions', '/subscriptions', 'Subskrypcje'],
     ['notifications', '/notifications', 'Powiadomienia'],
@@ -38,6 +49,8 @@ test.describe('signed in', () => {
     ['settings members', '/settings/members', 'Ustawienia'],
     ['settings invitations', '/settings/invitations', 'Ustawienia'],
     ['settings bots', '/settings/bots', 'Ustawienia'],
+    ['settings payees', '/settings/payees', 'Ustawienia'],
+    ['settings rates', '/settings/rates', 'Ustawienia'],
     ['settings audit', '/settings/audit', 'Ustawienia'],
   ]
 
@@ -48,6 +61,28 @@ test.describe('signed in', () => {
       await expectAccessible(page, label)
     })
   }
+
+  test('wallet page with register', async ({ page }) => {
+    await page.goto(householdPath + walletPath)
+    await expect(page.getByRole('heading', { level: 1, name: 'Konto' })).toBeVisible()
+    await expect(page.getByRole('article', { name: /Apteka/ })).toBeVisible()
+    await expectAccessible(page, 'portfel')
+  })
+
+  test('transaction, transfer and wallet dialogs', async ({ page }) => {
+    await page.goto(householdPath + walletPath)
+    await page.getByRole('button', { name: 'Dodaj transakcję' }).click()
+    await expect(page.getByRole('dialog', { name: 'Nowa transakcja' })).toBeVisible()
+    await expectAccessible(page, 'dialog transakcji')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Przelew' }).click()
+    await expect(page.getByRole('dialog', { name: 'Przelew między portfelami' })).toBeVisible()
+    await expectAccessible(page, 'dialog przelewu')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Edytuj', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Edycja portfela Konto' })).toBeVisible()
+    await expectAccessible(page, 'dialog portfela')
+  })
 
   test('user menu and household switcher', async ({ page, isMobile }) => {
     await page.goto(householdPath)
