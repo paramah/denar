@@ -345,3 +345,50 @@
   margin: var(--space-1) 0 0;
   padding-left: var(--space-4);
 }
+
+/* ---------- Połączenia (008) ---------- */
+
+.cardTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.plainList {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.connection {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.connectionError {
+  color: var(--outflow);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.accounts {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.accounts li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}

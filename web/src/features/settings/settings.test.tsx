@@ -15,8 +15,8 @@ function asRole(role: Role) {
 
 describe('settings tabs', () => {
   it.each<[Role, string[]]>([
-    ['owner', ['Gospodarstwo', 'Członkowie', 'Zaproszenia', 'Boty', 'Kontrahenci', 'Kursy walut', 'Powiadomienia', 'Dziennik zmian']],
-    ['admin', ['Gospodarstwo', 'Członkowie', 'Zaproszenia', 'Boty', 'Kontrahenci', 'Kursy walut', 'Powiadomienia', 'Dziennik zmian']],
+    ['owner', ['Gospodarstwo', 'Członkowie', 'Zaproszenia', 'Boty', 'Kontrahenci', 'Kursy walut', 'Powiadomienia', 'Połączenia', 'Dziennik zmian']],
+    ['admin', ['Gospodarstwo', 'Członkowie', 'Zaproszenia', 'Boty', 'Kontrahenci', 'Kursy walut', 'Powiadomienia', 'Połączenia', 'Dziennik zmian']],
     ['member', ['Gospodarstwo', 'Członkowie', 'Boty', 'Kontrahenci', 'Kursy walut', 'Powiadomienia']],
     ['viewer', ['Gospodarstwo', 'Członkowie', 'Kontrahenci', 'Kursy walut', 'Powiadomienia']],
   ])('%s sees %j', async (role, tabs) => {

@@ -15,6 +15,7 @@ export const settingsTabs: Tab[] = [
   { path: 'payees', label: 'Kontrahenci', visible: () => true },
   { path: 'rates', label: 'Kursy walut', visible: () => true },
   { path: 'notifications', label: 'Powiadomienia', visible: () => true },
+  { path: 'connections', label: 'Połączenia', visible: canManage },
   { path: 'audit', label: 'Dziennik zmian', visible: canManage },
 ]
 

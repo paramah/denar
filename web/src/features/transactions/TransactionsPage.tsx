@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useHousehold } from '../../app/household.tsx'
-import { Button } from '../../components/Button/Button.tsx'
+import { householdPath } from '../../app/nav.ts'
+import { Button, LinkButton } from '../../components/Button/Button.tsx'
 import { PageHeader } from '../../components/PageHeader/PageHeader.tsx'
 import { useHotkey } from '../../lib/useHotkey.ts'
 import { Register } from './Register.tsx'
@@ -10,7 +11,7 @@ import styles from './transactions.module.css'
 
 /** Rejestr wszystkich widocznych portfeli. */
 export function TransactionsPage() {
-  const { role } = useHousehold()
+  const { household, role } = useHousehold()
   const canWrite = role !== 'viewer'
   const [adding, setAdding] = useState(false)
   const [transferring, setTransferring] = useState(false)
@@ -32,6 +33,9 @@ export function TransactionsPage() {
         actions={
           canWrite && (
             <>
+              <LinkButton icon="upload" to={householdPath(household.id, 'import')}>
+                Importuj CSV
+              </LinkButton>
               <Button icon="transfer" onClick={() => setTransferring(true)}>
                 Przelew
               </Button>

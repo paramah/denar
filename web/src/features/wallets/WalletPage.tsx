@@ -113,6 +113,9 @@ function WalletView({ wallet }: { wallet: Wallet }) {
                   <Button icon="transfer" onClick={() => setTransferring(true)}>
                     Przelew
                   </Button>
+                  <LinkButton icon="upload" to={householdPath(household.id, `import?wallet=${wallet.id}`)}>
+                    Importuj CSV
+                  </LinkButton>
                   <Button variant="primary" icon="plus" onClick={() => setAdding(true)} aria-keyshortcuts="n">
                     Dodaj transakcję
                   </Button>

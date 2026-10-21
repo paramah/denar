@@ -230,6 +230,24 @@ const paths: Record<string, ReactNode> = {
       <path d="M20.5 3.5 14 20.5l-4-6.5-6.5-4z" />
     </>
   ),
+  upload: (
+    <>
+      <path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9" />
+      <path d="M4.5 15v4.5h15V15" />
+    </>
+  ),
+  plug: (
+    <>
+      <path d="M9 3.5V8M15 3.5V8M6.5 8h11v3a5.5 5.5 0 0 1-11 0z" />
+      <path d="M12 16.5v4" />
+    </>
+  ),
+  undo: (
+    <>
+      <path d="M8.5 5 4.5 9l4 4" />
+      <path d="M4.5 9h10a5 5 0 0 1 0 10H10" />
+    </>
+  ),
   circle: <circle cx="12" cy="12" r="7.5" />,
   checkCircle: (
     <>
