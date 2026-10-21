@@ -9,6 +9,19 @@ Self-hosted household budget app with multi-currency wallets, YNAB-style envelop
 
 Denar is a single Go binary (Clean Architecture, SQLite) that serves the REST API, the MCP server and the web UI embedded into the binary.
 
+## Screenshots
+
+![Dashboard: balances, Ready-to-Assign, overspent envelopes and upcoming subscription renewals](docs/screenshots/en-dashboard.webp)
+
+| | |
+|---|---|
+| ![Envelope budget for the month](docs/screenshots/en-budget.webp) | ![Subscriptions overview with the renewal timeline](docs/screenshots/en-subscriptions.webp) |
+| **Envelope budget** (YNAB-style) | **Subscriptions** and upcoming renewals |
+| ![Transactions from all wallets in one register](docs/screenshots/en-transactions.webp) | ![Dashboard in the dark theme](docs/screenshots/en-dashboard-dark.webp) |
+| **Transactions** from all wallets | **Dark theme** |
+
+Screenshots come from the local demo (`task demo`); the demo data is in Polish.
+
 ## Features
 
 - **Accounts and households:** password login (argon2id) and OIDC with PKCE, sessions, several households per instance with roles `owner/admin/member/viewer`, invitations, audit log.
