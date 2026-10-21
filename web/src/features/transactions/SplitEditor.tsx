@@ -1,6 +1,8 @@
+import { Trans, useTranslation } from 'react-i18next'
 import { Button, IconButton } from '../../components/Button/Button.tsx'
 import { TextField } from '../../components/Field/Field.tsx'
 import { Money } from '../../components/Money/Money.tsx'
+import { decimalSeparator } from '../../lib/intl.ts'
 import { fromMinor, parseAmountInput, toMinor } from '../../lib/money.ts'
 import type { EnvelopeOption } from './envelopes.ts'
 import { AmountField, EnvelopeField } from './fields.tsx'
@@ -57,73 +59,81 @@ type Props = {
  * kontrolna. Kwoty linii mają znak transakcji, więc wpisuje się je bez znaku.
  */
 export function SplitEditor({ lines, onChange, currency, decimals, total, envelopes, showErrors, serverErrors = {} }: Props) {
+  const { t } = useTranslation('transactions')
   const check = checkSplits(lines, total, decimals)
   const balanced = check.remaining === 0n
+  const assigned = <Money amount={fromMinor(check.assigned, decimals)} currency={currency} />
   const set = (key: string, patch: Partial<SplitDraft>) =>
     onChange(lines.map((line) => (line.key === key ? { ...line, ...patch } : line)))
 
   return (
     <fieldset className={styles.splits}>
-      <legend>Podział na koperty</legend>
+      <legend>{t('split.legend')}</legend>
       {lines.map((line, index) => (
-        <div key={line.key} className={styles.splitLine} role="group" aria-label={`Linia ${index + 1}`}>
+        <div key={line.key} className={styles.splitLine} role="group" aria-label={t('split.line', { n: index + 1 })}>
           <EnvelopeField
-            label={`Koperta, linia ${index + 1}`}
+            label={t('split.envelope', { n: index + 1 })}
             value={line.envelopeId}
             onChange={(envelopeId) => set(line.key, { envelopeId })}
             options={envelopes}
             error={serverErrors[`splits[${index}].envelope_id`]}
           />
           <AmountField
-            label={`Kwota, linia ${index + 1}`}
+            label={t('split.amount', { n: index + 1 })}
             value={line.amount}
             onChange={(amount) => set(line.key, { amount })}
             currency={currency}
             error={(showErrors ? check.errors[line.key] : undefined) ?? serverErrors[`splits[${index}].amount`]}
           />
           <TextField
-            label={`Notatka, linia ${index + 1}`}
+            label={t('split.note', { n: index + 1 })}
             value={line.note}
             onChange={(event) => set(line.key, { note: event.target.value })}
             maxLength={1000}
           />
           <IconButton
             icon="trash"
-            label={`Usuń linię ${index + 1}`}
+            label={t('split.remove', { n: index + 1 })}
             onClick={() => onChange(lines.filter((other) => other.key !== line.key))}
           />
         </div>
       ))}
       <div>
         <Button size="sm" icon="plus" onClick={() => onChange([...lines, newSplitDraft(remainingDraft(check, decimals))])}>
-          Dodaj linię
+          {t('split.add')}
         </Button>
       </div>
       <p className={styles.splitTotal} data-balanced={balanced} aria-live="polite">
         <span>
-          Rozdzielono <Money amount={fromMinor(check.assigned, decimals)} currency={currency} />
-          {total !== null && (
-            <>
-              {' '}
-              z <Money amount={total} currency={currency} />
-            </>
+          {total !== null ? (
+            <Trans
+              t={t}
+              i18nKey="split.assignedOf"
+              components={{ assigned: assigned, total: <Money amount={total} currency={currency} /> }}
+            />
+          ) : (
+            <Trans t={t} i18nKey="split.assigned" components={{ assigned: assigned }} />
           )}
         </span>
         <span>
           {check.remaining === null
-            ? 'Najpierw podaj kwotę transakcji.'
+            ? t('split.amountFirst')
             : balanced
-              ? 'Suma się zgadza.'
+              ? t('split.balanced')
               : check.remaining > 0n
                 ? (
-                    <>
-                      Pozostało do rozdzielenia: <Money amount={fromMinor(check.remaining, decimals)} currency={currency} />
-                    </>
+                    <Trans
+                      t={t}
+                      i18nKey="split.remaining"
+                      components={{ amount: <Money amount={fromMinor(check.remaining, decimals)} currency={currency} /> }}
+                    />
                   )
                 : (
-                    <>
-                      Za dużo o <Money amount={fromMinor(-check.remaining, decimals)} currency={currency} />
-                    </>
+                    <Trans
+                      t={t}
+                      i18nKey="split.over"
+                      components={{ amount: <Money amount={fromMinor(-check.remaining, decimals)} currency={currency} /> }}
+                    />
                   )}
         </span>
       </p>
@@ -136,5 +146,5 @@ function remainingDraft(check: SplitCheck, decimals: number): Partial<SplitDraft
   if (check.remaining === null || check.remaining <= 0n) {
     return {}
   }
-  return { amount: fromMinor(check.remaining, decimals).replace('.', ',') }
+  return { amount: fromMinor(check.remaining, decimals).replace('.', decimalSeparator()) }
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Wallet } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
@@ -11,20 +12,21 @@ import styles from './wallets.module.css'
 
 /** Plakietki stanu portfela: poza budżetem, prywatny, archiwum, czeka na kurs. */
 export function WalletBadges({ wallet }: { wallet: Wallet }) {
+  const { t } = useTranslation('wallets')
   return (
     <span className={styles.badges}>
-      {!wallet.on_budget && <Badge>Poza budżetem</Badge>}
+      {!wallet.on_budget && <Badge>{t('badges.offBudget')}</Badge>}
       {wallet.visibility === 'private' && (
-        <Badge tone="brand" title="Widzą go tylko wybrane osoby">
+        <Badge tone="brand" title={t('badges.privateTitle')}>
           <Icon name="lock" size={12} />
-          Prywatny
+          {t('badges.private')}
         </Badge>
       )}
-      {wallet.archived_at && <Badge tone="warn">Zarchiwizowany</Badge>}
+      {wallet.archived_at && <Badge tone="warn">{t('badges.archived')}</Badge>}
       {wallet.rate_pending && (
-        <Badge tone="warn" title="Część transakcji czeka na kurs waluty; saldo bazowe jest częściowe">
+        <Badge tone="warn" title={t('badges.ratePendingTitle')}>
           <Icon name="clock" size={12} />
-          Czeka na kurs
+          {t('badges.ratePending')}
         </Badge>
       )}
     </span>
@@ -32,6 +34,7 @@ export function WalletBadges({ wallet }: { wallet: Wallet }) {
 }
 
 export function WalletCard({ wallet }: { wallet: Wallet }) {
+  const { t } = useTranslation('wallets')
   const { household } = useHousehold()
   const foreign = wallet.currency !== household.base_currency
   return (
@@ -39,7 +42,7 @@ export function WalletCard({ wallet }: { wallet: Wallet }) {
       className={styles.card}
       data-on-budget={wallet.on_budget}
       data-archived={!!wallet.archived_at}
-      aria-label={`Portfel ${wallet.name}`}
+      aria-label={t('card.label', { name: wallet.name })}
     >
       <div className={styles.cardHead}>
         <Link to={householdPath(household.id, `wallets/${wallet.id}`)} className={styles.cardName}>
@@ -50,7 +53,7 @@ export function WalletCard({ wallet }: { wallet: Wallet }) {
         </span>
       </div>
       <div className={styles.balanceMain}>
-        <span className="visually-hidden">Saldo:</span>
+        <span className="visually-hidden">{t('card.balance')}</span>
         <Money amount={wallet.balance.amount} currency={wallet.currency} size="lg" />
         {foreign && (
           <span className={styles.tileNote}>
@@ -60,7 +63,7 @@ export function WalletCard({ wallet }: { wallet: Wallet }) {
       </div>
       <dl className={styles.balances}>
         <div>
-          <dt>Rozliczone</dt>
+          <dt>{t('card.cleared')}</dt>
           <dd>
             <Money amount={wallet.cleared_balance.amount} currency={wallet.currency} size="sm" />
           </dd>
@@ -73,29 +76,28 @@ export function WalletCard({ wallet }: { wallet: Wallet }) {
 
 /** Kafelki sum: portfele budżetowe, poza budżetem, wszystkie (w walucie bazowej). */
 export function WalletSummary({ totals, currency }: { totals: WalletTotals; currency: string }) {
+  const { t } = useTranslation('wallets')
   const partial = totals.partial ? (
     <span className={styles.tileNote}>
-      <Icon name="clock" size={12} /> Część kwot czeka na kurs — suma jest częściowa.
+      <Icon name="clock" size={12} /> {t('summary.partial')}
     </span>
   ) : null
   return (
-    <section className={styles.summary} aria-label="Sumy portfeli">
+    <section className={styles.summary} aria-label={t('summary.label')}>
       <div className={styles.tile}>
-        <span className={styles.tileLabel}>Na portfelach budżetowych</span>
+        <span className={styles.tileLabel}>{t('summary.onBudget')}</span>
         <Money amount={totals.onBudget} currency={currency} size="xl" />
-        {partial ?? <span className={styles.tileNote}>Pieniądze, które rozdzielisz na koperty.</span>}
+        {partial ?? <span className={styles.tileNote}>{t('summary.onBudgetNote')}</span>}
       </div>
       <div className={styles.tile}>
-        <span className={styles.tileLabel}>Poza budżetem</span>
+        <span className={styles.tileLabel}>{t('summary.offBudget')}</span>
         <Money amount={totals.offBudget} currency={currency} size="lg" />
-        <span className={styles.tileNote}>Oszczędności, inwestycje, kredyty</span>
+        <span className={styles.tileNote}>{t('summary.offBudgetNote')}</span>
       </div>
       <div className={styles.tile}>
-        <span className={styles.tileLabel}>Razem</span>
+        <span className={styles.tileLabel}>{t('summary.all')}</span>
         <Money amount={totals.all} currency={currency} size="lg" />
-        <span className={styles.tileNote}>
-          {totals.count === 1 ? '1 aktywny portfel' : `Aktywne portfele: ${totals.count}`}
-        </span>
+        <span className={styles.tileNote}>{t('summary.count', { count: totals.count })}</span>
       </div>
     </section>
   )

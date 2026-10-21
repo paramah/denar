@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
 import { classify } from '../../api/errors.ts'
 import { useUpdateWallet, useWallet } from '../../api/hooks/wallets.ts'
@@ -25,6 +26,7 @@ import { WalletBadges } from './WalletCard.tsx'
 import { WalletDialog } from './WalletDialog.tsx'
 
 export function WalletPage() {
+  const { t } = useTranslation('wallets')
   const { walletId = '' } = useParams()
   const { household } = useHousehold()
   const wallet = useWallet(household.id, walletId)
@@ -33,32 +35,34 @@ export function WalletPage() {
     return <MissingWallet />
   }
   return (
-    <QueryState query={wallet} errorTitle="Nie udało się wczytać portfela" loading={<Skeleton lines={4} />}>
+    <QueryState query={wallet} errorTitle={t('page.loadFailed')} loading={<Skeleton lines={4} />}>
       {(data) => <WalletView wallet={data} />}
     </QueryState>
   )
 }
 
 function MissingWallet() {
+  const { t } = useTranslation('wallets')
   const { household } = useHousehold()
-  useDocumentTitle('Nie znaleziono portfela')
+  useDocumentTitle(t('page.notFound'))
   return (
     <EmptyState
       icon="wallet"
       headingLevel={1}
-      title="Nie znaleziono portfela"
+      title={t('page.notFound')}
       action={
         <LinkButton to={householdPath(household.id, 'wallets')} variant="primary">
-          Wróć do portfeli
+          {t('page.back')}
         </LinkButton>
       }
     >
-      <p>Portfel nie istnieje albo jest prywatny i nie masz do niego dostępu.</p>
+      <p>{t('page.notFoundBody')}</p>
     </EmptyState>
   )
 }
 
 function WalletView({ wallet }: { wallet: Wallet }) {
+  const { t } = useTranslation('wallets')
   const { household, role } = useHousehold()
   const canWrite = role !== 'viewer'
   const archived = !!wallet.archived_at
@@ -81,7 +85,7 @@ function WalletView({ wallet }: { wallet: Wallet }) {
             {canWrite && !archived && (
               <>
                 {' '}
-                · Nowa transakcja: <kbd className={txStyles.kbd}>N</kbd>
+                · {t('page.newTransactionShortcut')} <kbd className={txStyles.kbd}>N</kbd>
               </>
             )}
           </>
@@ -90,7 +94,7 @@ function WalletView({ wallet }: { wallet: Wallet }) {
           canWrite && (
             <>
               <Button icon="edit" onClick={() => setEditing(true)}>
-                Edytuj
+                {t('page.edit')}
               </Button>
               {archived ? (
                 <Button
@@ -99,25 +103,25 @@ function WalletView({ wallet }: { wallet: Wallet }) {
                   onClick={() =>
                     update.mutate(
                       { walletId: wallet.id, body: { archived: false } },
-                      { onSuccess: () => toast.show({ message: `Przywrócono portfel ${wallet.name}.` }) },
+                      { onSuccess: () => toast.show({ message: t('page.restored', { name: wallet.name }) }) },
                     )
                   }
                 >
-                  Przywróć
+                  {t('page.restore')}
                 </Button>
               ) : (
                 <>
                   <Button icon="archive" onClick={() => setArchiving(true)}>
-                    Archiwizuj
+                    {t('page.archive')}
                   </Button>
                   <Button icon="transfer" onClick={() => setTransferring(true)}>
-                    Przelew
+                    {t('page.transfer')}
                   </Button>
                   <LinkButton icon="upload" to={householdPath(household.id, `import?wallet=${wallet.id}`)}>
-                    Importuj CSV
+                    {t('page.import')}
                   </LinkButton>
                   <Button variant="primary" icon="plus" onClick={() => setAdding(true)} aria-keyshortcuts="n">
-                    Dodaj transakcję
+                    {t('page.addTransaction')}
                   </Button>
                 </>
               )}
@@ -126,22 +130,22 @@ function WalletView({ wallet }: { wallet: Wallet }) {
         }
       />
       <div className={styles.header}>
-        <dl className={styles.facts} aria-label="Salda portfela">
+        <dl className={styles.facts} aria-label={t('page.balances')}>
           <div>
-            <dt>Saldo</dt>
+            <dt>{t('page.balance')}</dt>
             <dd>
               <Money amount={wallet.balance.amount} currency={wallet.currency} size="xl" />
             </dd>
           </div>
           <div>
-            <dt>Rozliczone</dt>
+            <dt>{t('page.cleared')}</dt>
             <dd>
               <Money amount={wallet.cleared_balance.amount} currency={wallet.currency} size="lg" />
             </dd>
           </div>
           {foreign && (
             <div>
-              <dt>W walucie {household.base_currency}</dt>
+              <dt>{t('page.inBase', { currency: household.base_currency })}</dt>
               <dd>
                 <Money amount={wallet.base_balance.amount} currency={wallet.base_balance.currency} size="lg" />
               </dd>
@@ -150,7 +154,7 @@ function WalletView({ wallet }: { wallet: Wallet }) {
         </dl>
         <WalletBadges wallet={wallet} />
         {archived && (
-          <Callout tone="warn">Portfel jest zarchiwizowany: nie przyjmuje nowych transakcji ani przelewów.</Callout>
+          <Callout tone="warn">{t('page.archivedNotice')}</Callout>
         )}
       </div>
       <Register walletId={wallet.id} onAdd={archived ? undefined : () => setAdding(true)} />
@@ -159,8 +163,8 @@ function WalletView({ wallet }: { wallet: Wallet }) {
       <WalletDialog open={editing} onClose={() => setEditing(false)} wallet={wallet} />
       <ConfirmDialog
         open={archiving}
-        title={`Zarchiwizować portfel ${wallet.name}?`}
-        confirmLabel="Archiwizuj"
+        title={t('page.archiveTitle', { name: wallet.name })}
+        confirmLabel={t('page.archive')}
         danger={false}
         busy={update.isPending}
         error={<FormAlert error={update.error} />}
@@ -171,13 +175,13 @@ function WalletView({ wallet }: { wallet: Wallet }) {
             {
               onSuccess: () => {
                 setArchiving(false)
-                toast.show({ message: `Zarchiwizowano portfel ${wallet.name}.` })
+                toast.show({ message: t('page.archived', { name: wallet.name }) })
               },
             },
           )
         }
       >
-        <p>Historia zostaje, ale portfel znika z list i sum. Możesz go przywrócić w każdej chwili.</p>
+        <p>{t('page.archiveBody')}</p>
       </ConfirmDialog>
     </>
   )

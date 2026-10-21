@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWallets } from '../../api/hooks/wallets.ts'
 import { useHousehold } from '../../app/household.tsx'
 import { Button } from '../../components/Button/Button.tsx'
@@ -18,6 +19,7 @@ import styles from './wallets.module.css'
 const archivedKey = 'denar:wallets:archived'
 
 export function WalletsPage() {
+  const { t } = useTranslation('wallets')
   const { household, role } = useHousehold()
   const canWrite = role !== 'viewer'
   const [showArchived, setShowArchived] = useState(() => readStored(archivedKey) === '1')
@@ -29,36 +31,36 @@ export function WalletsPage() {
   return (
     <>
       <PageHeader
-        title="Portfele"
-        description="Konta, gotówka, karty i oszczędności — każde w swojej walucie."
+        title={t('list.title')}
+        description={t('list.description')}
         actions={
           canWrite && (
             <>
               <Button icon="transfer" onClick={() => setTransferring(true)}>
-                Przelew
+                {t('list.transfer')}
               </Button>
               <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-                Nowy portfel
+                {t('list.new')}
               </Button>
             </>
           )
         }
       />
-      <QueryState query={wallets} errorTitle="Nie udało się wczytać portfeli" loading={<Skeleton lines={4} />}>
+      <QueryState query={wallets} errorTitle={t('list.loadFailed')} loading={<Skeleton lines={4} />}>
         {(items) =>
           items.length === 0 && !showArchived ? (
             <EmptyState
               icon="wallet"
-              title="Nie ma jeszcze portfeli"
+              title={t('list.emptyTitle')}
               action={
                 canWrite && (
                   <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-                    Dodaj pierwszy portfel
+                    {t('list.addFirst')}
                   </Button>
                 )
               }
             >
-              <p>Portfel to konto w banku, gotówka w szufladzie, karta albo lokata. Zacznij od tego, którego używasz najczęściej.</p>
+              <p>{t('list.emptyBody')}</p>
             </EmptyState>
           ) : (
             <div className={styles.form}>
@@ -67,9 +69,9 @@ export function WalletsPage() {
                 currency={household.base_currency}
               />
               <div className={styles.toolbar}>
-                <h2>Twoje portfele</h2>
+                <h2>{t('list.yours')}</h2>
                 <Checkbox
-                  label="Pokaż zarchiwizowane"
+                  label={t('list.showArchived')}
                   checked={showArchived}
                   onChange={(event) => {
                     setShowArchived(event.target.checked)
@@ -77,7 +79,7 @@ export function WalletsPage() {
                   }}
                 />
               </div>
-              <ul className={styles.grid} aria-label="Portfele">
+              <ul className={styles.grid} aria-label={t('list.label')}>
                 {items.map((wallet) => (
                   <li key={wallet.id}>
                     <WalletCard wallet={wallet} />

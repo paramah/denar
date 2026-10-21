@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useCreateTransfer } from '../../api/hooks/transactions.ts'
 import { useWallets } from '../../api/hooks/wallets.ts'
@@ -26,14 +27,16 @@ type Props = {
 
 /** Przelew między portfelami; przy różnych walutach — także kwota docelowa. */
 export function TransferDialog({ open, onClose, fromWalletId }: Props) {
+  const { t } = useTranslation('transactions')
   return (
-    <Dialog open={open} title="Przelew między portfelami" onClose={onClose} size="md">
+    <Dialog open={open} title={t('transfer.title')} onClose={onClose} size="md">
       <TransferForm onClose={onClose} fromWalletId={fromWalletId} />
     </Dialog>
   )
 }
 
 function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWalletId?: string }) {
+  const { t } = useTranslation('transactions')
   const { household } = useHousehold()
   const wallets = useWallets(household.id)
   const create = useCreateTransfer(household.id)
@@ -69,10 +72,10 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
   const submit = async () => {
     const next: Record<string, string | undefined> = {}
     if (!source) {
-      next.from = 'Wybierz portfel źródłowy.'
+      next.from = t('transfer.fromRequired')
     }
     if (!target) {
-      next.to = 'Potrzebny jest drugi portfel.'
+      next.to = t('transfer.toRequired')
     }
     const parsed = source ? parseAmountInput(amount, decimalsFor(source.currency)) : null
     if (parsed && !parsed.ok) {
@@ -83,7 +86,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
       next.to_amount = parsedTo.error
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      next.date = 'Podaj datę.'
+      next.date = t('dialog.dateRequired')
     }
     setErrors(next)
     if (Object.values(next).some(Boolean) || !source || !target || !parsed?.ok) {
@@ -103,7 +106,11 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
     try {
       await create.mutateAsync(body)
       toast.show({
-        message: `Przelano ${formatMoney(parsed.value, source.currency) ?? parsed.value} z ${source.name} do ${target.name}.`,
+        message: t('transfer.done', {
+          amount: formatMoney(parsed.value, source.currency) ?? parsed.value,
+          from: source.name,
+          to: target.name,
+        }),
       })
       onClose()
     } catch {
@@ -114,10 +121,10 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
   if (wallets.isSuccess && active.length < 2) {
     return (
       <div className={styles.form}>
-        <Callout>Przelew potrzebuje co najmniej dwóch aktywnych portfeli. Dodaj kolejny portfel.</Callout>
+        <Callout>{t('transfer.needTwo')}</Callout>
         <div className={styles.footer}>
           <div className={styles.footerActions}>
-            <Button onClick={onClose}>Zamknij</Button>
+            <Button onClick={onClose}>{t('transfer.close')}</Button>
           </div>
         </div>
       </div>
@@ -127,7 +134,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
   return (
     <form
       noValidate
-      aria-label="Przelew między portfelami"
+      aria-label={t('transfer.title')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -135,7 +142,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
       }}
     >
       {archived ? (
-        <Callout tone="warn">Jeden z portfeli jest zarchiwizowany.</Callout>
+        <Callout tone="warn">{t('transfer.walletArchived')}</Callout>
       ) : (
         <FormAlert
           error={create.error}
@@ -144,21 +151,21 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
       )}
       <div className={styles.grid}>
         <SelectField
-          label="Z portfela"
+          label={t('transfer.from')}
           value={fromId}
           onChange={(event) => setFrom(event.target.value)}
           options={options()}
           error={errors.from ?? server.from_wallet_id}
         />
         <SelectField
-          label="Do portfela"
+          label={t('transfer.to')}
           value={toId}
           onChange={(event) => setTo(event.target.value)}
           options={options(fromId)}
           error={errors.to ?? server.to_wallet_id}
         />
         <AmountField
-          label={crossCurrency ? `Kwota wysłana (${source.currency})` : 'Kwota'}
+          label={crossCurrency ? t('transfer.amountSent', { currency: source.currency }) : t('dialog.amount')}
           value={amount}
           onChange={setAmount}
           currency={source?.currency ?? household.base_currency}
@@ -167,16 +174,16 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
         />
         {crossCurrency ? (
           <AmountField
-            label={`Kwota otrzymana (${target.currency})`}
+            label={t('transfer.amountReceived', { currency: target.currency })}
             value={toAmount}
             onChange={setToAmount}
             currency={target.currency}
-            hint="Portfele mają różne waluty — wpisz kwotę, która wpłynie, np. z wyciągu."
+            hint={t('transfer.amountReceivedHint')}
             error={errors.to_amount ?? pickError(server, 'to_amount', 'to_amount.amount')}
           />
         ) : (
           <TextField
-            label="Data"
+            label={t('dialog.date')}
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
@@ -185,7 +192,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
         )}
         {crossCurrency && (
           <TextField
-            label="Data"
+            label={t('dialog.date')}
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
@@ -195,21 +202,19 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
         {crossBudget && source && (
           <div className={styles.wide}>
             <EnvelopeField
-              label={source.on_budget ? 'Koperta (wypływ z budżetu)' : 'Koperta (wpływ do budżetu)'}
+              label={source.on_budget ? t('transfer.envelopeOut') : t('transfer.envelopeIn')}
               value={envelopeId}
               onChange={setEnvelopeId}
               options={envelopeOptions}
               error={server.envelope_id}
             />
             <p className={styles.note}>
-              {source.on_budget
-                ? 'Np. odkładanie na wakacje z koperty „Wakacje”. Bez koperty przelew pomniejszy kwotę do przydzielenia.'
-                : 'Bez koperty pieniądze trafią do kwoty do przydzielenia.'}
+              {source.on_budget ? t('transfer.envelopeOutNote') : t('transfer.envelopeInNote')}
             </p>
           </div>
         )}
         <SelectField
-          label="Status"
+          label={t('dialog.status')}
           value={status}
           onChange={(event) => setStatus(event.target.value as TransactionStatus)}
           options={(['pending', 'cleared', 'reconciled'] as TransactionStatus[]).map((s) => ({
@@ -218,20 +223,20 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
           }))}
         />
         <TextField
-          label="Tagi"
+          label={t('dialog.tags')}
           value={tags}
           onChange={(event) => setTags(event.target.value)}
           error={server.tags}
           autoComplete="off"
           className={crossCurrency ? styles.wide : undefined}
         />
-        <TextAreaField label="Notatka" value={note} onChange={setNote} maxLength={1000} error={server.note} className={styles.wide} />
+        <TextAreaField label={t('dialog.note')} value={note} onChange={setNote} maxLength={1000} error={server.note} className={styles.wide} />
       </div>
       <div className={styles.footer}>
         <div className={styles.footerActions}>
-          <Button onClick={onClose}>Anuluj</Button>
+          <Button onClick={onClose}>{t('dialog.cancel')}</Button>
           <Button type="submit" variant="primary" icon="transfer" busy={create.isPending}>
-            Przelej
+            {t('transfer.submit')}
           </Button>
         </div>
       </div>

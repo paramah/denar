@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { usePayees } from '../../api/hooks/payees.ts'
 import { useCreateTransaction, useUpdateTransaction } from '../../api/hooks/transactions.ts'
@@ -18,7 +19,7 @@ import { Checkbox, SelectField, TextField } from '../../components/Field/Field.t
 import { Callout, FormAlert } from '../../components/Form/Form.tsx'
 import { useToast } from '../../components/Toast/Toast.tsx'
 import { todayIn } from '../../lib/format.ts'
-import { kindLabels, statusLabels } from '../../lib/labels.ts'
+import { statusLabels } from '../../lib/labels.ts'
 import { amountForInput, formatMoney, negateDecimal, parseAmountInput, toMinor, toneOf } from '../../lib/money.ts'
 import { readStored, writeStored } from '../../lib/storage.ts'
 import { envelopesEnabled, useEnvelopeOptions } from './envelopes.ts'
@@ -34,10 +35,12 @@ export function modeOf(transaction: Transaction): EntryMode {
   return toneOf(transaction.amount.amount) === 'inflow' ? 'refund' : 'expense'
 }
 
-const statusOptions = (['pending', 'cleared', 'reconciled'] as TransactionStatus[]).map((status) => ({
-  value: status,
-  label: statusLabels[status],
-}))
+// Funkcja, nie stała: etykiety czytane w chwili renderu, w bieżącym języku.
+const statusOptions = () =>
+  (['pending', 'cleared', 'reconciled'] as TransactionStatus[]).map((status) => ({
+    value: status,
+    label: statusLabels[status],
+  }))
 
 type Props = {
   open: boolean
@@ -50,11 +53,12 @@ type Props = {
 
 /** Szybkie dodawanie i edycja wydatku, wpływu lub zwrotu (oraz daty/statusu nogi przelewu). */
 export function TransactionDialog({ open, onClose, transaction, walletId }: Props) {
+  const { t } = useTranslation('transactions')
   const title = transaction
     ? transaction.kind === 'transfer'
-      ? 'Edycja przelewu'
-      : 'Edycja transakcji'
-    : 'Nowa transakcja'
+      ? t('dialog.editTransfer')
+      : t('dialog.editTransaction')
+    : t('dialog.newTransaction')
   return (
     <Dialog open={open} title={title} onClose={onClose} size="md">
       <TransactionForm onClose={onClose} transaction={transaction} fixedWalletId={walletId} />
@@ -75,6 +79,7 @@ function TransactionForm({
   transaction?: Transaction
   fixedWalletId?: string
 }) {
+  const { t } = useTranslation('transactions')
   const { household } = useHousehold()
   const hid = household.id
   const wallets = useWallets(hid)
@@ -174,19 +179,19 @@ function TransactionForm({
     setTried(true)
     const next: Record<string, string | undefined> = {}
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      next.date = 'Podaj datę.'
+      next.date = t('dialog.dateRequired')
     }
     if (!transfer) {
       if (!parsedAmount.ok) {
         next.amount = parsedAmount.error
       }
       if (!walletId) {
-        next.wallet_id = 'Wybierz portfel.'
+        next.wallet_id = t('dialog.walletRequired')
       }
       if (splitting) {
         const check = checkSplits(splits, parsedAmount.ok ? parsedAmount.value : null, decimals)
         if (Object.keys(check.errors).length > 0 || check.remaining !== 0n) {
-          next.splits = 'Suma linii musi być równa kwocie transakcji.'
+          next.splits = t('dialog.splitsMismatch')
         }
       }
     }
@@ -199,7 +204,7 @@ function TransactionForm({
     try {
       if (transfer && transaction) {
         await update.mutateAsync({ transactionId: transaction.id, body: common })
-        toast.show({ message: 'Zapisano zmiany przelewu.' })
+        toast.show({ message: t('dialog.transferSaved') })
         onClose()
         return
       }
@@ -221,7 +226,7 @@ function TransactionForm({
           ...editedEnvelopeFields(envelopeFields, transaction),
         }
         await update.mutateAsync({ transactionId: transaction.id, body })
-        toast.show({ message: 'Zapisano zmiany transakcji.' })
+        toast.show({ message: t('dialog.transactionSaved') })
         onClose()
         return
       }
@@ -238,7 +243,7 @@ function TransactionForm({
       await create.mutateAsync(body)
       writeStored(lastWalletKey(hid), walletId)
       toast.show({
-        message: `Zapisano: ${mode === 'refund' ? 'zwrot' : kindLabels[kind].toLowerCase()} ${formatMoney(value, currency, { signed: true }) ?? value}.`,
+        message: t(`dialog.created.${mode}`, { amount: formatMoney(value, currency, { signed: true }) ?? value }),
       })
       if (addAnother) {
         reset()
@@ -255,7 +260,7 @@ function TransactionForm({
   return (
     <form
       noValidate
-      aria-label={editing ? 'Edycja transakcji' : 'Nowa transakcja'}
+      aria-label={editing ? t('dialog.editTransaction') : t('dialog.newTransaction')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -263,21 +268,19 @@ function TransactionForm({
       }}
     >
       {archived ? (
-        <Callout tone="warn">Portfel jest zarchiwizowany — przywróć go, żeby zapisywać w nim transakcje.</Callout>
+        <Callout tone="warn">{t('dialog.walletArchived')}</Callout>
       ) : (
         <FormAlert error={mutation.error} shownFields={shownFields} />
       )}
 
       {transfer ? (
-        <p className={styles.note}>
-          Kwotę i portfele przelewu zmienisz, usuwając go i tworząc ponownie. Zmiana daty dotyczy obu stron przelewu.
-        </p>
+        <p className={styles.note}>{t('dialog.transferNote')}</p>
       ) : (
         <>
           <ModePicker value={mode} onChange={setMode} />
           <div className={styles.grid}>
             <AmountField
-              label="Kwota"
+              label={t('dialog.amount')}
               large
               data-autofocus
               inputRef={amountRef}
@@ -299,7 +302,7 @@ function TransactionForm({
 
       <div className={styles.grid}>
         <TextField
-          label="Data"
+          label={t('dialog.date')}
           type="date"
           value={date}
           onChange={(event) => setDate(event.target.value)}
@@ -308,36 +311,36 @@ function TransactionForm({
         />
         {!editing && !fixedWalletId && (
           <SelectField
-            label="Portfel"
+            label={t('dialog.wallet')}
             value={walletId}
             onChange={(event) => setChosenWallet(event.target.value)}
             error={errors.wallet_id ?? server.wallet_id}
             options={
               active.length > 0
                 ? active.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))
-                : [{ value: '', label: wallets.isPending ? 'Wczytywanie…' : 'Brak portfeli' }]
+                : [{ value: '', label: wallets.isPending ? t('dialog.loading') : t('dialog.noWallets') }]
             }
           />
         )}
         <SelectField
-          label="Status"
+          label={t('dialog.status')}
           value={status}
           onChange={(event) => setStatus(event.target.value as TransactionStatus)}
-          options={statusOptions}
+          options={statusOptions()}
           error={server.status}
         />
         {showEnvelopes && mode !== 'income' && !splitting && (
           <EnvelopeField value={envelopeId} onChange={setEnvelopeId} options={envelopeOptions} error={server.envelope_id} />
         )}
         <TextField
-          label="Tagi"
+          label={t('dialog.tags')}
           value={tags}
           onChange={(event) => setTags(event.target.value)}
-          hint="Oddzielone przecinkami, np. wakacje, auto"
+          hint={t('dialog.tagsHint')}
           error={server.tags}
           autoComplete="off"
         />
-        <TextAreaField label="Notatka" value={note} onChange={setNote} maxLength={1000} error={server.note} className={styles.wide} />
+        <TextAreaField label={t('dialog.note')} value={note} onChange={setNote} maxLength={1000} error={server.note} className={styles.wide} />
       </div>
 
       {showEnvelopes && mode !== 'income' && (
@@ -365,7 +368,7 @@ function TransactionForm({
                   ])
                 }
               >
-                Podziel na koperty
+                {t('dialog.split')}
               </Button>
             </div>
           )}
@@ -379,14 +382,14 @@ function TransactionForm({
 
       <div className={styles.footer}>
         {!editing ? (
-          <Checkbox label="Dodaj kolejną" checked={addAnother} onChange={(event) => setAddAnother(event.target.checked)} />
+          <Checkbox label={t('dialog.addAnother')} checked={addAnother} onChange={(event) => setAddAnother(event.target.checked)} />
         ) : (
           <span />
         )}
         <div className={styles.footerActions}>
-          <Button onClick={onClose}>Anuluj</Button>
+          <Button onClick={onClose}>{t('dialog.cancel')}</Button>
           <Button type="submit" variant="primary" busy={mutation.isPending} disabled={splitting && !splitsBalanced(splits, parsedAmount, decimals)}>
-            {editing ? 'Zapisz zmiany' : 'Zapisz'}
+            {editing ? t('dialog.saveChanges') : t('dialog.save')}
           </Button>
         </div>
       </div>

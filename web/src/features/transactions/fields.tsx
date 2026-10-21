@@ -1,4 +1,5 @@
 import { useId, type InputHTMLAttributes, type Ref } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Payee } from '../../api/types.ts'
 import { Field, inputClass, SelectField } from '../../components/Field/Field.tsx'
 import type { EnvelopeOption } from './envelopes.ts'
@@ -6,18 +7,19 @@ import styles from './transactions.module.css'
 
 export type EntryMode = 'expense' | 'income' | 'refund'
 
-const modes: { value: EntryMode; label: string; tone: 'outflow' | 'inflow' }[] = [
-  { value: 'expense', label: 'Wydatek', tone: 'outflow' },
-  { value: 'income', label: 'Wpływ', tone: 'inflow' },
-  { value: 'refund', label: 'Zwrot', tone: 'inflow' },
+const modes: { value: EntryMode; tone: 'outflow' | 'inflow' }[] = [
+  { value: 'expense', tone: 'outflow' },
+  { value: 'income', tone: 'inflow' },
+  { value: 'refund', tone: 'inflow' },
 ]
 
 /** Rodzaj wpisu: wydatek (−), wpływ (+) albo zwrot (+, wraca do koperty). */
 export function ModePicker({ value, onChange }: { value: EntryMode; onChange: (mode: EntryMode) => void }) {
+  const { t } = useTranslation('transactions')
   const name = useId()
   return (
     <fieldset className={styles.segmented}>
-      <legend>Rodzaj</legend>
+      <legend>{t('mode.legend')}</legend>
       <div className={styles.segments}>
         {modes.map((mode) => (
           <label key={mode.value} data-tone={mode.tone}>
@@ -28,7 +30,7 @@ export function ModePicker({ value, onChange }: { value: EntryMode; onChange: (m
               checked={value === mode.value}
               onChange={() => onChange(mode.value)}
             />
-            {mode.label}
+            {t(`mode.${mode.value}`)}
           </label>
         ))}
       </div>
@@ -109,11 +111,12 @@ export function PayeeField({
   error?: string
   className?: string
 }) {
+  const { t } = useTranslation('transactions')
   const listId = useId()
   const known = findPayee(payees, value)
-  const hint = value.trim() && !known ? 'Nowy kontrahent — zostanie dodany do listy.' : undefined
+  const hint = value.trim() && !known ? t('fields.newPayee') : undefined
   return (
-    <Field label="Kontrahent" error={error} hint={hint} className={className}>
+    <Field label={t('fields.payee')} error={error} hint={hint} className={className}>
       {(control) => (
         <>
           <input
@@ -148,7 +151,7 @@ export function EnvelopeField({
   onChange,
   options,
   error,
-  label = 'Koperta',
+  label,
   hideLabel,
 }: {
   value: string
@@ -158,14 +161,15 @@ export function EnvelopeField({
   label?: string
   hideLabel?: boolean
 }) {
+  const { t } = useTranslation('transactions')
   return (
     <SelectField
-      label={label}
+      label={label ?? t('fields.envelope')}
       hideLabel={hideLabel}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       error={error}
-      options={[{ value: '', label: 'Bez koperty' }, ...options]}
+      options={[{ value: '', label: t('fields.noEnvelope') }, ...options]}
     />
   )
 }
