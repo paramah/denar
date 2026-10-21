@@ -21,6 +21,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
+	"git.eiac.dev/tools/denar/internal/domain/subscription"
 	"git.eiac.dev/tools/denar/internal/domain/transaction"
 	"git.eiac.dev/tools/denar/internal/domain/user"
 	"git.eiac.dev/tools/denar/internal/domain/wallet"
@@ -130,6 +131,25 @@ func newWorld(t *testing.T) *world {
 		GetEnvelope:          usecase.NewGetEnvelope(d),
 		UpdateEnvelope:       usecase.NewUpdateEnvelope(d),
 		DeleteEnvelope:       usecase.NewDeleteEnvelope(d),
+
+		ListVendors:             usecase.NewListVendors(),
+		ListSubscriptions:       usecase.NewListSubscriptions(d),
+		CreateSubscription:      usecase.NewCreateSubscription(d),
+		GetSubscription:         usecase.NewGetSubscription(d),
+		UpdateSubscription:      usecase.NewUpdateSubscription(d),
+		DeleteSubscription:      usecase.NewDeleteSubscription(d),
+		ListSubscriptionPrices:  usecase.NewListSubscriptionPrices(d),
+		ChangeSubscriptionPrice: usecase.NewChangeSubscriptionPrice(d),
+		GetSubscriptionSummary:  usecase.NewGetSubscriptionSummary(d),
+		ListUpcomingRenewals:    usecase.NewListUpcomingRenewals(d),
+		ListCharges:             usecase.NewListCharges(d),
+		GetCharge:               usecase.NewGetCharge(d),
+		SuggestTransactions:     usecase.NewSuggestTransactions(d),
+		SuggestCharges:          usecase.NewSuggestCharges(d),
+		ConfirmChargeMatch:      usecase.NewConfirmChargeMatch(d),
+		UnmatchCharge:           usecase.NewUnmatchCharge(d),
+		PostCharge:              usecase.NewPostCharge(d),
+		SkipCharge:              usecase.NewSkipCharge(d),
 	}
 	owner := w.addUser("owner")
 	w.addHousehold("h1", owner)
@@ -142,7 +162,48 @@ func newWorld(t *testing.T) *world {
 	w.addHousehold("h2", w.addUser("outsider"))
 	w.addBot("b1", "h1", "member", bot.ScopeWalletsRead)
 	w.addFinances()
+	w.addSubscriptions()
 	return w
+}
+
+// addSubscriptions gives h1 the subscriptions s1 "ChatGPT Plus" (20.00 USD
+// a month from 31 January, paid from w1), s2 "Dolarowa" of the owner's
+// private w2 and s3 "Netflix" without a wallet; s1 has the charges c1
+// (20 October, matched with t1), c2 (31 October) and c3 (30 November), s2
+// the charge c9. t2 is an expense of 80.00 PLN in w1 on 31 October.
+func (w *world) addSubscriptions() {
+	w.t.Helper()
+	ctx := context.Background()
+	now := w.Clock.Now()
+	d := func(s string) domain.Date {
+		v, _ := domain.ParseDate(s)
+		return v
+	}
+	for _, s := range []subscription.Subscription{
+		{ID: "s1", Name: "ChatGPT Plus", Vendor: "openai", WalletID: "w1"},
+		{ID: "s2", Name: "Dolarowa", Vendor: "other", WalletID: "w2"},
+		{ID: "s3", Name: "Netflix", Vendor: "netflix"},
+	} {
+		s.HouseholdID, s.Status, s.ReminderOffsets = "h1", subscription.Active, []int{3}
+		s.Cycle = subscription.Cycle{Unit: subscription.Month, Every: 1, Anchor: d("2026-01-31")}
+		s.Match = subscription.MatchRule{AmountTolerancePct: 10, DateWindowDays: 3}
+		s.Prices = []subscription.PricePoint{{ID: "pp-" + s.ID, EffectiveFrom: d("2026-01-31"), Amount: 2000, Currency: "USD", CreatedAt: now}}
+		s.CreatedBy, s.CreatedAt, s.UpdatedAt = domain.Actor{Kind: domain.ActorUser, ID: "owner"}, now, now
+		w.must(w.Subscriptions.Create(ctx, s))
+	}
+	w.must(w.Transactions.Create(ctx, transaction.Transaction{ID: "t2", HouseholdID: "h1", WalletID: "w1", Date: d("2026-10-31"),
+		Amount: -8000, Currency: "PLN", BaseAmount: -8000, PayeeID: "p1", Kind: transaction.Expense, Status: transaction.Cleared,
+		Source: transaction.SourceImport, Tags: []string{}, Splits: []transaction.Split{},
+		CreatedBy: domain.Actor{Kind: domain.ActorUser, ID: "member"}, CreatedAt: now, UpdatedAt: now}))
+	for _, c := range []subscription.Charge{
+		{ID: "c1", SubscriptionID: "s1", DueDate: d("2026-10-20"), Status: subscription.Matched, TransactionID: "t1"},
+		{ID: "c2", SubscriptionID: "s1", DueDate: d("2026-10-31"), Status: subscription.Expected},
+		{ID: "c3", SubscriptionID: "s1", DueDate: d("2026-11-30"), Status: subscription.Expected},
+		{ID: "c9", SubscriptionID: "s2", DueDate: d("2026-10-31"), Status: subscription.Expected},
+	} {
+		c.HouseholdID, c.Amount, c.Currency, c.CreatedAt, c.UpdatedAt = "h1", 2000, "USD", now, now
+		w.must(w.Charges.Create(ctx, c))
+	}
 }
 
 // addFinances gives h1 a shared PLN wallet w1 "Konto" and a private USD

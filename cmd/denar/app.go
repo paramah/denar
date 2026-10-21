@@ -211,6 +211,25 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		GetEnvelope:          usecase.NewGetEnvelope(d),
 		UpdateEnvelope:       usecase.NewUpdateEnvelope(d),
 		DeleteEnvelope:       usecase.NewDeleteEnvelope(d),
+
+		ListVendors:             usecase.NewListVendors(),
+		ListSubscriptions:       usecase.NewListSubscriptions(d),
+		CreateSubscription:      usecase.NewCreateSubscription(d),
+		GetSubscription:         usecase.NewGetSubscription(d),
+		UpdateSubscription:      usecase.NewUpdateSubscription(d),
+		DeleteSubscription:      usecase.NewDeleteSubscription(d),
+		ListSubscriptionPrices:  usecase.NewListSubscriptionPrices(d),
+		ChangeSubscriptionPrice: usecase.NewChangeSubscriptionPrice(d),
+		GetSubscriptionSummary:  usecase.NewGetSubscriptionSummary(d),
+		ListUpcomingRenewals:    usecase.NewListUpcomingRenewals(d),
+		ListCharges:             usecase.NewListCharges(d),
+		GetCharge:               usecase.NewGetCharge(d),
+		SuggestTransactions:     usecase.NewSuggestTransactions(d),
+		SuggestCharges:          usecase.NewSuggestCharges(d),
+		ConfirmChargeMatch:      usecase.NewConfirmChargeMatch(d),
+		UnmatchCharge:           usecase.NewUnmatchCharge(d),
+		PostCharge:              usecase.NewPostCharge(d),
+		SkipCharge:              usecase.NewSkipCharge(d),
 	})
 
 	backgroundCtx, stop := context.WithCancel(context.WithoutCancel(ctx))

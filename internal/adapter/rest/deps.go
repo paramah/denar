@@ -100,4 +100,23 @@ type Deps struct {
 	GetEnvelope          *usecase.GetEnvelope
 	UpdateEnvelope       *usecase.UpdateEnvelope
 	DeleteEnvelope       *usecase.DeleteEnvelope
+
+	ListVendors             *usecase.ListVendors
+	ListSubscriptions       *usecase.ListSubscriptions
+	CreateSubscription      *usecase.CreateSubscription
+	GetSubscription         *usecase.GetSubscription
+	UpdateSubscription      *usecase.UpdateSubscription
+	DeleteSubscription      *usecase.DeleteSubscription
+	ListSubscriptionPrices  *usecase.ListSubscriptionPrices
+	ChangeSubscriptionPrice *usecase.ChangeSubscriptionPrice
+	GetSubscriptionSummary  *usecase.GetSubscriptionSummary
+	ListUpcomingRenewals    *usecase.ListUpcomingRenewals
+	ListCharges             *usecase.ListCharges
+	GetCharge               *usecase.GetCharge
+	SuggestTransactions     *usecase.SuggestTransactions
+	SuggestCharges          *usecase.SuggestCharges
+	ConfirmChargeMatch      *usecase.ConfirmChargeMatch
+	UnmatchCharge           *usecase.UnmatchCharge
+	PostCharge              *usecase.PostCharge
+	SkipCharge              *usecase.SkipCharge
 }

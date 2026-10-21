@@ -195,6 +195,8 @@ func archived(t *testing.T, w *world, _ http.Handler, _ *client) {
 	w.must(w.Wallets.Update(context.Background(), wl))
 }
 
+const subscriptionBody = `{"name":"X","vendor":"other","price":{"amount":"1.00","currency":"PLN"},"cycle":{"unit":"month","anchor":"2026-01-01"}}`
+
 const badLogin = `{"email":"owner@example.com","password":"not the password"}`
 
 // conformanceCases covers, for every operation, every response the
@@ -552,6 +554,116 @@ var conformanceCases = map[string][]conformanceCase{
 		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelopes/e2"},
 		{status: 404, as: "member", target: "/api/households/h1/budget/envelopes/nope"},
 		{status: 409, as: "member", target: "/api/households/h1/budget/envelopes/e1"},
+	},
+	"listVendors": {{status: 200, as: "viewer", target: "/api/vendors"}, {status: 200, as: "bot", target: "/api/vendors"}},
+	"listSubscriptions": {
+		{status: 200, as: "viewer", target: "/api/households/h1/subscriptions?vendor=openai&status=active"},
+		{status: 200, as: "bot", target: "/api/households/h1/subscriptions", setup: botScopes(bot.ScopeSubscriptionsRead)},
+		{status: 403, as: "bot", target: "/api/households/h1/subscriptions"},
+		{status: 404, as: "member", target: "/api/households/h1/subscriptions?wallet_id=w2"},
+		{status: 422, as: "member", target: "/api/households/h1/subscriptions?status=gone"},
+	},
+	"createSubscription": {
+		{status: 201, as: "member", target: "/api/households/h1/subscriptions", body: `{"name":"Claude Pro","vendor":"anthropic",
+			"external_ref":"sub_1","price":{"amount":"20.00","currency":"USD"},"cycle":{"unit":"month","every":1,"anchor":"2026-11-05"},
+			"trial_ends_at":"2026-11-05","wallet_id":"w1","envelope_id":"groceries","reminder_offsets":[7,1],
+			"match_rule":{"payee_pattern":"ANTHROPIC","amount_tolerance_pct":5,"date_window_days":2},"note":"n",
+			"manage_url":"https://claude.ai/settings"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/subscriptions", body: subscriptionBody},
+		{status: 404, as: "outsider", target: "/api/households/h1/subscriptions", body: subscriptionBody},
+		{status: 409, as: "member", target: "/api/households/h1/subscriptions", body: `{"name":"chatgpt plus","vendor":"openai",
+			"price":{"amount":"20.00","currency":"USD"},"cycle":{"unit":"month","anchor":"2026-01-31"}}`},
+		{status: 422, as: "member", target: "/api/households/h1/subscriptions", body: `{"name":"","vendor":"myspace",
+			"price":{"amount":"0","currency":"USD"},"cycle":{"unit":"fortnight","anchor":"2026-01-31"}}`},
+	},
+	"getSubscriptionSummary": {
+		{status: 200, as: "viewer", target: "/api/households/h1/subscriptions/summary"},
+		{status: 403, as: "bot", target: "/api/households/h1/subscriptions/summary"},
+		{status: 404, as: "outsider", target: "/api/households/h1/subscriptions/summary"},
+	},
+	"listUpcomingRenewals": {
+		{status: 200, as: "viewer", target: "/api/households/h1/subscriptions/upcoming?days=30"},
+		{status: 403, as: "bot", target: "/api/households/h1/subscriptions/upcoming"},
+		{status: 404, as: "outsider", target: "/api/households/h1/subscriptions/upcoming"},
+		{status: 422, as: "viewer", target: "/api/households/h1/subscriptions/upcoming?days=0"},
+	},
+	"getSubscription": {
+		{status: 200, as: "viewer", target: "/api/households/h1/subscriptions/s1"},
+		{status: 403, as: "bot", target: "/api/households/h1/subscriptions/s1"},
+		{status: 404, as: "member", target: "/api/households/h1/subscriptions/s2"},
+	},
+	"updateSubscription": {
+		{status: 200, as: "member", target: "/api/households/h1/subscriptions/s1", body: `{"name":"ChatGPT","status":"cancelled",
+			"ends_at":"2026-12-01","envelope_id":null,"wallet_id":"w1","cycle":{"unit":"month","anchor":"2026-01-31"},
+			"match_rule":{"date_window_days":5},"reminder_offsets":[],"manage_url":null,"external_ref":null,"trial_ends_at":null}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/subscriptions/s1", body: `{"note":"x"}`},
+		{status: 404, as: "member", target: "/api/households/h1/subscriptions/s2", body: `{"note":"x"}`},
+		{status: 409, as: "member", target: "/api/households/h1/subscriptions/s1", body: `{"name":"netflix"}`},
+		{status: 422, as: "member", target: "/api/households/h1/subscriptions/s1", body: `{"status":"gone"}`},
+	},
+	"deleteSubscription": {
+		{status: 204, as: "member", target: "/api/households/h1/subscriptions/s1"},
+		{status: 403, as: "viewer", target: "/api/households/h1/subscriptions/s1"},
+		{status: 404, as: "member", target: "/api/households/h1/subscriptions/s2"},
+	},
+	"listSubscriptionPrices": {
+		{status: 200, as: "viewer", target: "/api/households/h1/subscriptions/s1/prices"},
+		{status: 403, as: "bot", target: "/api/households/h1/subscriptions/s1/prices"},
+		{status: 404, as: "member", target: "/api/households/h1/subscriptions/s2/prices"},
+	},
+	"changeSubscriptionPrice": {
+		{status: 201, as: "member", target: "/api/households/h1/subscriptions/s1/prices", body: `{"effective_from":"2026-12-01","price":{"amount":"25.00","currency":"USD"}}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/subscriptions/s1/prices", body: `{"price":{"amount":"25.00","currency":"USD"}}`},
+		{status: 404, as: "member", target: "/api/households/h1/subscriptions/s2/prices", body: `{"price":{"amount":"25.00","currency":"USD"}}`},
+		{status: 422, as: "member", target: "/api/households/h1/subscriptions/s1/prices", body: `{"price":{"amount":"2.555","currency":"USD"}}`},
+	},
+	"listCharges": {
+		{status: 200, as: "viewer", target: "/api/households/h1/charges?status=expected&status=matched&from=2026-10-01&to=2026-12-31&limit=1"},
+		{status: 403, as: "bot", target: "/api/households/h1/charges"},
+		{status: 404, as: "member", target: "/api/households/h1/charges?subscription_id=s2"},
+		{status: 422, as: "member", target: "/api/households/h1/charges?cursor=garbage"},
+	},
+	"getCharge": {
+		{status: 200, as: "viewer", target: "/api/households/h1/charges/c1"},
+		{status: 403, as: "bot", target: "/api/households/h1/charges/c1"},
+		{status: 404, as: "member", target: "/api/households/h1/charges/c9"},
+	},
+	"suggestChargeMatches": {
+		{status: 200, as: "member", target: "/api/households/h1/charges/c2/suggestions?limit=3"},
+		{status: 403, as: "bot", target: "/api/households/h1/charges/c2/suggestions", setup: botScopes(bot.ScopeSubscriptionsRead)},
+		{status: 404, as: "member", target: "/api/households/h1/charges/c9/suggestions"},
+		{status: 422, as: "member", target: "/api/households/h1/charges/c2/suggestions?limit=99"},
+	},
+	"matchCharge": {
+		{status: 200, as: "member", target: "/api/households/h1/charges/c2/match", body: `{"transaction_id":"t2"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/charges/c2/match", body: `{"transaction_id":"t2"}`},
+		{status: 404, as: "member", target: "/api/households/h1/charges/c9/match", body: `{"transaction_id":"t2"}`},
+		{status: 409, as: "member", target: "/api/households/h1/charges/c2/match", body: `{"transaction_id":"t1"}`},
+		{status: 422, as: "member", target: "/api/households/h1/charges/c2/match", body: `{"transaction_id":"nope"}`},
+	},
+	"unmatchCharge": {
+		{status: 200, as: "member", target: "/api/households/h1/charges/c1/unmatch"},
+		{status: 403, as: "viewer", target: "/api/households/h1/charges/c1/unmatch"},
+		{status: 404, as: "member", target: "/api/households/h1/charges/c9/unmatch"},
+		{status: 409, as: "member", target: "/api/households/h1/charges/c2/unmatch"},
+	},
+	"postCharge": {
+		{status: 201, as: "member", target: "/api/households/h1/charges/c2/post", body: `{"amount":{"amount":"80.00","currency":"PLN"},"payee_name":"OpenAI","note":"karta"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/charges/c2/post"},
+		{status: 404, as: "member", target: "/api/households/h1/charges/c9/post"},
+		{status: 409, as: "member", target: "/api/households/h1/charges/c1/post"},
+		{status: 422, as: "member", target: "/api/households/h1/charges/c2/post"},
+	},
+	"skipCharge": {
+		{status: 200, as: "member", target: "/api/households/h1/charges/c2/skip"},
+		{status: 403, as: "viewer", target: "/api/households/h1/charges/c2/skip"},
+		{status: 404, as: "member", target: "/api/households/h1/charges/c9/skip"},
+		{status: 409, as: "member", target: "/api/households/h1/charges/c1/skip"},
+	},
+	"suggestChargesForTransaction": {
+		{status: 200, as: "member", target: "/api/households/h1/transactions/t2/charge-suggestions"},
+		{status: 403, as: "bot", target: "/api/households/h1/transactions/t2/charge-suggestions", setup: botScopes(bot.ScopeSubscriptionsRead)},
+		{status: 404, as: "member", target: "/api/households/h1/transactions/nope/charge-suggestions"},
 	},
 	"listAudit": {
 		{status: 200, as: "admin", target: "/api/households/h1/audit?limit=1&resource_type=invitation", setup: then(invited, invited)},

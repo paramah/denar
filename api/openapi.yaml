@@ -3,7 +3,7 @@ info:
   title: denar REST API
   version: 0.1.0
   description: |
-    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions, 003-envelope-budget). Źródło typów Go (oapi-codegen) i TS
+    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions, 003-envelope-budget, 004-subscriptions). Źródło typów Go (oapi-codegen) i TS
     (openapi-typescript, etap 007).
 
     Uwierzytelnianie: sesja w cookie `denar_session` (logowanie hasłem lub
@@ -50,6 +50,17 @@ info:
     koperty pokazuje tylko widoczne portfele i wymaga też transactions:read.
     Odczyt wymaga budget:read, zmiany budget:write. Dodatkowe powody 409:
     group-not-empty, envelope-in-use.
+
+    Subskrypcje (etap 004) leżą pod /households/{householdId}/subscriptions
+    i /charges. Cena subskrypcji może być w dowolnej obsługiwanej walucie
+    (nie musi być walutą portfela). Subskrypcja z portfelem istnieje tylko
+    dla widzących ten portfel (bot — także z jego listy portfeli); bez
+    portfela — dla całego gospodarstwa. Odczyt wymaga subscriptions:read,
+    zmiany subscriptions:write; sugestie dopasowań także transactions:read,
+    potwierdzenie transactions:read, zaksięgowanie transactions:write.
+    Obciążenia (charges) mają statusy expected, matched, missed, skipped,
+    posted. Dodatkowe powody 409: charge-state, transaction-linked,
+    envelope-in-use (koperta subskrypcji).
 servers:
   - url: /api
 security:
@@ -68,6 +79,7 @@ tags:
   - name: payees
   - name: fx
   - name: budget
+  - name: subscriptions
 
 paths:
   /auth/config:
@@ -1120,6 +1132,344 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /vendors:
+    get:
+      tags: [subscriptions]
+      operationId: listVendors
+      summary: Słownik dostawców subskrypcji (klucz i nazwa wyświetlana)
+      responses:
+        "200":
+          description: Dostawcy w stałej kolejności
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VendorList" }
+        "401": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/subscriptions:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [subscriptions]
+      operationId: listSubscriptions
+      summary: Widoczne subskrypcje wg nazwy (subscriptions:read)
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: vendor, in: query, schema: { type: string } }
+        - { name: wallet_id, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Subskrypcje
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubscriptionList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [subscriptions]
+      operationId: createSubscription
+      summary: Zapisuje subskrypcję i jej oczekiwane obciążenia do horyzontu (subscriptions:write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubscriptionCreate" }
+      responses:
+        "201":
+          description: Subskrypcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/subscriptions/summary:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [subscriptions]
+      operationId: getSubscriptionSummary
+      summary: Koszty subskrypcji w walucie bazowej, odnowienia, triale i zmiany cen (subscriptions:read)
+      responses:
+        "200":
+          description: Podsumowanie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubscriptionSummary" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/subscriptions/upcoming:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [subscriptions]
+      operationId: listUpcomingRenewals
+      summary: Oczekiwane obciążenia z terminem od dziś do dziś + days (subscriptions:read)
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 7 } }
+      responses:
+        "200":
+          description: Nadchodzące odnowienia wg terminu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpcomingRenewalList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/subscriptions/{subscriptionId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/SubscriptionId"
+    get:
+      tags: [subscriptions]
+      operationId: getSubscription
+      responses:
+        "200":
+          description: Subskrypcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [subscriptions]
+      operationId: updateSubscription
+      summary: Zmienia subskrypcję; przyszłe oczekiwane obciążenia idą za zmianą (subscriptions:write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubscriptionUpdate" }
+      responses:
+        "200":
+          description: Zmieniona subskrypcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [subscriptions]
+      operationId: deleteSubscription
+      summary: Usuwa subskrypcję z cenami i obciążeniami; transakcje zostają
+      responses:
+        "204": { description: Usunięta }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/subscriptions/{subscriptionId}/prices:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/SubscriptionId"
+    get:
+      tags: [subscriptions]
+      operationId: listSubscriptionPrices
+      summary: Historia cen od najstarszej
+      responses:
+        "200":
+          description: Punkty ceny
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PricePointList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [subscriptions]
+      operationId: changeSubscriptionPrice
+      summary: Nowa cena od dnia (ten sam dzień nadpisuje punkt); zdarzenie subscription.price_changed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PriceChange" }
+      responses:
+        "201":
+          description: Subskrypcja z nową historią cen
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [subscriptions]
+      operationId: listCharges
+      summary: Obciążenia widocznych subskrypcji wg terminu (subscriptions:read)
+      parameters:
+        - { name: subscription_id, in: query, schema: { type: string } }
+        - name: status
+          in: query
+          description: Jeden lub więcej statusów (expected, matched, missed, skipped, posted)
+          style: form
+          explode: true
+          schema:
+            type: array
+            items: { type: string }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        "200":
+          description: Strona obciążeń
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChargePage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges/{chargeId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ChargeId"
+    get:
+      tags: [subscriptions]
+      operationId: getCharge
+      responses:
+        "200":
+          description: Obciążenie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Charge" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges/{chargeId}/suggestions:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ChargeId"
+    get:
+      tags: [subscriptions]
+      operationId: suggestChargeMatches
+      summary: Transakcje, które mogą opłacać obciążenie, od najlepszej (subscriptions:read i transactions:read)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20, default: 5 } }
+      responses:
+        "200":
+          description: Sugestie z punktacją 0–100
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransactionSuggestionList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges/{chargeId}/match:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ChargeId"
+    post:
+      tags: [subscriptions]
+      operationId: matchCharge
+      summary: Wiąże otwarte obciążenie z transakcją (subscriptions:write i transactions:read)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChargeMatch" }
+      responses:
+        "200":
+          description: Obciążenie matched
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Charge" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges/{chargeId}/unmatch:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ChargeId"
+    post:
+      tags: [subscriptions]
+      operationId: unmatchCharge
+      summary: Odłącza transakcję; obciążenie wraca do expected (missed po oknie)
+      responses:
+        "200":
+          description: Obciążenie otwarte
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Charge" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges/{chargeId}/post:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ChargeId"
+    post:
+      tags: [subscriptions]
+      operationId: postCharge
+      summary: Księguje wydatek z obciążenia (source subscription) i wiąże go (subscriptions:write i transactions:write)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChargePost" }
+      responses:
+        "201":
+          description: Obciążenie posted i nowa transakcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostedCharge" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/charges/{chargeId}/skip:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ChargeId"
+    post:
+      tags: [subscriptions]
+      operationId: skipCharge
+      summary: Oznacza otwarte obciążenie jako pominięte
+      responses:
+        "200":
+          description: Obciążenie skipped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Charge" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/transactions/{transactionId}/charge-suggestions:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/TransactionId"
+    get:
+      tags: [subscriptions]
+      operationId: suggestChargesForTransaction
+      summary: Otwarte obciążenia, które transakcja może opłacać (subscriptions:read i transactions:read)
+      responses:
+        "200":
+          description: Sugestie z punktacją 0–100
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChargeSuggestionList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     session:
@@ -1163,6 +1513,16 @@ components:
       schema: { type: string }
     EnvelopeId:
       name: envelopeId
+      in: path
+      required: true
+      schema: { type: string }
+    SubscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      schema: { type: string }
+    ChargeId:
+      name: chargeId
       in: path
       required: true
       schema: { type: string }
@@ -1965,3 +2325,334 @@ components:
               envelope_id: { type: string }
               amount: { $ref: "#/components/schemas/Money" }
         month: { $ref: "#/components/schemas/BudgetMonth" }
+    Vendor:
+      type: object
+      required: [key, name]
+      properties:
+        key: { type: string, examples: ["openai"] }
+        name: { type: string, examples: ["OpenAI"] }
+    VendorList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Vendor" }
+    SubscriptionStatus:
+      type: string
+      enum: [trial, active, paused, cancelled]
+    CycleUnit:
+      type: string
+      enum: [day, week, month, year]
+    Cycle:
+      type: object
+      required: [unit, every, anchor]
+      properties:
+        unit: { $ref: "#/components/schemas/CycleUnit" }
+        every: { type: integer, minimum: 1, maximum: 365 }
+        anchor: { type: string, format: date, description: Dzień jednego z terminów; kolejne liczone od niego (31 → koniec krótszego miesiąca) }
+    CycleInput:
+      type: object
+      required: [unit, anchor]
+      properties:
+        unit: { type: string, description: "day, week, month lub year" }
+        every: { type: integer, description: Domyślnie 1 }
+        anchor: { type: string, format: date }
+    MatchRule:
+      type: object
+      required: [payee_pattern, amount_tolerance_pct, date_window_days]
+      properties:
+        payee_pattern: { type: string, description: Podciąg kontrahenta/notatki; pusty — nazwa dostawcy i subskrypcji }
+        amount_tolerance_pct: { type: integer }
+        date_window_days: { type: integer }
+    MatchRuleInput:
+      type: object
+      properties:
+        payee_pattern: { type: string }
+        amount_tolerance_pct: { type: integer, description: "0–50, domyślnie 10" }
+        date_window_days: { type: integer, description: "0–15, domyślnie 3" }
+    Subscription:
+      type: object
+      required: [id, name, vendor, vendor_name, external_ref, price, price_effective_from, cycle, trial_ends_at, status, cancelled_at,
+        ends_at, wallet_id, envelope_id, reminder_offsets, match_rule, note, manage_url, next_due, monthly, yearly, created_by,
+        created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        vendor: { type: string }
+        vendor_name: { type: string }
+        external_ref: { type: [string, "null"] }
+        price:
+          description: Cena obowiązująca dziś
+          $ref: "#/components/schemas/Money"
+        price_effective_from: { type: string, format: date }
+        cycle: { $ref: "#/components/schemas/Cycle" }
+        trial_ends_at: { type: [string, "null"], format: date }
+        status: { $ref: "#/components/schemas/SubscriptionStatus" }
+        cancelled_at: { type: [string, "null"], format: date-time }
+        ends_at: { type: [string, "null"], format: date, description: Pierwszy nieopłacony dzień anulowanej subskrypcji }
+        wallet_id: { type: [string, "null"] }
+        envelope_id: { type: [string, "null"] }
+        reminder_offsets:
+          type: array
+          description: Dni przed terminem, malejąco
+          items: { type: integer }
+        match_rule: { $ref: "#/components/schemas/MatchRule" }
+        note: { type: string }
+        manage_url: { type: [string, "null"] }
+        next_due: { type: [string, "null"], format: date, description: Najbliższy termin do zapłaty (null — brak) }
+        monthly:
+          description: Średni koszt miesięczny w walucie ceny
+          $ref: "#/components/schemas/Money"
+        yearly:
+          description: Średni koszt roczny w walucie ceny
+          $ref: "#/components/schemas/Money"
+        created_by: { $ref: "#/components/schemas/Actor" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    SubscriptionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Subscription" }
+    SubscriptionCreate:
+      type: object
+      required: [name, vendor, price, cycle]
+      properties:
+        name: { type: string }
+        vendor: { type: string, description: Klucz z /vendors }
+        external_ref: { type: string }
+        price:
+          description: Cena w dowolnej obsługiwanej walucie, od anchor
+          $ref: "#/components/schemas/MoneyInput"
+        cycle: { $ref: "#/components/schemas/CycleInput" }
+        trial_ends_at: { type: string, format: date }
+        status: { type: string, description: "Domyślnie trial, gdy jest trial_ends_at, inaczej active" }
+        ends_at: { type: string, format: date }
+        wallet_id: { type: string }
+        envelope_id: { type: string }
+        reminder_offsets:
+          type: array
+          description: "Domyślnie [3]"
+          items: { type: integer }
+        match_rule: { $ref: "#/components/schemas/MatchRuleInput" }
+        note: { type: string }
+        manage_url: { type: string }
+    SubscriptionUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        vendor: { type: string }
+        external_ref: { type: [string, "null"] }
+        cycle: { $ref: "#/components/schemas/CycleInput" }
+        trial_ends_at: { type: [string, "null"], format: date }
+        status: { type: string, description: "trial, active, paused lub cancelled (ustawia cancelled_at i ends_at)" }
+        ends_at: { type: [string, "null"], format: date }
+        wallet_id: { type: [string, "null"] }
+        envelope_id: { type: [string, "null"] }
+        reminder_offsets:
+          type: array
+          items: { type: integer }
+        match_rule: { $ref: "#/components/schemas/MatchRuleInput" }
+        note: { type: string }
+        manage_url: { type: [string, "null"] }
+    PricePoint:
+      type: object
+      required: [id, effective_from, price, created_at]
+      properties:
+        id: { type: string }
+        effective_from: { type: string, format: date }
+        price: { $ref: "#/components/schemas/Money" }
+        created_at: { type: string, format: date-time }
+    PricePointList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/PricePoint" }
+    PriceChange:
+      type: object
+      required: [price]
+      properties:
+        effective_from: { type: string, format: date, description: Domyślnie dziś }
+        price: { $ref: "#/components/schemas/MoneyInput" }
+    ChargeStatus:
+      type: string
+      enum: [expected, matched, missed, skipped, posted]
+    Charge:
+      type: object
+      required: [id, subscription_id, subscription_name, vendor, wallet_id, due_date, amount, status, transaction_id, created_at, updated_at]
+      properties:
+        id: { type: string }
+        subscription_id: { type: string }
+        subscription_name: { type: string }
+        vendor: { type: string }
+        wallet_id: { type: [string, "null"], description: Portfel subskrypcji }
+        due_date: { type: string, format: date }
+        amount:
+          description: W walucie ceny z dnia terminu
+          $ref: "#/components/schemas/Money"
+        status: { $ref: "#/components/schemas/ChargeStatus" }
+        transaction_id: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ChargePage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Charge" }
+        next_cursor: { type: [string, "null"] }
+    ChargeMatch:
+      type: object
+      required: [transaction_id]
+      properties:
+        transaction_id: { type: string }
+    ChargePost:
+      type: object
+      properties:
+        wallet_id: { type: string, description: Domyślnie portfel subskrypcji }
+        amount:
+          description: Zapłacona kwota (> 0) w walucie portfela; domyślnie kwota obciążenia przeliczona kursem z dnia terminu
+          $ref: "#/components/schemas/MoneyInput"
+        date: { type: string, format: date, description: Domyślnie termin }
+        payee_name: { type: string, description: Domyślnie nazwa dostawcy (other — nazwa subskrypcji) }
+        note: { type: string }
+    PostedCharge:
+      type: object
+      required: [charge, transaction]
+      properties:
+        charge: { $ref: "#/components/schemas/Charge" }
+        transaction: { $ref: "#/components/schemas/Transaction" }
+    TransactionSuggestionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TransactionSuggestion" }
+    TransactionSuggestion:
+      type: object
+      required: [score, transaction]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        transaction: { $ref: "#/components/schemas/Transaction" }
+    ChargeSuggestionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ChargeSuggestion" }
+    ChargeSuggestion:
+      type: object
+      required: [score, charge]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        charge: { $ref: "#/components/schemas/Charge" }
+    Cost:
+      type: object
+      required: [monthly, yearly]
+      properties:
+        monthly: { $ref: "#/components/schemas/Money" }
+        yearly: { $ref: "#/components/schemas/Money" }
+    UpcomingRenewal:
+      type: object
+      required: [charge, base_amount]
+      properties:
+        charge: { $ref: "#/components/schemas/Charge" }
+        base_amount:
+          description: Szacunek w walucie bazowej po dzisiejszym kursie; null bez kursu
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+    UpcomingRenewalList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/UpcomingRenewal" }
+    SubscriptionSummary:
+      type: object
+      required: [currency, monthly, yearly, incomplete, missing_currencies, counts, by_vendor, by_envelope, upcoming, trials_ending,
+        price_changes]
+      properties:
+        currency: { type: string, description: Waluta bazowa }
+        monthly:
+          description: Suma aktywnych i triali — średnio na miesiąc
+          $ref: "#/components/schemas/Money"
+        yearly: { $ref: "#/components/schemas/Money" }
+        incomplete: { type: boolean, description: Brak dzisiejszego kursu części walut — te subskrypcje pominięto w sumach }
+        missing_currencies:
+          type: array
+          items: { type: string }
+        counts: { $ref: "#/components/schemas/SubscriptionCounts" }
+        by_vendor:
+          type: array
+          items: { $ref: "#/components/schemas/VendorCost" }
+        by_envelope:
+          type: array
+          description: Koszt per koperta (podpowiedź celu monthly)
+          items: { $ref: "#/components/schemas/EnvelopeCost" }
+        upcoming:
+          type: array
+          description: Oczekiwane obciążenia w 30 dni
+          items: { $ref: "#/components/schemas/UpcomingRenewal" }
+        trials_ending:
+          type: array
+          description: Triale kończące się w 14 dni
+          items: { $ref: "#/components/schemas/TrialEnding" }
+        price_changes:
+          type: array
+          description: Zmiany cen od 90 dni temu (także zaplanowane), od najnowszej
+          items: { $ref: "#/components/schemas/PriceChangeEntry" }
+    SubscriptionCounts:
+      type: object
+      required: [trial, active, paused, cancelled]
+      properties:
+        trial: { type: integer }
+        active: { type: integer }
+        paused: { type: integer }
+        cancelled: { type: integer }
+    VendorCost:
+      type: object
+      required: [vendor, vendor_name, count, monthly, yearly]
+      properties:
+        vendor: { type: string }
+        vendor_name: { type: string }
+        count: { type: integer }
+        monthly: { $ref: "#/components/schemas/Money" }
+        yearly: { $ref: "#/components/schemas/Money" }
+    EnvelopeCost:
+      type: object
+      required: [envelope_id, count, monthly, yearly]
+      properties:
+        envelope_id: { type: [string, "null"] }
+        count: { type: integer }
+        monthly: { $ref: "#/components/schemas/Money" }
+        yearly: { $ref: "#/components/schemas/Money" }
+    TrialEnding:
+      type: object
+      required: [subscription_id, name, vendor, trial_ends_at, price]
+      properties:
+        subscription_id: { type: string }
+        name: { type: string }
+        vendor: { type: string }
+        trial_ends_at: { type: string, format: date }
+        price:
+          description: Cena po trialu
+          $ref: "#/components/schemas/Money"
+    PriceChangeEntry:
+      type: object
+      required: [subscription_id, name, effective_from, old_price, new_price]
+      properties:
+        subscription_id: { type: string }
+        name: { type: string }
+        effective_from: { type: string, format: date }
+        old_price: { $ref: "#/components/schemas/Money" }
+        new_price: { $ref: "#/components/schemas/Money" }

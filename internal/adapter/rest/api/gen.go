@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -34,6 +35,57 @@ func (e ActorKind) Valid() bool {
 	case ActorKindSystem:
 		return true
 	case ActorKindUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChargeStatus.
+const (
+	Expected ChargeStatus = "expected"
+	Matched  ChargeStatus = "matched"
+	Missed   ChargeStatus = "missed"
+	Posted   ChargeStatus = "posted"
+	Skipped  ChargeStatus = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the ChargeStatus enum.
+func (e ChargeStatus) Valid() bool {
+	switch e {
+	case Expected:
+		return true
+	case Matched:
+		return true
+	case Missed:
+		return true
+	case Posted:
+		return true
+	case Skipped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CycleUnit.
+const (
+	CycleUnitDay   CycleUnit = "day"
+	CycleUnitMonth CycleUnit = "month"
+	CycleUnitWeek  CycleUnit = "week"
+	CycleUnitYear  CycleUnit = "year"
+)
+
+// Valid indicates whether the value is a known member of the CycleUnit enum.
+func (e CycleUnit) Valid() bool {
+	switch e {
+	case CycleUnitDay:
+		return true
+	case CycleUnitMonth:
+		return true
+	case CycleUnitWeek:
+		return true
+	case CycleUnitYear:
 		return true
 	default:
 		return false
@@ -220,6 +272,30 @@ func (e Scope) Valid() bool {
 	case WalletsRead:
 		return true
 	case WalletsWrite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SubscriptionStatus.
+const (
+	Active    SubscriptionStatus = "active"
+	Cancelled SubscriptionStatus = "cancelled"
+	Paused    SubscriptionStatus = "paused"
+	Trial     SubscriptionStatus = "trial"
+)
+
+// Valid indicates whether the value is a known member of the SubscriptionStatus enum.
+func (e SubscriptionStatus) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Cancelled:
+		return true
+	case Paused:
+		return true
+	case Trial:
 		return true
 	default:
 		return false
@@ -549,6 +625,65 @@ type BudgetMove struct {
 	ToEnvelopeId   string     `json:"to_envelope_id"`
 }
 
+// Charge defines model for Charge.
+type Charge struct {
+	// Amount W walucie ceny z dnia terminu
+	Amount           Money                     `json:"amount"`
+	CreatedAt        time.Time                 `json:"created_at"`
+	DueDate          openapi_types.Date        `json:"due_date"`
+	Id               string                    `json:"id"`
+	Status           ChargeStatus              `json:"status"`
+	SubscriptionId   string                    `json:"subscription_id"`
+	SubscriptionName string                    `json:"subscription_name"`
+	TransactionId    nullable.Nullable[string] `json:"transaction_id"`
+	UpdatedAt        time.Time                 `json:"updated_at"`
+	Vendor           string                    `json:"vendor"`
+
+	// WalletId Portfel subskrypcji
+	WalletId nullable.Nullable[string] `json:"wallet_id"`
+}
+
+// ChargeMatch defines model for ChargeMatch.
+type ChargeMatch struct {
+	TransactionId string `json:"transaction_id"`
+}
+
+// ChargePage defines model for ChargePage.
+type ChargePage struct {
+	Items      []Charge                  `json:"items"`
+	NextCursor nullable.Nullable[string] `json:"next_cursor"`
+}
+
+// ChargePost defines model for ChargePost.
+type ChargePost struct {
+	// Amount Zapłacona kwota (> 0) w walucie portfela; domyślnie kwota obciążenia przeliczona kursem z dnia terminu
+	Amount *MoneyInput `json:"amount,omitempty"`
+
+	// Date Domyślnie termin
+	Date *openapi_types.Date `json:"date,omitempty"`
+	Note *string             `json:"note,omitempty"`
+
+	// PayeeName Domyślnie nazwa dostawcy (other — nazwa subskrypcji)
+	PayeeName *string `json:"payee_name,omitempty"`
+
+	// WalletId Domyślnie portfel subskrypcji
+	WalletId *string `json:"wallet_id,omitempty"`
+}
+
+// ChargeStatus defines model for ChargeStatus.
+type ChargeStatus string
+
+// ChargeSuggestion defines model for ChargeSuggestion.
+type ChargeSuggestion struct {
+	Charge Charge `json:"charge"`
+	Score  int    `json:"score"`
+}
+
+// ChargeSuggestionList defines model for ChargeSuggestionList.
+type ChargeSuggestionList struct {
+	Items []ChargeSuggestion `json:"items"`
+}
+
 // Currency defines model for Currency.
 type Currency struct {
 	// Code Kod ISO 4217
@@ -563,6 +698,28 @@ type CurrencyList struct {
 	Items []Currency `json:"items"`
 }
 
+// Cycle defines model for Cycle.
+type Cycle struct {
+	// Anchor Dzień jednego z terminów; kolejne liczone od niego (31 → koniec krótszego miesiąca)
+	Anchor openapi_types.Date `json:"anchor"`
+	Every  int                `json:"every"`
+	Unit   CycleUnit          `json:"unit"`
+}
+
+// CycleInput defines model for CycleInput.
+type CycleInput struct {
+	Anchor openapi_types.Date `json:"anchor"`
+
+	// Every Domyślnie 1
+	Every *int `json:"every,omitempty"`
+
+	// Unit day, week, month lub year
+	Unit string `json:"unit"`
+}
+
+// CycleUnit defines model for CycleUnit.
+type CycleUnit string
+
 // Envelope defines model for Envelope.
 type Envelope struct {
 	CreatedAt time.Time               `json:"created_at"`
@@ -573,6 +730,18 @@ type Envelope struct {
 	Name      string                  `json:"name"`
 	Position  int                     `json:"position"`
 	UpdatedAt time.Time               `json:"updated_at"`
+}
+
+// EnvelopeCost defines model for EnvelopeCost.
+type EnvelopeCost struct {
+	Count      int                       `json:"count"`
+	EnvelopeId nullable.Nullable[string] `json:"envelope_id"`
+
+	// Monthly Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Monthly Money `json:"monthly"`
+
+	// Yearly Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Yearly Money `json:"yearly"`
 }
 
 // EnvelopeCreate defines model for EnvelopeCreate.
@@ -805,6 +974,25 @@ type LocalLogin struct {
 	Password string `json:"password"`
 }
 
+// MatchRule defines model for MatchRule.
+type MatchRule struct {
+	AmountTolerancePct int `json:"amount_tolerance_pct"`
+	DateWindowDays     int `json:"date_window_days"`
+
+	// PayeePattern Podciąg kontrahenta/notatki; pusty — nazwa dostawcy i subskrypcji
+	PayeePattern string `json:"payee_pattern"`
+}
+
+// MatchRuleInput defines model for MatchRuleInput.
+type MatchRuleInput struct {
+	// AmountTolerancePct 0–50, domyślnie 10
+	AmountTolerancePct *int `json:"amount_tolerance_pct,omitempty"`
+
+	// DateWindowDays 0–15, domyślnie 3
+	DateWindowDays *int    `json:"date_window_days,omitempty"`
+	PayeePattern   *string `json:"payee_pattern,omitempty"`
+}
+
 // Me defines model for Me.
 type Me struct {
 	Bot *Bot `json:"bot,omitempty"`
@@ -885,6 +1073,49 @@ type PayeeUpdate struct {
 	Patterns          *[]string                 `json:"patterns,omitempty"`
 }
 
+// PostedCharge defines model for PostedCharge.
+type PostedCharge struct {
+	Charge      Charge      `json:"charge"`
+	Transaction Transaction `json:"transaction"`
+}
+
+// PriceChange defines model for PriceChange.
+type PriceChange struct {
+	// EffectiveFrom Domyślnie dziś
+	EffectiveFrom *openapi_types.Date `json:"effective_from,omitempty"`
+
+	// Price Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Price MoneyInput `json:"price"`
+}
+
+// PriceChangeEntry defines model for PriceChangeEntry.
+type PriceChangeEntry struct {
+	EffectiveFrom openapi_types.Date `json:"effective_from"`
+	Name          string             `json:"name"`
+
+	// NewPrice Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	NewPrice Money `json:"new_price"`
+
+	// OldPrice Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	OldPrice       Money  `json:"old_price"`
+	SubscriptionId string `json:"subscription_id"`
+}
+
+// PricePoint defines model for PricePoint.
+type PricePoint struct {
+	CreatedAt     time.Time          `json:"created_at"`
+	EffectiveFrom openapi_types.Date `json:"effective_from"`
+	Id            string             `json:"id"`
+
+	// Price Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Price Money `json:"price"`
+}
+
+// PricePointList defines model for PricePointList.
+type PricePointList struct {
+	Items []PricePoint `json:"items"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	Code   ProblemCode `json:"code"`
@@ -932,6 +1163,137 @@ type SplitInput struct {
 	Amount     MoneyInput `json:"amount"`
 	EnvelopeId *string    `json:"envelope_id,omitempty"`
 	Note       *string    `json:"note,omitempty"`
+}
+
+// Subscription defines model for Subscription.
+type Subscription struct {
+	CancelledAt nullable.Nullable[time.Time] `json:"cancelled_at"`
+	CreatedAt   time.Time                    `json:"created_at"`
+	CreatedBy   Actor                        `json:"created_by"`
+	Cycle       Cycle                        `json:"cycle"`
+
+	// EndsAt Pierwszy nieopłacony dzień anulowanej subskrypcji
+	EndsAt      nullable.Nullable[openapi_types.Date] `json:"ends_at"`
+	EnvelopeId  nullable.Nullable[string]             `json:"envelope_id"`
+	ExternalRef nullable.Nullable[string]             `json:"external_ref"`
+	Id          string                                `json:"id"`
+	ManageUrl   nullable.Nullable[string]             `json:"manage_url"`
+	MatchRule   MatchRule                             `json:"match_rule"`
+
+	// Monthly Średni koszt miesięczny w walucie ceny
+	Monthly Money  `json:"monthly"`
+	Name    string `json:"name"`
+
+	// NextDue Najbliższy termin do zapłaty (null — brak)
+	NextDue nullable.Nullable[openapi_types.Date] `json:"next_due"`
+	Note    string                                `json:"note"`
+
+	// Price Cena obowiązująca dziś
+	Price              Money              `json:"price"`
+	PriceEffectiveFrom openapi_types.Date `json:"price_effective_from"`
+
+	// ReminderOffsets Dni przed terminem, malejąco
+	ReminderOffsets []int                                 `json:"reminder_offsets"`
+	Status          SubscriptionStatus                    `json:"status"`
+	TrialEndsAt     nullable.Nullable[openapi_types.Date] `json:"trial_ends_at"`
+	UpdatedAt       time.Time                             `json:"updated_at"`
+	Vendor          string                                `json:"vendor"`
+	VendorName      string                                `json:"vendor_name"`
+	WalletId        nullable.Nullable[string]             `json:"wallet_id"`
+
+	// Yearly Średni koszt roczny w walucie ceny
+	Yearly Money `json:"yearly"`
+}
+
+// SubscriptionCounts defines model for SubscriptionCounts.
+type SubscriptionCounts struct {
+	Active    int `json:"active"`
+	Cancelled int `json:"cancelled"`
+	Paused    int `json:"paused"`
+	Trial     int `json:"trial"`
+}
+
+// SubscriptionCreate defines model for SubscriptionCreate.
+type SubscriptionCreate struct {
+	Cycle       CycleInput          `json:"cycle"`
+	EndsAt      *openapi_types.Date `json:"ends_at,omitempty"`
+	EnvelopeId  *string             `json:"envelope_id,omitempty"`
+	ExternalRef *string             `json:"external_ref,omitempty"`
+	ManageUrl   *string             `json:"manage_url,omitempty"`
+	MatchRule   *MatchRuleInput     `json:"match_rule,omitempty"`
+	Name        string              `json:"name"`
+	Note        *string             `json:"note,omitempty"`
+
+	// Price Cena w dowolnej obsługiwanej walucie, od anchor
+	Price MoneyInput `json:"price"`
+
+	// ReminderOffsets Domyślnie [3]
+	ReminderOffsets *[]int `json:"reminder_offsets,omitempty"`
+
+	// Status Domyślnie trial, gdy jest trial_ends_at, inaczej active
+	Status      *string             `json:"status,omitempty"`
+	TrialEndsAt *openapi_types.Date `json:"trial_ends_at,omitempty"`
+
+	// Vendor Klucz z /vendors
+	Vendor   string  `json:"vendor"`
+	WalletId *string `json:"wallet_id,omitempty"`
+}
+
+// SubscriptionList defines model for SubscriptionList.
+type SubscriptionList struct {
+	Items []Subscription `json:"items"`
+}
+
+// SubscriptionStatus defines model for SubscriptionStatus.
+type SubscriptionStatus string
+
+// SubscriptionSummary defines model for SubscriptionSummary.
+type SubscriptionSummary struct {
+	// ByEnvelope Koszt per koperta (podpowiedź celu monthly)
+	ByEnvelope []EnvelopeCost     `json:"by_envelope"`
+	ByVendor   []VendorCost       `json:"by_vendor"`
+	Counts     SubscriptionCounts `json:"counts"`
+
+	// Currency Waluta bazowa
+	Currency string `json:"currency"`
+
+	// Incomplete Brak dzisiejszego kursu części walut — te subskrypcje pominięto w sumach
+	Incomplete        bool     `json:"incomplete"`
+	MissingCurrencies []string `json:"missing_currencies"`
+
+	// Monthly Suma aktywnych i triali — średnio na miesiąc
+	Monthly Money `json:"monthly"`
+
+	// PriceChanges Zmiany cen od 90 dni temu (także zaplanowane), od najnowszej
+	PriceChanges []PriceChangeEntry `json:"price_changes"`
+
+	// TrialsEnding Triale kończące się w 14 dni
+	TrialsEnding []TrialEnding `json:"trials_ending"`
+
+	// Upcoming Oczekiwane obciążenia w 30 dni
+	Upcoming []UpcomingRenewal `json:"upcoming"`
+
+	// Yearly Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Yearly Money `json:"yearly"`
+}
+
+// SubscriptionUpdate defines model for SubscriptionUpdate.
+type SubscriptionUpdate struct {
+	Cycle           *CycleInput                           `json:"cycle,omitempty"`
+	EndsAt          nullable.Nullable[openapi_types.Date] `json:"ends_at,omitempty"`
+	EnvelopeId      nullable.Nullable[string]             `json:"envelope_id,omitempty"`
+	ExternalRef     nullable.Nullable[string]             `json:"external_ref,omitempty"`
+	ManageUrl       nullable.Nullable[string]             `json:"manage_url,omitempty"`
+	MatchRule       *MatchRuleInput                       `json:"match_rule,omitempty"`
+	Name            *string                               `json:"name,omitempty"`
+	Note            *string                               `json:"note,omitempty"`
+	ReminderOffsets *[]int                                `json:"reminder_offsets,omitempty"`
+
+	// Status trial, active, paused lub cancelled (ustawia cancelled_at i ends_at)
+	Status      *string                               `json:"status,omitempty"`
+	TrialEndsAt nullable.Nullable[openapi_types.Date] `json:"trial_ends_at,omitempty"`
+	Vendor      *string                               `json:"vendor,omitempty"`
+	WalletId    nullable.Nullable[string]             `json:"wallet_id,omitempty"`
 }
 
 // Transaction defines model for Transaction.
@@ -1009,6 +1371,17 @@ type TransactionSource string
 // TransactionStatus defines model for TransactionStatus.
 type TransactionStatus string
 
+// TransactionSuggestion defines model for TransactionSuggestion.
+type TransactionSuggestion struct {
+	Score       int         `json:"score"`
+	Transaction Transaction `json:"transaction"`
+}
+
+// TransactionSuggestionList defines model for TransactionSuggestionList.
+type TransactionSuggestionList struct {
+	Items []TransactionSuggestion `json:"items"`
+}
+
 // TransactionUpdate defines model for TransactionUpdate.
 type TransactionUpdate struct {
 	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
@@ -1053,6 +1426,29 @@ type TransferCreate struct {
 	ToWalletId string      `json:"to_wallet_id"`
 }
 
+// TrialEnding defines model for TrialEnding.
+type TrialEnding struct {
+	Name string `json:"name"`
+
+	// Price Cena po trialu
+	Price          Money              `json:"price"`
+	SubscriptionId string             `json:"subscription_id"`
+	TrialEndsAt    openapi_types.Date `json:"trial_ends_at"`
+	Vendor         string             `json:"vendor"`
+}
+
+// UpcomingRenewal defines model for UpcomingRenewal.
+type UpcomingRenewal struct {
+	// BaseAmount Szacunek w walucie bazowej po dzisiejszym kursie; null bez kursu
+	BaseAmount nullable.Nullable[Money] `json:"base_amount"`
+	Charge     Charge                   `json:"charge"`
+}
+
+// UpcomingRenewalList defines model for UpcomingRenewalList.
+type UpcomingRenewalList struct {
+	Items []UpcomingRenewal `json:"items"`
+}
+
 // User defines model for User.
 type User struct {
 	CreatedAt time.Time `json:"created_at"`
@@ -1062,6 +1458,33 @@ type User struct {
 	// InstanceAdmin Konto startowe instancji (narzędzia CLI)
 	InstanceAdmin bool   `json:"instance_admin"`
 	Name          string `json:"name"`
+}
+
+// Vendor defines model for Vendor.
+type Vendor struct {
+	// Key Examples: openai
+	Key string `json:"key"`
+
+	// Name Examples: OpenAI
+	Name string `json:"name"`
+}
+
+// VendorCost defines model for VendorCost.
+type VendorCost struct {
+	Count int `json:"count"`
+
+	// Monthly Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Monthly    Money  `json:"monthly"`
+	Vendor     string `json:"vendor"`
+	VendorName string `json:"vendor_name"`
+
+	// Yearly Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Yearly Money `json:"yearly"`
+}
+
+// VendorList defines model for VendorList.
+type VendorList struct {
+	Items []Vendor `json:"items"`
 }
 
 // Visibility defines model for Visibility.
@@ -1140,6 +1563,9 @@ type WalletUpdate struct {
 // BotId defines model for BotId.
 type BotId = string
 
+// ChargeId defines model for ChargeId.
+type ChargeId = string
+
 // EnvelopeId defines model for EnvelopeId.
 type EnvelopeId = string
 
@@ -1154,6 +1580,9 @@ type Month = string
 
 // PayeeId defines model for PayeeId.
 type PayeeId = string
+
+// SubscriptionId defines model for SubscriptionId.
+type SubscriptionId = string
 
 // TransactionId defines model for TransactionId.
 type TransactionId = string
@@ -1200,12 +1629,41 @@ type ListEnvelopeActivityParams struct {
 	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListChargesParams defines parameters for ListCharges.
+type ListChargesParams struct {
+	SubscriptionId *string `form:"subscription_id,omitempty" json:"subscription_id,omitempty"`
+
+	// Status Jeden lub więcej statusów (expected, matched, missed, skipped, posted)
+	Status *[]string           `form:"status,omitempty" json:"status,omitempty"`
+	From   *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+	To     *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+	Cursor *string             `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// SuggestChargeMatchesParams defines parameters for SuggestChargeMatches.
+type SuggestChargeMatchesParams struct {
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // QuoteFxRateParams defines parameters for QuoteFxRate.
 type QuoteFxRateParams struct {
 	Currency string `form:"currency" json:"currency"`
 
 	// Date Domyślnie dziś w strefie gospodarstwa
 	Date *openapi_types.Date `form:"date,omitempty" json:"date,omitempty"`
+}
+
+// ListSubscriptionsParams defines parameters for ListSubscriptions.
+type ListSubscriptionsParams struct {
+	Status   *string `form:"status,omitempty" json:"status,omitempty"`
+	Vendor   *string `form:"vendor,omitempty" json:"vendor,omitempty"`
+	WalletId *string `form:"wallet_id,omitempty" json:"wallet_id,omitempty"`
+}
+
+// ListUpcomingRenewalsParams defines parameters for ListUpcomingRenewals.
+type ListUpcomingRenewalsParams struct {
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
 // SearchTransactionsParams defines parameters for SearchTransactions.
@@ -1265,6 +1723,12 @@ type SetAssignmentJSONRequestBody = AssignmentSet
 // MoveBetweenEnvelopesJSONRequestBody defines body for MoveBetweenEnvelopes for application/json ContentType.
 type MoveBetweenEnvelopesJSONRequestBody = BudgetMove
 
+// MatchChargeJSONRequestBody defines body for MatchCharge for application/json ContentType.
+type MatchChargeJSONRequestBody = ChargeMatch
+
+// PostChargeJSONRequestBody defines body for PostCharge for application/json ContentType.
+type PostChargeJSONRequestBody = ChargePost
+
 // SetFxOverrideJSONRequestBody defines body for SetFxOverride for application/json ContentType.
 type SetFxOverrideJSONRequestBody = FxOverrideSet
 
@@ -1279,6 +1743,15 @@ type CreatePayeeJSONRequestBody = PayeeCreate
 
 // UpdatePayeeJSONRequestBody defines body for UpdatePayee for application/json ContentType.
 type UpdatePayeeJSONRequestBody = PayeeUpdate
+
+// CreateSubscriptionJSONRequestBody defines body for CreateSubscription for application/json ContentType.
+type CreateSubscriptionJSONRequestBody = SubscriptionCreate
+
+// UpdateSubscriptionJSONRequestBody defines body for UpdateSubscription for application/json ContentType.
+type UpdateSubscriptionJSONRequestBody = SubscriptionUpdate
+
+// ChangeSubscriptionPriceJSONRequestBody defines body for ChangeSubscriptionPrice for application/json ContentType.
+type ChangeSubscriptionPriceJSONRequestBody = PriceChange
 
 // CreateTransactionJSONRequestBody defines body for CreateTransaction for application/json ContentType.
 type CreateTransactionJSONRequestBody = TransactionCreate
@@ -1402,6 +1875,27 @@ type ServerInterface interface {
 	// MoveBetweenEnvelopes Przenosi przydzieloną kwotę między kopertami w miesiącu (budget:write)
 	// (POST /households/{householdId}/budget/months/{month}/moves)
 	MoveBetweenEnvelopes(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month)
+	// ListCharges Obciążenia widocznych subskrypcji wg terminu (subscriptions:read)
+	// (GET /households/{householdId}/charges)
+	ListCharges(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListChargesParams)
+
+	// (GET /households/{householdId}/charges/{chargeId})
+	GetCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId)
+	// MatchCharge Wiąże otwarte obciążenie z transakcją (subscriptions:write i transactions:read)
+	// (POST /households/{householdId}/charges/{chargeId}/match)
+	MatchCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId)
+	// PostCharge Księguje wydatek z obciążenia (source subscription) i wiąże go (subscriptions:write i transactions:write)
+	// (POST /households/{householdId}/charges/{chargeId}/post)
+	PostCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId)
+	// SkipCharge Oznacza otwarte obciążenie jako pominięte
+	// (POST /households/{householdId}/charges/{chargeId}/skip)
+	SkipCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId)
+	// SuggestChargeMatches Transakcje, które mogą opłacać obciążenie, od najlepszej (subscriptions:read i transactions:read)
+	// (GET /households/{householdId}/charges/{chargeId}/suggestions)
+	SuggestChargeMatches(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId, params SuggestChargeMatchesParams)
+	// UnmatchCharge Odłącza transakcję; obciążenie wraca do expected (missed po oknie)
+	// (POST /households/{householdId}/charges/{chargeId}/unmatch)
+	UnmatchCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId)
 	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
 	// (GET /households/{householdId}/fx-rates)
 	QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams)
@@ -1441,6 +1935,33 @@ type ServerInterface interface {
 
 	// (PATCH /households/{householdId}/payees/{payeeId})
 	UpdatePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId, payeeId PayeeId)
+	// ListSubscriptions Widoczne subskrypcje wg nazwy (subscriptions:read)
+	// (GET /households/{householdId}/subscriptions)
+	ListSubscriptions(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListSubscriptionsParams)
+	// CreateSubscription Zapisuje subskrypcję i jej oczekiwane obciążenia do horyzontu (subscriptions:write)
+	// (POST /households/{householdId}/subscriptions)
+	CreateSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// GetSubscriptionSummary Koszty subskrypcji w walucie bazowej, odnowienia, triale i zmiany cen (subscriptions:read)
+	// (GET /households/{householdId}/subscriptions/summary)
+	GetSubscriptionSummary(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// ListUpcomingRenewals Oczekiwane obciążenia z terminem od dziś do dziś + days (subscriptions:read)
+	// (GET /households/{householdId}/subscriptions/upcoming)
+	ListUpcomingRenewals(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListUpcomingRenewalsParams)
+	// DeleteSubscription Usuwa subskrypcję z cenami i obciążeniami; transakcje zostają
+	// (DELETE /households/{householdId}/subscriptions/{subscriptionId})
+	DeleteSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId)
+
+	// (GET /households/{householdId}/subscriptions/{subscriptionId})
+	GetSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId)
+	// UpdateSubscription Zmienia subskrypcję; przyszłe oczekiwane obciążenia idą za zmianą (subscriptions:write)
+	// (PATCH /households/{householdId}/subscriptions/{subscriptionId})
+	UpdateSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId)
+	// ListSubscriptionPrices Historia cen od najstarszej
+	// (GET /households/{householdId}/subscriptions/{subscriptionId}/prices)
+	ListSubscriptionPrices(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId)
+	// ChangeSubscriptionPrice Nowa cena od dnia (ten sam dzień nadpisuje punkt); zdarzenie subscription.price_changed
+	// (POST /households/{householdId}/subscriptions/{subscriptionId}/prices)
+	ChangeSubscriptionPrice(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId)
 	// SearchTransactions Transakcje widocznych portfeli od najnowszych (transactions:read)
 	// (GET /households/{householdId}/transactions)
 	SearchTransactions(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params SearchTransactionsParams)
@@ -1456,6 +1977,9 @@ type ServerInterface interface {
 	// UpdateTransaction Zmienia transakcję; noga przelewu — tylko data (obu nóg), status, notatka, tagi
 	// (PATCH /households/{householdId}/transactions/{transactionId})
 	UpdateTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId)
+	// SuggestChargesForTransaction Otwarte obciążenia, które transakcja może opłacać (subscriptions:read i transactions:read)
+	// (GET /households/{householdId}/transactions/{transactionId}/charge-suggestions)
+	SuggestChargesForTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId)
 	// CreateTransfer Przelew między portfelami — dwie transakcje kind=transfer z jednym transfer_pair_id
 	// (POST /households/{householdId}/transfers)
 	CreateTransfer(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
@@ -1483,6 +2007,9 @@ type ServerInterface interface {
 	// GetMe Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// ListVendors Słownik dostawców subskrypcji (klucz i nazwa wyświetlana)
+	// (GET /vendors)
+	ListVendors(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -2564,6 +3091,339 @@ func (siw *ServerInterfaceWrapper) MoveBetweenEnvelopes(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// ListCharges operation middleware
+func (siw *ServerInterfaceWrapper) ListCharges(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListChargesParams
+
+	// ------------- Optional query parameter "subscription_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subscription_id", r.URL.Query(), &params.SubscriptionId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subscription_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCharges(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCharge operation middleware
+func (siw *ServerInterfaceWrapper) GetCharge(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "chargeId" -------------
+	var chargeId ChargeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chargeId", r.PathValue("chargeId"), &chargeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "chargeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCharge(w, r, householdId, chargeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MatchCharge operation middleware
+func (siw *ServerInterfaceWrapper) MatchCharge(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "chargeId" -------------
+	var chargeId ChargeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chargeId", r.PathValue("chargeId"), &chargeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "chargeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MatchCharge(w, r, householdId, chargeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostCharge operation middleware
+func (siw *ServerInterfaceWrapper) PostCharge(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "chargeId" -------------
+	var chargeId ChargeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chargeId", r.PathValue("chargeId"), &chargeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "chargeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostCharge(w, r, householdId, chargeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SkipCharge operation middleware
+func (siw *ServerInterfaceWrapper) SkipCharge(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "chargeId" -------------
+	var chargeId ChargeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chargeId", r.PathValue("chargeId"), &chargeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "chargeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SkipCharge(w, r, householdId, chargeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SuggestChargeMatches operation middleware
+func (siw *ServerInterfaceWrapper) SuggestChargeMatches(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "chargeId" -------------
+	var chargeId ChargeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chargeId", r.PathValue("chargeId"), &chargeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "chargeId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SuggestChargeMatchesParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SuggestChargeMatches(w, r, householdId, chargeId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnmatchCharge operation middleware
+func (siw *ServerInterfaceWrapper) UnmatchCharge(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "chargeId" -------------
+	var chargeId ChargeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chargeId", r.PathValue("chargeId"), &chargeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "chargeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnmatchCharge(w, r, householdId, chargeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // QuoteFxRate operation middleware
 func (siw *ServerInterfaceWrapper) QuoteFxRate(w http.ResponseWriter, r *http.Request) {
 
@@ -2976,6 +3836,343 @@ func (siw *ServerInterfaceWrapper) UpdatePayee(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListSubscriptions operation middleware
+func (siw *ServerInterfaceWrapper) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSubscriptionsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "vendor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "vendor", r.URL.Query(), &params.Vendor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "vendor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "vendor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "wallet_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wallet_id", r.URL.Query(), &params.WalletId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wallet_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wallet_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubscriptions(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSubscription operation middleware
+func (siw *ServerInterfaceWrapper) CreateSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSubscription(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSubscriptionSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetSubscriptionSummary(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSubscriptionSummary(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUpcomingRenewals operation middleware
+func (siw *ServerInterfaceWrapper) ListUpcomingRenewals(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUpcomingRenewalsParams
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUpcomingRenewals(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSubscription operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId SubscriptionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", r.PathValue("subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSubscription(w, r, householdId, subscriptionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSubscription operation middleware
+func (siw *ServerInterfaceWrapper) GetSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId SubscriptionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", r.PathValue("subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSubscription(w, r, householdId, subscriptionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSubscription operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId SubscriptionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", r.PathValue("subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSubscription(w, r, householdId, subscriptionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSubscriptionPrices operation middleware
+func (siw *ServerInterfaceWrapper) ListSubscriptionPrices(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId SubscriptionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", r.PathValue("subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubscriptionPrices(w, r, householdId, subscriptionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChangeSubscriptionPrice operation middleware
+func (siw *ServerInterfaceWrapper) ChangeSubscriptionPrice(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId SubscriptionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", r.PathValue("subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangeSubscriptionPrice(w, r, householdId, subscriptionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SearchTransactions operation middleware
 func (siw *ServerInterfaceWrapper) SearchTransactions(w http.ResponseWriter, r *http.Request) {
 
@@ -3279,6 +4476,41 @@ func (siw *ServerInterfaceWrapper) UpdateTransaction(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// SuggestChargesForTransaction operation middleware
+func (siw *ServerInterfaceWrapper) SuggestChargesForTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "transactionId" -------------
+	var transactionId TransactionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transactionId", r.PathValue("transactionId"), &transactionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "transactionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SuggestChargesForTransaction(w, r, householdId, transactionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateTransfer operation middleware
 func (siw *ServerInterfaceWrapper) CreateTransfer(w http.ResponseWriter, r *http.Request) {
 
@@ -3499,6 +4731,20 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 	handler.ServeHTTP(w, r)
 }
 
+// ListVendors operation middleware
+func (siw *ServerInterfaceWrapper) ListVendors(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListVendors(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -3678,6 +4924,24 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/budget/envelopes/{envelopeId}", wrapper.DeleteEnvelope)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/budget/envelopes/{envelopeId}", wrapper.GetEnvelope)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/budget/envelopes/{envelopeId}", wrapper.UpdateEnvelope)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/vendors", wrapper.ListVendors)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/subscriptions", wrapper.ListSubscriptions)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/subscriptions", wrapper.CreateSubscription)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/subscriptions/summary", wrapper.GetSubscriptionSummary)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/subscriptions/upcoming", wrapper.ListUpcomingRenewals)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/subscriptions/{subscriptionId}", wrapper.DeleteSubscription)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/subscriptions/{subscriptionId}", wrapper.GetSubscription)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/subscriptions/{subscriptionId}", wrapper.UpdateSubscription)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/subscriptions/{subscriptionId}/prices", wrapper.ListSubscriptionPrices)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/subscriptions/{subscriptionId}/prices", wrapper.ChangeSubscriptionPrice)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/charges", wrapper.ListCharges)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}", wrapper.GetCharge)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/suggestions", wrapper.SuggestChargeMatches)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/match", wrapper.MatchCharge)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/unmatch", wrapper.UnmatchCharge)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/post", wrapper.PostCharge)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/skip", wrapper.SkipCharge)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/transactions/{transactionId}/charge-suggestions", wrapper.SuggestChargesForTransaction)
 
 	return m
 }
@@ -5911,6 +7175,590 @@ func (response MoveBetweenEnvelopes422ApplicationProblemPlusJSONResponse) VisitM
 	return err
 }
 
+type ListChargesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      ListChargesParams
+}
+
+type ListChargesResponseObject interface {
+	VisitListChargesResponse(w http.ResponseWriter) error
+}
+
+type ListCharges200JSONResponse ChargePage
+
+func (response ListCharges200JSONResponse) VisitListChargesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCharges401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCharges401ApplicationProblemPlusJSONResponse) VisitListChargesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCharges403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListCharges403ApplicationProblemPlusJSONResponse) VisitListChargesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCharges404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListCharges404ApplicationProblemPlusJSONResponse) VisitListChargesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCharges422ApplicationProblemPlusJSONResponse Problem
+
+func (response ListCharges422ApplicationProblemPlusJSONResponse) VisitListChargesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChargeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ChargeId    ChargeId    `json:"chargeId"`
+}
+
+type GetChargeResponseObject interface {
+	VisitGetChargeResponse(w http.ResponseWriter) error
+}
+
+type GetCharge200JSONResponse Charge
+
+func (response GetCharge200JSONResponse) VisitGetChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCharge401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCharge401ApplicationProblemPlusJSONResponse) VisitGetChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCharge403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetCharge403ApplicationProblemPlusJSONResponse) VisitGetChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCharge404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetCharge404ApplicationProblemPlusJSONResponse) VisitGetChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchChargeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ChargeId    ChargeId    `json:"chargeId"`
+	Body        *MatchChargeJSONRequestBody
+}
+
+type MatchChargeResponseObject interface {
+	VisitMatchChargeResponse(w http.ResponseWriter) error
+}
+
+type MatchCharge200JSONResponse Charge
+
+func (response MatchCharge200JSONResponse) VisitMatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchCharge401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response MatchCharge401ApplicationProblemPlusJSONResponse) VisitMatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchCharge403ApplicationProblemPlusJSONResponse Problem
+
+func (response MatchCharge403ApplicationProblemPlusJSONResponse) VisitMatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchCharge404ApplicationProblemPlusJSONResponse Problem
+
+func (response MatchCharge404ApplicationProblemPlusJSONResponse) VisitMatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchCharge409ApplicationProblemPlusJSONResponse Problem
+
+func (response MatchCharge409ApplicationProblemPlusJSONResponse) VisitMatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MatchCharge422ApplicationProblemPlusJSONResponse Problem
+
+func (response MatchCharge422ApplicationProblemPlusJSONResponse) VisitMatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PostChargeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ChargeId    ChargeId    `json:"chargeId"`
+	Body        *PostChargeJSONRequestBody
+}
+
+type PostChargeResponseObject interface {
+	VisitPostChargeResponse(w http.ResponseWriter) error
+}
+
+type PostCharge201JSONResponse PostedCharge
+
+func (response PostCharge201JSONResponse) VisitPostChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PostCharge401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response PostCharge401ApplicationProblemPlusJSONResponse) VisitPostChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PostCharge403ApplicationProblemPlusJSONResponse Problem
+
+func (response PostCharge403ApplicationProblemPlusJSONResponse) VisitPostChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PostCharge404ApplicationProblemPlusJSONResponse Problem
+
+func (response PostCharge404ApplicationProblemPlusJSONResponse) VisitPostChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PostCharge409ApplicationProblemPlusJSONResponse Problem
+
+func (response PostCharge409ApplicationProblemPlusJSONResponse) VisitPostChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PostCharge422ApplicationProblemPlusJSONResponse Problem
+
+func (response PostCharge422ApplicationProblemPlusJSONResponse) VisitPostChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SkipChargeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ChargeId    ChargeId    `json:"chargeId"`
+}
+
+type SkipChargeResponseObject interface {
+	VisitSkipChargeResponse(w http.ResponseWriter) error
+}
+
+type SkipCharge200JSONResponse Charge
+
+func (response SkipCharge200JSONResponse) VisitSkipChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SkipCharge401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SkipCharge401ApplicationProblemPlusJSONResponse) VisitSkipChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SkipCharge403ApplicationProblemPlusJSONResponse Problem
+
+func (response SkipCharge403ApplicationProblemPlusJSONResponse) VisitSkipChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SkipCharge404ApplicationProblemPlusJSONResponse Problem
+
+func (response SkipCharge404ApplicationProblemPlusJSONResponse) VisitSkipChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SkipCharge409ApplicationProblemPlusJSONResponse Problem
+
+func (response SkipCharge409ApplicationProblemPlusJSONResponse) VisitSkipChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargeMatchesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ChargeId    ChargeId    `json:"chargeId"`
+	Params      SuggestChargeMatchesParams
+}
+
+type SuggestChargeMatchesResponseObject interface {
+	VisitSuggestChargeMatchesResponse(w http.ResponseWriter) error
+}
+
+type SuggestChargeMatches200JSONResponse TransactionSuggestionList
+
+func (response SuggestChargeMatches200JSONResponse) VisitSuggestChargeMatchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargeMatches401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SuggestChargeMatches401ApplicationProblemPlusJSONResponse) VisitSuggestChargeMatchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargeMatches403ApplicationProblemPlusJSONResponse Problem
+
+func (response SuggestChargeMatches403ApplicationProblemPlusJSONResponse) VisitSuggestChargeMatchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargeMatches404ApplicationProblemPlusJSONResponse Problem
+
+func (response SuggestChargeMatches404ApplicationProblemPlusJSONResponse) VisitSuggestChargeMatchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargeMatches422ApplicationProblemPlusJSONResponse Problem
+
+func (response SuggestChargeMatches422ApplicationProblemPlusJSONResponse) VisitSuggestChargeMatchesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UnmatchChargeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ChargeId    ChargeId    `json:"chargeId"`
+}
+
+type UnmatchChargeResponseObject interface {
+	VisitUnmatchChargeResponse(w http.ResponseWriter) error
+}
+
+type UnmatchCharge200JSONResponse Charge
+
+func (response UnmatchCharge200JSONResponse) VisitUnmatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UnmatchCharge401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UnmatchCharge401ApplicationProblemPlusJSONResponse) VisitUnmatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UnmatchCharge403ApplicationProblemPlusJSONResponse Problem
+
+func (response UnmatchCharge403ApplicationProblemPlusJSONResponse) VisitUnmatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UnmatchCharge404ApplicationProblemPlusJSONResponse Problem
+
+func (response UnmatchCharge404ApplicationProblemPlusJSONResponse) VisitUnmatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UnmatchCharge409ApplicationProblemPlusJSONResponse Problem
+
+func (response UnmatchCharge409ApplicationProblemPlusJSONResponse) VisitUnmatchChargeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type QuoteFxRateRequestObject struct {
 	HouseholdId HouseholdId `json:"householdId"`
 	Params      QuoteFxRateParams
@@ -6926,6 +8774,702 @@ func (response UpdatePayee422ApplicationProblemPlusJSONResponse) VisitUpdatePaye
 	return err
 }
 
+type ListSubscriptionsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      ListSubscriptionsParams
+}
+
+type ListSubscriptionsResponseObject interface {
+	VisitListSubscriptionsResponse(w http.ResponseWriter) error
+}
+
+type ListSubscriptions200JSONResponse SubscriptionList
+
+func (response ListSubscriptions200JSONResponse) VisitListSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptions401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubscriptions401ApplicationProblemPlusJSONResponse) VisitListSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptions403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSubscriptions403ApplicationProblemPlusJSONResponse) VisitListSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptions404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSubscriptions404ApplicationProblemPlusJSONResponse) VisitListSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptions422ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSubscriptions422ApplicationProblemPlusJSONResponse) VisitListSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSubscriptionRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreateSubscriptionJSONRequestBody
+}
+
+type CreateSubscriptionResponseObject interface {
+	VisitCreateSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type CreateSubscription201JSONResponse Subscription
+
+func (response CreateSubscription201JSONResponse) VisitCreateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSubscription401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubscription401ApplicationProblemPlusJSONResponse) VisitCreateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSubscription403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSubscription403ApplicationProblemPlusJSONResponse) VisitCreateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSubscription404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSubscription404ApplicationProblemPlusJSONResponse) VisitCreateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSubscription409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSubscription409ApplicationProblemPlusJSONResponse) VisitCreateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSubscription422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSubscription422ApplicationProblemPlusJSONResponse) VisitCreateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscriptionSummaryRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+}
+
+type GetSubscriptionSummaryResponseObject interface {
+	VisitGetSubscriptionSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetSubscriptionSummary200JSONResponse SubscriptionSummary
+
+func (response GetSubscriptionSummary200JSONResponse) VisitGetSubscriptionSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscriptionSummary401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubscriptionSummary401ApplicationProblemPlusJSONResponse) VisitGetSubscriptionSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscriptionSummary403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSubscriptionSummary403ApplicationProblemPlusJSONResponse) VisitGetSubscriptionSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscriptionSummary404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSubscriptionSummary404ApplicationProblemPlusJSONResponse) VisitGetSubscriptionSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingRenewalsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      ListUpcomingRenewalsParams
+}
+
+type ListUpcomingRenewalsResponseObject interface {
+	VisitListUpcomingRenewalsResponse(w http.ResponseWriter) error
+}
+
+type ListUpcomingRenewals200JSONResponse UpcomingRenewalList
+
+func (response ListUpcomingRenewals200JSONResponse) VisitListUpcomingRenewalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingRenewals401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListUpcomingRenewals401ApplicationProblemPlusJSONResponse) VisitListUpcomingRenewalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingRenewals403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUpcomingRenewals403ApplicationProblemPlusJSONResponse) VisitListUpcomingRenewalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingRenewals404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUpcomingRenewals404ApplicationProblemPlusJSONResponse) VisitListUpcomingRenewalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUpcomingRenewals422ApplicationProblemPlusJSONResponse Problem
+
+func (response ListUpcomingRenewals422ApplicationProblemPlusJSONResponse) VisitListUpcomingRenewalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSubscriptionRequestObject struct {
+	HouseholdId    HouseholdId    `json:"householdId"`
+	SubscriptionId SubscriptionId `json:"subscriptionId"`
+}
+
+type DeleteSubscriptionResponseObject interface {
+	VisitDeleteSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type DeleteSubscription204Response struct {
+}
+
+func (response DeleteSubscription204Response) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSubscription401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubscription401ApplicationProblemPlusJSONResponse) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSubscription403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSubscription403ApplicationProblemPlusJSONResponse) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteSubscription404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteSubscription404ApplicationProblemPlusJSONResponse) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscriptionRequestObject struct {
+	HouseholdId    HouseholdId    `json:"householdId"`
+	SubscriptionId SubscriptionId `json:"subscriptionId"`
+}
+
+type GetSubscriptionResponseObject interface {
+	VisitGetSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type GetSubscription200JSONResponse Subscription
+
+func (response GetSubscription200JSONResponse) VisitGetSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscription401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubscription401ApplicationProblemPlusJSONResponse) VisitGetSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscription403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSubscription403ApplicationProblemPlusJSONResponse) VisitGetSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSubscription404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSubscription404ApplicationProblemPlusJSONResponse) VisitGetSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSubscriptionRequestObject struct {
+	HouseholdId    HouseholdId    `json:"householdId"`
+	SubscriptionId SubscriptionId `json:"subscriptionId"`
+	Body           *UpdateSubscriptionJSONRequestBody
+}
+
+type UpdateSubscriptionResponseObject interface {
+	VisitUpdateSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type UpdateSubscription200JSONResponse Subscription
+
+func (response UpdateSubscription200JSONResponse) VisitUpdateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSubscription401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubscription401ApplicationProblemPlusJSONResponse) VisitUpdateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSubscription403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSubscription403ApplicationProblemPlusJSONResponse) VisitUpdateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSubscription404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSubscription404ApplicationProblemPlusJSONResponse) VisitUpdateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSubscription409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSubscription409ApplicationProblemPlusJSONResponse) VisitUpdateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSubscription422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSubscription422ApplicationProblemPlusJSONResponse) VisitUpdateSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptionPricesRequestObject struct {
+	HouseholdId    HouseholdId    `json:"householdId"`
+	SubscriptionId SubscriptionId `json:"subscriptionId"`
+}
+
+type ListSubscriptionPricesResponseObject interface {
+	VisitListSubscriptionPricesResponse(w http.ResponseWriter) error
+}
+
+type ListSubscriptionPrices200JSONResponse PricePointList
+
+func (response ListSubscriptionPrices200JSONResponse) VisitListSubscriptionPricesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptionPrices401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubscriptionPrices401ApplicationProblemPlusJSONResponse) VisitListSubscriptionPricesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptionPrices403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSubscriptionPrices403ApplicationProblemPlusJSONResponse) VisitListSubscriptionPricesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSubscriptionPrices404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListSubscriptionPrices404ApplicationProblemPlusJSONResponse) VisitListSubscriptionPricesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSubscriptionPriceRequestObject struct {
+	HouseholdId    HouseholdId    `json:"householdId"`
+	SubscriptionId SubscriptionId `json:"subscriptionId"`
+	Body           *ChangeSubscriptionPriceJSONRequestBody
+}
+
+type ChangeSubscriptionPriceResponseObject interface {
+	VisitChangeSubscriptionPriceResponse(w http.ResponseWriter) error
+}
+
+type ChangeSubscriptionPrice201JSONResponse Subscription
+
+func (response ChangeSubscriptionPrice201JSONResponse) VisitChangeSubscriptionPriceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSubscriptionPrice401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ChangeSubscriptionPrice401ApplicationProblemPlusJSONResponse) VisitChangeSubscriptionPriceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSubscriptionPrice403ApplicationProblemPlusJSONResponse Problem
+
+func (response ChangeSubscriptionPrice403ApplicationProblemPlusJSONResponse) VisitChangeSubscriptionPriceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSubscriptionPrice404ApplicationProblemPlusJSONResponse Problem
+
+func (response ChangeSubscriptionPrice404ApplicationProblemPlusJSONResponse) VisitChangeSubscriptionPriceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSubscriptionPrice422ApplicationProblemPlusJSONResponse Problem
+
+func (response ChangeSubscriptionPrice422ApplicationProblemPlusJSONResponse) VisitChangeSubscriptionPriceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SearchTransactionsRequestObject struct {
 	HouseholdId HouseholdId `json:"householdId"`
 	Params      SearchTransactionsParams
@@ -7336,6 +9880,73 @@ func (response UpdateTransaction422ApplicationProblemPlusJSONResponse) VisitUpda
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargesForTransactionRequestObject struct {
+	HouseholdId   HouseholdId   `json:"householdId"`
+	TransactionId TransactionId `json:"transactionId"`
+}
+
+type SuggestChargesForTransactionResponseObject interface {
+	VisitSuggestChargesForTransactionResponse(w http.ResponseWriter) error
+}
+
+type SuggestChargesForTransaction200JSONResponse ChargeSuggestionList
+
+func (response SuggestChargesForTransaction200JSONResponse) VisitSuggestChargesForTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargesForTransaction401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SuggestChargesForTransaction401ApplicationProblemPlusJSONResponse) VisitSuggestChargesForTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargesForTransaction403ApplicationProblemPlusJSONResponse Problem
+
+func (response SuggestChargesForTransaction403ApplicationProblemPlusJSONResponse) VisitSuggestChargesForTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SuggestChargesForTransaction404ApplicationProblemPlusJSONResponse Problem
+
+func (response SuggestChargesForTransaction404ApplicationProblemPlusJSONResponse) VisitSuggestChargesForTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -8033,6 +10644,43 @@ func (response GetMe401ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w 
 	return err
 }
 
+type ListVendorsRequestObject struct {
+}
+
+type ListVendorsResponseObject interface {
+	VisitListVendorsResponse(w http.ResponseWriter) error
+}
+
+type ListVendors200JSONResponse VendorList
+
+func (response ListVendors200JSONResponse) VisitListVendorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListVendors401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListVendors401ApplicationProblemPlusJSONResponse) VisitListVendorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// LoginCallback Powrót od dostawcy OIDC
@@ -8131,6 +10779,27 @@ type StrictServerInterface interface {
 	// MoveBetweenEnvelopes Przenosi przydzieloną kwotę między kopertami w miesiącu (budget:write)
 	// (POST /households/{householdId}/budget/months/{month}/moves)
 	MoveBetweenEnvelopes(ctx context.Context, request MoveBetweenEnvelopesRequestObject) (MoveBetweenEnvelopesResponseObject, error)
+	// ListCharges Obciążenia widocznych subskrypcji wg terminu (subscriptions:read)
+	// (GET /households/{householdId}/charges)
+	ListCharges(ctx context.Context, request ListChargesRequestObject) (ListChargesResponseObject, error)
+
+	// (GET /households/{householdId}/charges/{chargeId})
+	GetCharge(ctx context.Context, request GetChargeRequestObject) (GetChargeResponseObject, error)
+	// MatchCharge Wiąże otwarte obciążenie z transakcją (subscriptions:write i transactions:read)
+	// (POST /households/{householdId}/charges/{chargeId}/match)
+	MatchCharge(ctx context.Context, request MatchChargeRequestObject) (MatchChargeResponseObject, error)
+	// PostCharge Księguje wydatek z obciążenia (source subscription) i wiąże go (subscriptions:write i transactions:write)
+	// (POST /households/{householdId}/charges/{chargeId}/post)
+	PostCharge(ctx context.Context, request PostChargeRequestObject) (PostChargeResponseObject, error)
+	// SkipCharge Oznacza otwarte obciążenie jako pominięte
+	// (POST /households/{householdId}/charges/{chargeId}/skip)
+	SkipCharge(ctx context.Context, request SkipChargeRequestObject) (SkipChargeResponseObject, error)
+	// SuggestChargeMatches Transakcje, które mogą opłacać obciążenie, od najlepszej (subscriptions:read i transactions:read)
+	// (GET /households/{householdId}/charges/{chargeId}/suggestions)
+	SuggestChargeMatches(ctx context.Context, request SuggestChargeMatchesRequestObject) (SuggestChargeMatchesResponseObject, error)
+	// UnmatchCharge Odłącza transakcję; obciążenie wraca do expected (missed po oknie)
+	// (POST /households/{householdId}/charges/{chargeId}/unmatch)
+	UnmatchCharge(ctx context.Context, request UnmatchChargeRequestObject) (UnmatchChargeResponseObject, error)
 	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
 	// (GET /households/{householdId}/fx-rates)
 	QuoteFxRate(ctx context.Context, request QuoteFxRateRequestObject) (QuoteFxRateResponseObject, error)
@@ -8170,6 +10839,33 @@ type StrictServerInterface interface {
 
 	// (PATCH /households/{householdId}/payees/{payeeId})
 	UpdatePayee(ctx context.Context, request UpdatePayeeRequestObject) (UpdatePayeeResponseObject, error)
+	// ListSubscriptions Widoczne subskrypcje wg nazwy (subscriptions:read)
+	// (GET /households/{householdId}/subscriptions)
+	ListSubscriptions(ctx context.Context, request ListSubscriptionsRequestObject) (ListSubscriptionsResponseObject, error)
+	// CreateSubscription Zapisuje subskrypcję i jej oczekiwane obciążenia do horyzontu (subscriptions:write)
+	// (POST /households/{householdId}/subscriptions)
+	CreateSubscription(ctx context.Context, request CreateSubscriptionRequestObject) (CreateSubscriptionResponseObject, error)
+	// GetSubscriptionSummary Koszty subskrypcji w walucie bazowej, odnowienia, triale i zmiany cen (subscriptions:read)
+	// (GET /households/{householdId}/subscriptions/summary)
+	GetSubscriptionSummary(ctx context.Context, request GetSubscriptionSummaryRequestObject) (GetSubscriptionSummaryResponseObject, error)
+	// ListUpcomingRenewals Oczekiwane obciążenia z terminem od dziś do dziś + days (subscriptions:read)
+	// (GET /households/{householdId}/subscriptions/upcoming)
+	ListUpcomingRenewals(ctx context.Context, request ListUpcomingRenewalsRequestObject) (ListUpcomingRenewalsResponseObject, error)
+	// DeleteSubscription Usuwa subskrypcję z cenami i obciążeniami; transakcje zostają
+	// (DELETE /households/{householdId}/subscriptions/{subscriptionId})
+	DeleteSubscription(ctx context.Context, request DeleteSubscriptionRequestObject) (DeleteSubscriptionResponseObject, error)
+
+	// (GET /households/{householdId}/subscriptions/{subscriptionId})
+	GetSubscription(ctx context.Context, request GetSubscriptionRequestObject) (GetSubscriptionResponseObject, error)
+	// UpdateSubscription Zmienia subskrypcję; przyszłe oczekiwane obciążenia idą za zmianą (subscriptions:write)
+	// (PATCH /households/{householdId}/subscriptions/{subscriptionId})
+	UpdateSubscription(ctx context.Context, request UpdateSubscriptionRequestObject) (UpdateSubscriptionResponseObject, error)
+	// ListSubscriptionPrices Historia cen od najstarszej
+	// (GET /households/{householdId}/subscriptions/{subscriptionId}/prices)
+	ListSubscriptionPrices(ctx context.Context, request ListSubscriptionPricesRequestObject) (ListSubscriptionPricesResponseObject, error)
+	// ChangeSubscriptionPrice Nowa cena od dnia (ten sam dzień nadpisuje punkt); zdarzenie subscription.price_changed
+	// (POST /households/{householdId}/subscriptions/{subscriptionId}/prices)
+	ChangeSubscriptionPrice(ctx context.Context, request ChangeSubscriptionPriceRequestObject) (ChangeSubscriptionPriceResponseObject, error)
 	// SearchTransactions Transakcje widocznych portfeli od najnowszych (transactions:read)
 	// (GET /households/{householdId}/transactions)
 	SearchTransactions(ctx context.Context, request SearchTransactionsRequestObject) (SearchTransactionsResponseObject, error)
@@ -8185,6 +10881,9 @@ type StrictServerInterface interface {
 	// UpdateTransaction Zmienia transakcję; noga przelewu — tylko data (obu nóg), status, notatka, tagi
 	// (PATCH /households/{householdId}/transactions/{transactionId})
 	UpdateTransaction(ctx context.Context, request UpdateTransactionRequestObject) (UpdateTransactionResponseObject, error)
+	// SuggestChargesForTransaction Otwarte obciążenia, które transakcja może opłacać (subscriptions:read i transactions:read)
+	// (GET /households/{householdId}/transactions/{transactionId}/charge-suggestions)
+	SuggestChargesForTransaction(ctx context.Context, request SuggestChargesForTransactionRequestObject) (SuggestChargesForTransactionResponseObject, error)
 	// CreateTransfer Przelew między portfelami — dwie transakcje kind=transfer z jednym transfer_pair_id
 	// (POST /households/{householdId}/transfers)
 	CreateTransfer(ctx context.Context, request CreateTransferRequestObject) (CreateTransferResponseObject, error)
@@ -8212,6 +10911,9 @@ type StrictServerInterface interface {
 	// GetMe Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
 	// (GET /me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// ListVendors Słownik dostawców subskrypcji (klucz i nazwa wyświetlana)
+	// (GET /vendors)
+	ListVendors(ctx context.Context, request ListVendorsRequestObject) (ListVendorsResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -9169,6 +11871,213 @@ func (sh *strictHandler) MoveBetweenEnvelopes(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// ListCharges operation middleware
+func (sh *strictHandler) ListCharges(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListChargesParams) {
+	var request ListChargesRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCharges(ctx, request.(ListChargesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCharges")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChargesResponseObject); ok {
+		if err := validResponse.VisitListChargesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCharge operation middleware
+func (sh *strictHandler) GetCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId) {
+	var request GetChargeRequestObject
+
+	request.HouseholdId = householdId
+	request.ChargeId = chargeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCharge(ctx, request.(GetChargeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCharge")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetChargeResponseObject); ok {
+		if err := validResponse.VisitGetChargeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MatchCharge operation middleware
+func (sh *strictHandler) MatchCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId) {
+	var request MatchChargeRequestObject
+
+	request.HouseholdId = householdId
+	request.ChargeId = chargeId
+
+	var body MatchChargeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MatchCharge(ctx, request.(MatchChargeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MatchCharge")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MatchChargeResponseObject); ok {
+		if err := validResponse.VisitMatchChargeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostCharge operation middleware
+func (sh *strictHandler) PostCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId) {
+	var request PostChargeRequestObject
+
+	request.HouseholdId = householdId
+	request.ChargeId = chargeId
+
+	var body PostChargeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostCharge(ctx, request.(PostChargeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostCharge")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostChargeResponseObject); ok {
+		if err := validResponse.VisitPostChargeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SkipCharge operation middleware
+func (sh *strictHandler) SkipCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId) {
+	var request SkipChargeRequestObject
+
+	request.HouseholdId = householdId
+	request.ChargeId = chargeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SkipCharge(ctx, request.(SkipChargeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SkipCharge")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SkipChargeResponseObject); ok {
+		if err := validResponse.VisitSkipChargeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SuggestChargeMatches operation middleware
+func (sh *strictHandler) SuggestChargeMatches(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId, params SuggestChargeMatchesParams) {
+	var request SuggestChargeMatchesRequestObject
+
+	request.HouseholdId = householdId
+	request.ChargeId = chargeId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SuggestChargeMatches(ctx, request.(SuggestChargeMatchesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SuggestChargeMatches")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SuggestChargeMatchesResponseObject); ok {
+		if err := validResponse.VisitSuggestChargeMatchesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UnmatchCharge operation middleware
+func (sh *strictHandler) UnmatchCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId) {
+	var request UnmatchChargeRequestObject
+
+	request.HouseholdId = householdId
+	request.ChargeId = chargeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UnmatchCharge(ctx, request.(UnmatchChargeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UnmatchCharge")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UnmatchChargeResponseObject); ok {
+		if err := validResponse.VisitUnmatchChargeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // QuoteFxRate operation middleware
 func (sh *strictHandler) QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams) {
 	var request QuoteFxRateRequestObject
@@ -9548,6 +12457,268 @@ func (sh *strictHandler) UpdatePayee(w http.ResponseWriter, r *http.Request, hou
 	}
 }
 
+// ListSubscriptions operation middleware
+func (sh *strictHandler) ListSubscriptions(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListSubscriptionsParams) {
+	var request ListSubscriptionsRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSubscriptions(ctx, request.(ListSubscriptionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSubscriptions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSubscriptionsResponseObject); ok {
+		if err := validResponse.VisitListSubscriptionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateSubscription operation middleware
+func (sh *strictHandler) CreateSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreateSubscriptionRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreateSubscriptionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSubscription(ctx, request.(CreateSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateSubscriptionResponseObject); ok {
+		if err := validResponse.VisitCreateSubscriptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSubscriptionSummary operation middleware
+func (sh *strictHandler) GetSubscriptionSummary(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request GetSubscriptionSummaryRequestObject
+
+	request.HouseholdId = householdId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSubscriptionSummary(ctx, request.(GetSubscriptionSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSubscriptionSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSubscriptionSummaryResponseObject); ok {
+		if err := validResponse.VisitGetSubscriptionSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListUpcomingRenewals operation middleware
+func (sh *strictHandler) ListUpcomingRenewals(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListUpcomingRenewalsParams) {
+	var request ListUpcomingRenewalsRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUpcomingRenewals(ctx, request.(ListUpcomingRenewalsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUpcomingRenewals")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUpcomingRenewalsResponseObject); ok {
+		if err := validResponse.VisitListUpcomingRenewalsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteSubscription operation middleware
+func (sh *strictHandler) DeleteSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId) {
+	var request DeleteSubscriptionRequestObject
+
+	request.HouseholdId = householdId
+	request.SubscriptionId = subscriptionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSubscription(ctx, request.(DeleteSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteSubscriptionResponseObject); ok {
+		if err := validResponse.VisitDeleteSubscriptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSubscription operation middleware
+func (sh *strictHandler) GetSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId) {
+	var request GetSubscriptionRequestObject
+
+	request.HouseholdId = householdId
+	request.SubscriptionId = subscriptionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSubscription(ctx, request.(GetSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSubscriptionResponseObject); ok {
+		if err := validResponse.VisitGetSubscriptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSubscription operation middleware
+func (sh *strictHandler) UpdateSubscription(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId) {
+	var request UpdateSubscriptionRequestObject
+
+	request.HouseholdId = householdId
+	request.SubscriptionId = subscriptionId
+
+	var body UpdateSubscriptionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSubscription(ctx, request.(UpdateSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSubscriptionResponseObject); ok {
+		if err := validResponse.VisitUpdateSubscriptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSubscriptionPrices operation middleware
+func (sh *strictHandler) ListSubscriptionPrices(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId) {
+	var request ListSubscriptionPricesRequestObject
+
+	request.HouseholdId = householdId
+	request.SubscriptionId = subscriptionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSubscriptionPrices(ctx, request.(ListSubscriptionPricesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSubscriptionPrices")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSubscriptionPricesResponseObject); ok {
+		if err := validResponse.VisitListSubscriptionPricesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ChangeSubscriptionPrice operation middleware
+func (sh *strictHandler) ChangeSubscriptionPrice(w http.ResponseWriter, r *http.Request, householdId HouseholdId, subscriptionId SubscriptionId) {
+	var request ChangeSubscriptionPriceRequestObject
+
+	request.HouseholdId = householdId
+	request.SubscriptionId = subscriptionId
+
+	var body ChangeSubscriptionPriceJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChangeSubscriptionPrice(ctx, request.(ChangeSubscriptionPriceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChangeSubscriptionPrice")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChangeSubscriptionPriceResponseObject); ok {
+		if err := validResponse.VisitChangeSubscriptionPriceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SearchTransactions operation middleware
 func (sh *strictHandler) SearchTransactions(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params SearchTransactionsParams) {
 	var request SearchTransactionsRequestObject
@@ -9689,6 +12860,33 @@ func (sh *strictHandler) UpdateTransaction(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateTransactionResponseObject); ok {
 		if err := validResponse.VisitUpdateTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SuggestChargesForTransaction operation middleware
+func (sh *strictHandler) SuggestChargesForTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId) {
+	var request SuggestChargesForTransactionRequestObject
+
+	request.HouseholdId = householdId
+	request.TransactionId = transactionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SuggestChargesForTransaction(ctx, request.(SuggestChargesForTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SuggestChargesForTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SuggestChargesForTransactionResponseObject); ok {
+		if err := validResponse.VisitSuggestChargesForTransactionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -9960,6 +13158,30 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListVendors operation middleware
+func (sh *strictHandler) ListVendors(w http.ResponseWriter, r *http.Request) {
+	var request ListVendorsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListVendors(ctx, request.(ListVendorsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListVendors")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListVendorsResponseObject); ok {
+		if err := validResponse.VisitListVendorsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
