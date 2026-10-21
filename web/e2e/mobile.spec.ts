@@ -108,3 +108,21 @@ test('subscription pages fit a narrow screen', async ({ page }) => {
     expect(overflow, path).toBeLessThanOrEqual(0)
   }
 })
+
+test('notifications fit a narrow screen; the bell sits in the top bar', async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1280) >= 768, 'tylko dla telefonu')
+  await loginViaApi(page.request)
+  const household = await createHousehold(page.request, { name: 'Telefon z powiadomieniami' })
+  for (const path of ['/notifications', '/settings/notifications']) {
+    await page.goto(`/h/${household.id}${path}`)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await page.waitForLoadState('networkidle')
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow, path).toBeLessThanOrEqual(0)
+  }
+  await page.getByRole('banner').getByRole('button', { name: /^Powiadomienia, / }).click()
+  const panel = page.getByRole('region', { name: 'Powiadomienia' })
+  await expect(panel).toBeInViewport({ ratio: 1 })
+  await panel.getByRole('link', { name: 'Wszystkie powiadomienia' }).click()
+  await expect(page).toHaveURL(new RegExp(`/h/${household.id}/notifications$`))
+})

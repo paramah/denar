@@ -1,7 +1,17 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
-import { adminEmail, adminName, adminPassword, baseURL, listenAddress, nbpPort, nbpURL, runDir } from './e2e/support/state.ts'
+import {
+  adminEmail,
+  adminName,
+  adminPassword,
+  baseURL,
+  listenAddress,
+  masterKey,
+  nbpPort,
+  nbpURL,
+  runDir,
+} from './e2e/support/state.ts'
 
 // Testy działają na zbudowanym binarium (`task build`, robi to task web:e2e),
 // na bazie w katalogu tymczasowym, z kontem startowym z otoczenia.
@@ -38,7 +48,8 @@ export default defineConfig({
   },
   webServer: [
     {
-      // Kursy walut bez sieci: serwer pyta atrapę zamiast api.nbp.pl.
+      // Kursy walut bez sieci: serwer pyta atrapę zamiast api.nbp.pl. Atrapa
+      // przyjmuje też webhooki powiadomień (POST /webhook/<nazwa>).
       command: `node ${JSON.stringify(fileURLToPath(new URL('./e2e/support/nbp-stub.mjs', import.meta.url)))} ${nbpPort}`,
       url: `${nbpURL}/healthz`,
       reuseExistingServer: false,
@@ -67,6 +78,13 @@ export default defineConfig({
         DENAR_SESSION_TTL: '168h',
         DENAR_NBP_URL: nbpURL,
         DENAR_FX_INTERVAL: '1m',
+        // Powiadomienia (005): sekrety kanałów szyfrowane testowym kluczem; przypomnienia
+        // subskrypcji i rozsyłka co 2 s, żeby e2e nie czekało minut. Bez SMTP — e-mail niedostępny.
+        DENAR_MASTER_KEY: masterKey,
+        DENAR_MASTER_KEY_FILE: '',
+        DENAR_SUBSCRIPTION_INTERVAL: '2s',
+        DENAR_NOTIFY_INTERVAL: '2s',
+        DENAR_SMTP_HOST: '',
       },
     },
   ],
