@@ -1,1 +1,44 @@
-{}
+{
+  "greeting": {
+    "evening": "Good evening",
+    "day": "Hello"
+  },
+  "title": "{{greeting}}, {{name}}",
+  "documentTitle": "Dashboard",
+  "addTransaction": "Add transaction",
+  "walletsLoadFailed": "Could not load the wallets",
+  "firstWallet": {
+    "title": "Add your first wallet",
+    "action": "Add wallet",
+    "body": "An account, cash or a card — tracking expenses and the budget starts with a wallet."
+  },
+  "wallets": {
+    "title": "Wallets",
+    "all": "All wallets",
+    "offBudget": " · off budget"
+  },
+  "recent": {
+    "title": "Recent transactions",
+    "all": "Full register",
+    "loadFailed": "Could not load the transactions",
+    "empty": "No transactions yet.",
+    "walletFallback": "wallet"
+  },
+  "facts": {
+    "label": "Household",
+    "role": "Your role:",
+    "currency": "Base currency:",
+    "monthStart": "Budget month starts on:",
+    "monthStartDay": "day {{day}}",
+    "timezone": "Time zone:"
+  },
+  "steps": {
+    "title": "Next steps",
+    "inviteTitle": "Invite household members",
+    "inviteText": "Send an invitation link and choose what each person can do.",
+    "botTitle": "Connect an AI assistant",
+    "botText": "Claude or another assistant over MCP: create a bot and copy the ready-made connection command.",
+    "settingsTitle": "Check the settings",
+    "settingsText": "Time zone and the day your budget month starts on."
+  }
+}

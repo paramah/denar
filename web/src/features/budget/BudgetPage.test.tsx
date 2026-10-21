@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { setLocale } from '../../i18n/locale.ts'
 import type { BudgetMonth, BudgetMove, EnvelopeCreate, EnvelopeUpdate, Goal, MoneyInput } from '../../api/types.ts'
 import * as f from '../../test/msw/fixtures.ts'
 import { problemResponse } from '../../test/msw/handlers.ts'
@@ -365,5 +366,29 @@ describe('BudgetPage', () => {
     renderApp('/h/h-dom/budget/2026-10')
     expect(await screen.findByText('Załóż pierwsze koperty')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Nowa grupa kopert' })).toBeInTheDocument()
+  })
+
+  it('speaks English after switching the language', async () => {
+    setLocale('en')
+    const { user } = renderApp('/h/h-dom/budget/2026-10')
+    const food = within(await screen.findByRole('article', { name: 'Envelope Jedzenie' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Budget' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^Previous month: / })).toHaveAttribute('href', '/h/h-dom/budget/2026-09')
+    expect(plain(screen.getByRole('group', { name: 'Ready to Assign' }).textContent)).toContain('3,850.00')
+    const notes = within(screen.getByRole('list', { name: 'Notes for the month' }))
+    expect(notes.getByText(/2 transactions are waiting for an exchange rate/)).toBeInTheDocument()
+    expect(plain(notes.getByText(/Assigned to future months/).textContent)).toContain('100.00')
+    // Pole przydziału pokazuje kwotę z kropką dziesiętną.
+    expect(food.getByRole('textbox', { name: 'Assigned: Jedzenie' })).toHaveValue('800.00')
+    expect(food.getByTitle(/Overspent/)).toHaveTextContent('(overspent)')
+    expect(screen.getByRole('toolbar', { name: 'Budget actions' })).toBeInTheDocument()
+    expect(screen.getByText('Outside envelopes')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add an envelope to group Cele' }))
+    const dialog = within(await screen.findByRole('dialog', { name: 'New envelope' }))
+    await user.click(dialog.getByRole('radio', { name: 'Amount by date' }))
+    await user.click(dialog.getByRole('button', { name: 'Add envelope' }))
+    expect(dialog.getByRole('textbox', { name: 'Envelope name' })).toHaveAccessibleDescription('Enter an envelope name.')
+    expect(dialog.getByLabelText('By date')).toHaveAccessibleDescription('Enter the date by which you want to save the amount.')
   })
 })

@@ -1,4 +1,5 @@
 import type { BudgetEnvelope, BudgetMonth } from '../../api/types.ts'
+import { decimalSeparator } from '../../lib/intl.ts'
 import { addDecimal, negateDecimal, toMinor, toneOf } from '../../lib/money.ts'
 
 export type AvailableState = 'positive' | 'zero' | 'negative' | 'underfunded'
@@ -22,9 +23,9 @@ export function envelopesOf(month: BudgetMonth): EnvelopeInMonth[] {
   return month.groups.flatMap((group) => group.envelopes.map((envelope) => ({ ...envelope, groupName: group.name })))
 }
 
-/** Kwota przydziału do pola edycji: ze znakiem, z przecinkiem („-12.50” → „-12,50”). */
+/** Kwota przydziału do pola edycji: ze znakiem, z separatorem języka („-12.50” → „-12,50” po polsku). */
 export function assignedForInput(amount: string): string {
-  return amount.replace('.', ',')
+  return amount.replace('.', decimalSeparator())
 }
 
 /** Przydział po dodaniu/odjęciu kwoty — na bigint jednostek minimalnych. */

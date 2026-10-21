@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import * as f from '../../test/msw/fixtures.ts'
 import { server } from '../../test/msw/server.ts'
 import { apiUrl } from '../../test/msw/url.ts'
+import { setLocale } from '../../i18n/locale.ts'
 import { renderApp } from '../../test/render.tsx'
 
 const plain = (value: string | null | undefined) => value?.replace(/[\u00a0\u202f]/g, ' ')
@@ -46,5 +47,27 @@ describe('DashboardPage', () => {
     const recent = await screen.findByRole('list', { name: 'Ostatnie transakcje' })
     expect(within(recent).getByText('Piekarnia')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Dodaj transakcję' })).toBeInTheDocument()
+  })
+
+  it('speaks English after switching the language', async () => {
+    setLocale('en')
+    server.use(
+      http.get(apiUrl('/households/:hid/wallets'), () =>
+        HttpResponse.json({ items: [f.wallet(), f.wallet({ id: 'w-lok', name: 'Lokata', on_budget: false })] }),
+      ),
+      http.get(apiUrl('/households/:hid/transactions'), () =>
+        HttpResponse.json({ items: [f.transaction({ payee_name: 'Piekarnia' })], next_cursor: null }),
+      ),
+    )
+    renderApp('/h/h-dom')
+    expect(await screen.findByRole('heading', { level: 2, name: 'Wallets' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: /^(Hello|Good evening), / })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add transaction' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Lokata/ })).toHaveTextContent('off budget')
+    expect(await screen.findByRole('list', { name: 'Recent transactions' })).toBeInTheDocument()
+    const facts = within(screen.getByLabelText('Household'))
+    expect(facts.getByText('Your role:')).toBeInTheDocument()
+    expect(facts.getByText(/^day [0-9]+$/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Next steps' })).toBeInTheDocument()
   })
 })

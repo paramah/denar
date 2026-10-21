@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import {
   useCreateEnvelope,
@@ -18,7 +19,7 @@ import { useToast } from '../../components/Toast/Toast.tsx'
 import { todayIn } from '../../lib/format.ts'
 import { AmountField } from '../transactions/fields.tsx'
 import { pickError } from '../transactions/money.ts'
-import { checkGoal, goalDraft, goalTypeLabels, type GoalChoice, type GoalDraft } from './goal.ts'
+import { checkGoal, goalDraft, goalTypeLabel, type GoalChoice, type GoalDraft } from './goal.ts'
 import styles from './budget.module.css'
 
 // ——— Grupa ———
@@ -35,14 +36,21 @@ export function GroupDialog({
   /** Pozycja nowej grupy (na końcu listy). */
   position: number
 }) {
+  const { t } = useTranslation('budget')
   return (
-    <Dialog open={open} title={group ? `Zmiana nazwy grupy ${group.name}` : 'Nowa grupa kopert'} onClose={onClose} size="sm">
+    <Dialog
+      open={open}
+      title={group ? t('group.titleRename', { name: group.name }) : t('group.titleNew')}
+      onClose={onClose}
+      size="sm"
+    >
       <GroupForm group={group} position={position} onDone={onClose} />
     </Dialog>
   )
 }
 
 function GroupForm({ group, position, onDone }: { group?: BudgetGroup; position: number; onDone: () => void }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const create = useCreateEnvelopeGroup(household.id)
   const update = useUpdateEnvelopeGroup(household.id)
@@ -56,7 +64,7 @@ function GroupForm({ group, position, onDone }: { group?: BudgetGroup; position:
   const submit = async () => {
     const trimmed = name.trim()
     if (!trimmed) {
-      setError('Podaj nazwę grupy.')
+      setError(t('group.nameMissing'))
       return
     }
     setError(undefined)
@@ -66,7 +74,7 @@ function GroupForm({ group, position, onDone }: { group?: BudgetGroup; position:
       } else {
         await create.mutateAsync({ name: trimmed, position })
       }
-      toast.show({ message: group ? `Zmieniono nazwę grupy na ${trimmed}.` : `Dodano grupę ${trimmed}.` })
+      toast.show({ message: group ? t('group.renamed', { name: trimmed }) : t('group.added', { name: trimmed }) })
       onDone()
     } catch {
       // Błąd pokazuje formularz.
@@ -76,7 +84,7 @@ function GroupForm({ group, position, onDone }: { group?: BudgetGroup; position:
   return (
     <form
       noValidate
-      aria-label={group ? 'Zmiana nazwy grupy' : 'Nowa grupa kopert'}
+      aria-label={group ? t('group.formRename') : t('group.titleNew')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -85,19 +93,19 @@ function GroupForm({ group, position, onDone }: { group?: BudgetGroup; position:
     >
       <FormAlert error={duplicate ? null : mutation.error} shownFields={['name']} />
       <TextField
-        label="Nazwa grupy"
+        label={t('group.name')}
         value={name}
         onChange={(event) => setName(event.target.value)}
-        error={error ?? (duplicate ? 'Grupa o tej nazwie już istnieje.' : server.name)}
-        hint={group ? undefined : 'Np. Rachunki, Codzienne, Cele'}
+        error={error ?? (duplicate ? t('group.duplicate') : server.name)}
+        hint={group ? undefined : t('group.hint')}
         maxLength={100}
         autoComplete="off"
         data-autofocus
       />
       <div className={styles.actions}>
-        <Button onClick={onDone}>Anuluj</Button>
+        <Button onClick={onDone}>{t('actions.cancel')}</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>
-          {group ? 'Zapisz' : 'Dodaj grupę'}
+          {group ? t('actions.save') : t('group.add')}
         </Button>
       </div>
     </form>
@@ -122,8 +130,14 @@ export function EnvelopeDialog({
   /** Grupa nowej koperty. */
   groupId?: string
 }) {
+  const { t } = useTranslation('budget')
   return (
-    <Dialog open={open} title={envelope ? `Edycja koperty ${envelope.name}` : 'Nowa koperta'} onClose={onClose} size="md">
+    <Dialog
+      open={open}
+      title={envelope ? t('envelope.titleEdit', { name: envelope.name }) : t('envelope.titleNew')}
+      onClose={onClose}
+      size="md"
+    >
       <EnvelopeForm month={month} decimals={decimals} envelope={envelope} groupId={groupId} onDone={onClose} />
     </Dialog>
   )
@@ -142,6 +156,7 @@ function EnvelopeForm({
   groupId?: string
   onDone: () => void
 }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const create = useCreateEnvelope(household.id)
   const update = useUpdateEnvelope(household.id)
@@ -163,10 +178,10 @@ function EnvelopeForm({
     const next: Record<string, string | undefined> = {}
     const trimmed = name.trim()
     if (!trimmed) {
-      next.name = 'Podaj nazwę koperty.'
+      next.name = t('envelope.nameMissing')
     }
     if (!group) {
-      next.group_id = 'Wybierz grupę.'
+      next.group_id = t('envelope.groupMissing')
     }
     // Termin w przeszłości odrzucamy tylko przy nowej dacie — stary cel po terminie zostaje edytowalny.
     const today = goal.targetDate !== original.targetDate ? todayIn(household.timezone) : undefined
@@ -199,7 +214,7 @@ function EnvelopeForm({
         }
         await create.mutateAsync(body)
       }
-      toast.show({ message: envelope ? `Zapisano kopertę ${trimmed}.` : `Dodano kopertę ${trimmed}.` })
+      toast.show({ message: envelope ? t('envelope.saved', { name: trimmed }) : t('envelope.added', { name: trimmed }) })
       onDone()
     } catch {
       // Błąd pokazuje formularz.
@@ -211,7 +226,7 @@ function EnvelopeForm({
   return (
     <form
       noValidate
-      aria-label={envelope ? 'Edycja koperty' : 'Nowa koperta'}
+      aria-label={envelope ? t('envelope.formEdit') : t('envelope.titleNew')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -224,16 +239,16 @@ function EnvelopeForm({
       />
       <div className={styles.pair}>
         <TextField
-          label="Nazwa koperty"
+          label={t('envelope.name')}
           value={name}
           onChange={(event) => setName(event.target.value)}
-          error={errors.name ?? (duplicate ? 'Koperta o tej nazwie już istnieje.' : server.name)}
+          error={errors.name ?? (duplicate ? t('envelope.duplicate') : server.name)}
           maxLength={100}
           autoComplete="off"
           data-autofocus
         />
         <SelectField
-          label="Grupa"
+          label={t('envelope.group')}
           value={group}
           onChange={(event) => setGroup(event.target.value)}
           options={month.groups.map((g) => ({ value: g.id, label: g.name }))}
@@ -241,27 +256,25 @@ function EnvelopeForm({
         />
       </div>
       <fieldset className={styles.goalChoice}>
-        <legend>Cel</legend>
+        <legend>{t('envelope.goal')}</legend>
         <div className={styles.radios}>
           {(['none', 'monthly', 'target_by_date'] as GoalChoice[]).map((type) => (
             <label key={type}>
               <input type="radio" name={goalName} checked={goal.type === type} onChange={() => setType(type)} />
-              {goalTypeLabels[type]}
+              {goalTypeLabel(type)}
             </label>
           ))}
         </div>
         {goal.type === 'monthly' && (
-          <p className={styles.muted}>Ile przydzielać do tej koperty co miesiąc, np. na jedzenie albo rachunki.</p>
+          <p className={styles.muted}>{t('envelope.monthlyHint')}</p>
         )}
         {goal.type === 'target_by_date' && (
-          <p className={styles.muted}>
-            Ile zebrać do wybranego dnia — brakującą kwotę rozłożymy równo na pozostałe miesiące.
-          </p>
+          <p className={styles.muted}>{t('envelope.byDateHint')}</p>
         )}
         {goal.type !== 'none' && (
           <div className={styles.pair}>
             <AmountField
-              label={goal.type === 'monthly' ? 'Kwota miesięcznie' : 'Kwota celu'}
+              label={goal.type === 'monthly' ? t('envelope.amountMonthly') : t('envelope.amountTarget')}
               value={goal.amount}
               onChange={(amount) => setGoal((current) => ({ ...current, amount }))}
               currency={month.currency}
@@ -269,7 +282,7 @@ function EnvelopeForm({
             />
             {goal.type === 'target_by_date' && (
               <TextField
-                label="Do dnia"
+                label={t('envelope.targetDate')}
                 type="date"
                 value={goal.targetDate}
                 onChange={(event) => setGoal((current) => ({ ...current, targetDate: event.target.value }))}
@@ -281,16 +294,16 @@ function EnvelopeForm({
       </fieldset>
       {envelope && (
         <Checkbox
-          label="Ukryj kopertę"
-          hint="Ukryta koperta znika z siatki, ale jej kwoty dalej liczą się w budżecie i można jej używać w transakcjach."
+          label={t('envelope.hide')}
+          hint={t('envelope.hideHint')}
           checked={hidden}
           onChange={(event) => setHidden(event.target.checked)}
         />
       )}
       <div className={styles.actions}>
-        <Button onClick={onDone}>Anuluj</Button>
+        <Button onClick={onDone}>{t('actions.cancel')}</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>
-          {envelope ? 'Zapisz' : 'Dodaj kopertę'}
+          {envelope ? t('actions.save') : t('envelope.add')}
         </Button>
       </div>
     </form>
@@ -300,6 +313,7 @@ function EnvelopeForm({
 // ——— Usuwanie ———
 
 export function DeleteEnvelopeDialog({ envelope, onDone }: { envelope: BudgetEnvelope; onDone: () => void }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const remove = useDeleteEnvelope(household.id)
   const hide = useUpdateEnvelope(household.id)
@@ -309,13 +323,13 @@ export function DeleteEnvelopeDialog({ envelope, onDone }: { envelope: BudgetEnv
   return (
     <ConfirmDialog
       open
-      title={`Usunąć kopertę ${envelope.name}?`}
-      confirmLabel="Usuń kopertę"
+      title={t('deleteEnvelope.title', { name: envelope.name })}
+      confirmLabel={t('deleteEnvelope.confirm')}
       busy={remove.isPending}
       error={
         inUse ? (
-          <Callout tone="warn" title="Tej koperty nie da się usunąć">
-            <p>Są w niej transakcje — historia budżetu musi zostać. Możesz ją ukryć: zniknie z siatki, a kwoty zostaną.</p>
+          <Callout tone="warn" title={t('deleteEnvelope.inUseTitle')}>
+            <p>{t('deleteEnvelope.inUseBody')}</p>
             <Button
               size="sm"
               icon="eyeOff"
@@ -325,14 +339,14 @@ export function DeleteEnvelopeDialog({ envelope, onDone }: { envelope: BudgetEnv
                   { envelopeId: envelope.id, body: { hidden: true } },
                   {
                     onSuccess: () => {
-                      toast.show({ message: `Ukryto kopertę ${envelope.name}.` })
+                      toast.show({ message: t('deleteEnvelope.hidden', { name: envelope.name }) })
                       onDone()
                     },
                   },
                 )
               }
             >
-              Ukryj kopertę
+              {t('deleteEnvelope.hide')}
             </Button>
           </Callout>
         ) : (
@@ -343,21 +357,19 @@ export function DeleteEnvelopeDialog({ envelope, onDone }: { envelope: BudgetEnv
       onConfirm={() =>
         remove.mutate(envelope.id, {
           onSuccess: () => {
-            toast.show({ message: `Usunięto kopertę ${envelope.name}.` })
+            toast.show({ message: t('deleteEnvelope.deleted', { name: envelope.name }) })
             onDone()
           },
         })
       }
     >
-      <p>
-        Przydziały koperty znikną, a ich kwota wróci do puli „Do przydzielenia”. Kontrahenci z tą kopertą jako domyślną
-        stracą to ustawienie.
-      </p>
+      <p>{t('deleteEnvelope.body')}</p>
     </ConfirmDialog>
   )
 }
 
 export function DeleteGroupDialog({ group, onDone }: { group: BudgetGroup; onDone: () => void }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const remove = useDeleteEnvelopeGroup(household.id)
   const hide = useUpdateEnvelope(household.id)
@@ -370,7 +382,7 @@ export function DeleteGroupDialog({ group, onDone }: { group: BudgetGroup; onDon
       for (const envelope of visible) {
         await hide.mutateAsync({ envelopeId: envelope.id, body: { hidden: true } })
       }
-      toast.show({ message: `Ukryto koperty grupy ${group.name}.` })
+      toast.show({ message: t('deleteGroup.hidden', { name: group.name }) })
       onDone()
     } catch {
       // Błąd pokazuje dialog.
@@ -380,19 +392,16 @@ export function DeleteGroupDialog({ group, onDone }: { group: BudgetGroup; onDon
   return (
     <ConfirmDialog
       open
-      title={`Usunąć grupę ${group.name}?`}
-      confirmLabel="Usuń grupę"
+      title={t('deleteGroup.title', { name: group.name })}
+      confirmLabel={t('deleteGroup.confirm')}
       busy={remove.isPending}
       error={
         notEmpty ? (
-          <Callout tone="warn" title="W grupie są koperty">
-            <p>
-              Usunąć można tylko pustą grupę. Przenieś koperty do innej grupy albo je usuń; koperty z transakcjami możesz
-              ukryć.
-            </p>
+          <Callout tone="warn" title={t('deleteGroup.notEmptyTitle')}>
+            <p>{t('deleteGroup.notEmptyBody')}</p>
             {visible.length > 0 && (
               <Button size="sm" icon="eyeOff" busy={hide.isPending} onClick={() => void hideAll()}>
-                Ukryj koperty grupy ({visible.length})
+                {t('deleteGroup.hideAll', { n: visible.length })}
               </Button>
             )}
           </Callout>
@@ -404,13 +413,13 @@ export function DeleteGroupDialog({ group, onDone }: { group: BudgetGroup; onDon
       onConfirm={() =>
         remove.mutate(group.id, {
           onSuccess: () => {
-            toast.show({ message: `Usunięto grupę ${group.name}.` })
+            toast.show({ message: t('deleteGroup.deleted', { name: group.name }) })
             onDone()
           },
         })
       }
     >
-      <p>{group.envelopes.length === 0 ? 'Grupa jest pusta.' : `Koperty w grupie: ${group.envelopes.length}.`}</p>
+      <p>{group.envelopes.length === 0 ? t('deleteGroup.empty') : t('deleteGroup.count', { n: group.envelopes.length })}</p>
     </ConfirmDialog>
   )
 }

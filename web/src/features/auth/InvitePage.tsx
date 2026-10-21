@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { ApiError, classify, fieldErrors } from '../../api/errors.ts'
 import { useAcceptInvitation, useInvitationPreview, useRegisterWithInvitation } from '../../api/hooks/invitations.ts'
@@ -44,7 +45,8 @@ function forgetToken() {
 }
 
 export function InvitePage() {
-  useDocumentTitle('Zaproszenie')
+  const { t } = useTranslation('auth')
+  useDocumentTitle(t('invite.documentTitle'))
   const token = useInviteToken()
   const preview = useInvitationPreview(token)
   const me = useMe()
@@ -52,11 +54,9 @@ export function InvitePage() {
   return (
     <AuthLayout>
       {!token ? (
-        <InvalidInvitation title="Brak zaproszenia w linku">
-          Otwórz pełny link z zaproszenia — zawiera on kod po znaku #.
-        </InvalidInvitation>
+        <InvalidInvitation title={t('invite.missingTitle')}>{t('invite.missingBody')}</InvalidInvitation>
       ) : preview.isPending || me.isPending ? (
-        <Skeleton lines={5} label="Sprawdzanie zaproszenia…" />
+        <Skeleton lines={5} label={t('invite.checking')} />
       ) : preview.isError ? (
         <PreviewError error={preview.error} onRetry={() => void preview.refetch()} />
       ) : (
@@ -67,6 +67,7 @@ export function InvitePage() {
 }
 
 function InvalidInvitation({ title, children }: { title: string; children: React.ReactNode }) {
+  const { t } = useTranslation('auth')
   return (
     <>
       <div className={styles.heading}>
@@ -74,33 +75,28 @@ function InvalidInvitation({ title, children }: { title: string; children: React
         <p>{children}</p>
       </div>
       <LinkButton to="/" variant="secondary">
-        Przejdź do aplikacji
+        {t('invite.toApp')}
       </LinkButton>
     </>
   )
 }
 
 function PreviewError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const { t } = useTranslation('auth')
   const reason = error instanceof ApiError ? error.reason : ''
   if (classify(error) === 'notFound') {
     return (
-      <InvalidInvitation title="Zaproszenie nie jest aktywne">
-        Link jest nieprawidłowy albo zaproszenie zostało odwołane. Poproś o nowe.
-      </InvalidInvitation>
+      <InvalidInvitation title={t('invite.inactiveTitle')}>{t('invite.inactiveBody')}</InvalidInvitation>
     )
   }
   if (classify(error) === 'conflict') {
     return reason === 'invitation-expired' ? (
-      <InvalidInvitation title="Zaproszenie wygasło">
-        Linki z zaproszeniem są ważne przez ograniczony czas. Poproś o nowe.
-      </InvalidInvitation>
+      <InvalidInvitation title={t('invite.expiredTitle')}>{t('invite.expiredBody')}</InvalidInvitation>
     ) : (
-      <InvalidInvitation title="Zaproszenie zostało już użyte">
-        Każdy link działa raz. Jeśli to Ty z niego skorzystałeś, zaloguj się.
-      </InvalidInvitation>
+      <InvalidInvitation title={t('invite.usedTitle')}>{t('invite.usedBody')}</InvalidInvitation>
     )
   }
-  return <SectionError title="Nie udało się sprawdzić zaproszenia" error={error} onRetry={onRetry} />
+  return <SectionError title={t('invite.checkFailed')} error={error} onRetry={onRetry} />
 }
 
 function Invitation({
@@ -112,23 +108,24 @@ function Invitation({
   preview: InvitationPreview
   signedInAs?: string
 }) {
+  const { t } = useTranslation('auth')
   return (
     <>
       <div className={styles.heading}>
-        <h1>Dołącz do gospodarstwa {preview.household_name}</h1>
+        <h1>{t('invite.title', { name: preview.household_name })}</h1>
         <p>{roleDescriptions[preview.role]}.</p>
       </div>
       <dl className={styles.facts}>
         <div>
-          <dt>Zaproszony adres</dt>
+          <dt>{t('invite.email')}</dt>
           <dd>{preview.email}</dd>
         </div>
         <div>
-          <dt>Rola</dt>
+          <dt>{t('invite.role')}</dt>
           <dd>{roleLabels[preview.role]}</dd>
         </div>
         <div>
-          <dt>Ważne do</dt>
+          <dt>{t('invite.expires')}</dt>
           <dd>{formatDateTime(preview.expires_at)}</dd>
         </div>
       </dl>
@@ -136,9 +133,9 @@ function Invitation({
         <AcceptAsSignedIn token={token} email={signedInAs} />
       ) : preview.account_exists ? (
         <>
-          <Callout>Ten adres ma już konto. Zaloguj się, a potem przyjmij zaproszenie.</Callout>
+          <Callout>{t('invite.accountExists')}</Callout>
           <LinkButton to="/login?return_to=%2Finvite" variant="primary" className={styles.wide}>
-            Zaloguj się, aby dołączyć
+            {t('invite.signInToJoin')}
           </LinkButton>
         </>
       ) : (
@@ -149,16 +146,17 @@ function Invitation({
 }
 
 function AcceptAsSignedIn({ token, email }: { token: string; email: string }) {
+  const { t } = useTranslation('auth')
   const accept = useAcceptInvitation()
   const navigate = useNavigate()
   const alreadyMember = accept.error instanceof ApiError && accept.error.reason === 'already-member'
   return (
     <>
       <p>
-        Jesteś zalogowany jako <strong>{email}</strong>.
+        <Trans t={t} i18nKey="invite.signedInAs" values={{ email }} components={{ strong: <strong /> }} />
       </p>
       {alreadyMember ? (
-        <Callout>Już należysz do tego gospodarstwa.</Callout>
+        <Callout>{t('invite.alreadyMember')}</Callout>
       ) : (
         <FormAlert error={accept.error} />
       )}
@@ -175,13 +173,14 @@ function AcceptAsSignedIn({ token, email }: { token: string; email: string }) {
           })
         }
       >
-        Przyjmij zaproszenie
+        {t('invite.accept')}
       </Button>
     </>
   )
 }
 
 function RegisterForm({ token, email }: { token: string; email: string }) {
+  const { t } = useTranslation('auth')
   const register = useRegisterWithInvitation()
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -193,14 +192,14 @@ function RegisterForm({ token, email }: { token: string; email: string }) {
 
   const submit = () => {
     const errors = {
-      name: name.trim() ? undefined : 'Podaj imię lub nazwę.',
+      name: name.trim() ? undefined : t('invite.nameMissing'),
       password:
         password.length < 12
-          ? 'Hasło musi mieć co najmniej 12 znaków.'
+          ? t('invite.passwordShort')
           : password.length > 128
-            ? 'Hasło może mieć najwyżej 128 znaków.'
+            ? t('invite.passwordLong')
             : undefined,
-      repeat: repeat === password ? undefined : 'Hasła się różnią.',
+      repeat: repeat === password ? undefined : t('invite.passwordMismatch'),
     }
     setLocal(errors)
     if (errors.name || errors.password || errors.repeat) {
@@ -218,16 +217,16 @@ function RegisterForm({ token, email }: { token: string; email: string }) {
   }
 
   return (
-    <Form onSubmit={submit} label="Załóż konto">
-      <h2>Załóż konto</h2>
+    <Form onSubmit={submit} label={t('invite.register')}>
+      <h2>{t('invite.register')}</h2>
       {duplicate ? (
-        <Callout tone="warn">Ten adres ma już konto. Zaloguj się, a potem przyjmij zaproszenie.</Callout>
+        <Callout tone="warn">{t('invite.accountExists')}</Callout>
       ) : (
         <FormAlert error={register.error} shownFields={['name', 'password']} />
       )}
-      <TextField label="E-mail" value={email} readOnly autoComplete="username" />
+      <TextField label={t('login.email')} value={email} readOnly autoComplete="username" />
       <TextField
-        label="Imię lub nazwa"
+        label={t('invite.name')}
         value={name}
         onChange={(event) => setName(event.target.value)}
         autoComplete="name"
@@ -235,17 +234,17 @@ function RegisterForm({ token, email }: { token: string; email: string }) {
         required
       />
       <TextField
-        label="Hasło"
+        label={t('login.password')}
         type="password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         autoComplete="new-password"
-        hint="Co najmniej 12 znaków. Najłatwiej zapamiętać kilka słów."
+        hint={t('invite.passwordHint')}
         error={local.password ?? server.password}
         required
       />
       <TextField
-        label="Powtórz hasło"
+        label={t('invite.repeat')}
         type="password"
         value={repeat}
         onChange={(event) => setRepeat(event.target.value)}
@@ -254,7 +253,7 @@ function RegisterForm({ token, email }: { token: string; email: string }) {
         required
       />
       <Button type="submit" variant="primary" busy={register.isPending} className={styles.wide}>
-        Załóż konto i dołącz
+        {t('invite.submit')}
       </Button>
     </Form>
   )
