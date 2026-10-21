@@ -37,7 +37,7 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Addr != ":8080" || cfg.DatabasePath != "denar.db" || !cfg.LocalLogin || cfg.AutoMigrate ||
+	if cfg.Addr != ":8080" || cfg.Database != "denar.db" || !cfg.LocalLogin || cfg.AutoMigrate ||
 		cfg.SessionTTL != 168*time.Hour || cfg.InviteTTL != 168*time.Hour || cfg.BaseURL != "http://localhost:8080" ||
 		cfg.InstanceName != "Denar" || cfg.BotRate != 120 || cfg.OIDCAutoCreate || cfg.HasAdmin() || cfg.OIDCEnabled() ||
 		cfg.NBPURL != "https://api.nbp.pl" || cfg.FxInterval != 30*time.Minute || cfg.ChargeHorizonDays != 90 ||
@@ -132,7 +132,7 @@ func TestSecretIsRedacted(t *testing.T) {
 	s := Secret("hunter2-hunter2")
 	var b strings.Builder
 	log := slog.New(slog.NewJSONHandler(&b, nil))
-	log.Info("x", "cfg", Config{AdminPassword: s, OIDCClientSecret: s})
+	log.Info("x", "cfg", Config{AdminPassword: s, OIDCClientSecret: s, Database: "postgres://denar:hunter2-hunter2@db:5432/denar"})
 	for _, out := range []string{fmt.Sprint(s), fmt.Sprintf("%#v", s), b.String()} {
 		if strings.Contains(out, "hunter2") {
 			t.Errorf("secret leaked: %s", out)

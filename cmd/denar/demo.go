@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/adapter/sqldb"
 	"github.com/paramah/denar/internal/domain"
 	"github.com/paramah/denar/internal/domain/budget"
 	"github.com/paramah/denar/internal/domain/subscription"
@@ -90,12 +90,12 @@ func demoCommand(ctx context.Context, cfg config.Config, args []string, stdout, 
 		pw = demoPassword
 	}
 
-	db, err := sqlite.Open(cfg.DatabasePath)
+	db, err := sqldb.Open(cfg.Database)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	if err := sqlite.Migrate(ctx, db, sqlite.Migrations()); err != nil {
+	if err := sqldb.Migrate(ctx, db, db.Migrations()); err != nil {
 		return err
 	}
 	log := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
@@ -126,7 +126,7 @@ Tylko do lokalnego oglądania: hasło demo nie jest tajne.
 // seedDemo makes the demo household through the use cases, walking a
 // clock through the last three months so that charges, reminders, missed
 // payments and notifications come out of the jobs as they would have.
-func seedDemo(ctx context.Context, db *sqlite.DB, log *slog.Logger, now time.Time, password string, reset bool) (demoResult, error) {
+func seedDemo(ctx context.Context, db *sqldb.DB, log *slog.Logger, now time.Time, password string, reset bool) (demoResult, error) {
 	loc, err := time.LoadLocation(demoTimezone)
 	if err != nil {
 		return demoResult{}, err

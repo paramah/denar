@@ -5,12 +5,11 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/adapter/sqldb"
 	"github.com/paramah/denar/internal/domain"
 	"github.com/paramah/denar/internal/domain/budget"
 	"github.com/paramah/denar/internal/domain/subscription"
@@ -18,14 +17,14 @@ import (
 	"github.com/paramah/denar/internal/usecase"
 )
 
-func openDemoDB(t *testing.T) *sqlite.DB {
+func openDemoDB(t *testing.T) *sqldb.DB {
 	t.Helper()
-	db, err := sqlite.Open(filepath.Join(t.TempDir(), "demo.db"))
+	db, err := sqldb.Open(testDatabase(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
-	if err := sqlite.Migrate(context.Background(), db, sqlite.Migrations()); err != nil {
+	if err := sqldb.Migrate(context.Background(), db, db.Migrations()); err != nil {
 		t.Fatal(err)
 	}
 	return db

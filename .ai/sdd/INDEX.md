@@ -36,3 +36,4 @@
 | 011 | openai-costs (przyszły; dawniej 010) | — | |
 | 012 | apple-receipts (przyszły; dawniej 011) | — | |
 | 013 | i18n (PL/EN) | implementation:done (zatwierdzone przez plan 2026-10-21) | `.ai/sdd/specs/013-i18n/` |
+| 014 | postgres (PostgreSQL obok SQLite) | implementation:done (zatwierdzone przez plan 2026-10-21) | `.ai/sdd/specs/014-postgres/` |

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/adapter/sqldb"
 	"github.com/paramah/denar/internal/domain"
 	"github.com/paramah/denar/internal/platform/config"
 	"github.com/paramah/denar/internal/usecase"
@@ -52,12 +52,12 @@ func tokenCommand(ctx context.Context, cfg config.Config, args []string, stdout,
 		expiresAt = t
 	}
 
-	db, err := sqlite.Open(cfg.DatabasePath)
+	db, err := sqldb.Open(cfg.Database)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	if err := sqlite.CheckSchemaCurrent(ctx, db, sqlite.Migrations()); err != nil {
+	if err := sqldb.CheckSchemaCurrent(ctx, db, db.Migrations()); err != nil {
 		return err
 	}
 	d := useCaseDeps(db, slog.New(slog.NewJSONHandler(stderr, nil)), nil, nil)

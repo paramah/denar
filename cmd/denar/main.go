@@ -17,7 +17,7 @@ import (
 	// embedded copy works in images without one.
 	_ "time/tzdata"
 
-	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/adapter/sqldb"
 	"github.com/paramah/denar/internal/platform/config"
 	"github.com/paramah/denar/web"
 )
@@ -31,6 +31,7 @@ commands:
   migrate        bring the database schema up to date
   token create   create a bot token (see denar token create -h)
   demo           fill the database with a demo household (see denar demo -h)
+  db copy        copy the data into another database (see denar db copy -h)
   version        print the version`
 
 func main() {
@@ -49,7 +50,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return errors.New("missing command\n" + usage)
 	}
 	switch args[0] {
-	case "serve", "migrate", "token", "demo":
+	case "serve", "migrate", "token", "demo", "db":
 	case "version":
 		fmt.Fprintln(stdout, version)
 		return nil
@@ -68,25 +69,27 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return tokenCommand(ctx, cfg, args[1:], stdout, stderr)
 	case "demo":
 		return demoCommand(ctx, cfg, args[1:], stdout, stderr)
+	case "db":
+		return dbCommand(ctx, cfg, args[1:], stdout, stderr)
 	}
 	return serve(ctx, cfg, slog.New(slog.NewJSONHandler(stdout, nil)), nil)
 }
 
 func migrate(ctx context.Context, cfg config.Config, log *slog.Logger) error {
-	db, err := sqlite.Open(cfg.DatabasePath)
+	db, err := sqldb.Open(cfg.Database)
 	if err != nil {
 		return err
 	}
-	if err := sqlite.Migrate(ctx, db, sqlite.Migrations()); err != nil {
+	if err := sqldb.Migrate(ctx, db, db.Migrations()); err != nil {
 		db.Close()
 		return err
 	}
-	version, _, err := sqlite.SchemaVersion(ctx, db, sqlite.Migrations())
+	version, _, err := sqldb.SchemaVersion(ctx, db, db.Migrations())
 	if err != nil {
 		db.Close()
 		return err
 	}
-	log.Info("database schema is up to date", "database", cfg.DatabasePath, "version", version)
+	log.Info("database schema is up to date", "database", cfg.DatabaseForLog(), "version", version)
 	return db.Close()
 }
 
