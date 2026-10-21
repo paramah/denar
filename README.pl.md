@@ -76,7 +76,7 @@ Dane demo na dowolnej bazie: `DENAR_DB=moja.db ./denar demo` (odmawia, gdy gospo
 
 ### Docker
 
-Obrazy dla `linux/amd64` i `linux/arm64` są publikowane w GitHub Container Registry jako `ghcr.io/paramah/denar` (tagi: `latest`, `<major>.<minor>`, `<wersja>`):
+Obrazy dla `linux/amd64` i `linux/arm64` są publikowane w GitHub Container Registry jako `ghcr.io/paramah/denar` (tagi: `latest`, `<major>.<minor>`, `<wersja>`). Workflow wydania może je też wypychać na Quay.io; zobacz [Publikacja na Quay.io](#publikacja-na-quayio).
 
 ```sh
 docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
@@ -87,6 +87,21 @@ docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
 ```
 
 Obraz działa jako użytkownik bez uprawnień roota, trzyma bazę w wolumenie `/data` (`DENAR_DB=/data/denar.db`), nasłuchuje na porcie 8080 i ma healthcheck na `/healthz`. Zachowaj klucz: jego zmiana unieważnia zapisane sekrety kanałów.
+
+### Publikacja na Quay.io
+
+Workflow wydania wypycha obraz także na Quay.io, gdy repozytorium na GitHubie ma:
+
+- zmienną `QUAY_IMAGE` z pełną nazwą obrazu, np. `quay.io/<namespace>/denar`;
+- sekrety `QUAY_USERNAME` i `QUAY_PASSWORD`, czyli konto robota Quay z prawem zapisu do tego repozytorium.
+
+```sh
+gh variable set QUAY_IMAGE --body quay.io/<namespace>/denar
+gh secret set QUAY_USERNAME --body '<namespace>+<robot>'
+gh secret set QUAY_PASSWORD   # wklej token robota
+```
+
+Quay dostaje te same tagi co GHCR. Bez `QUAY_IMAGE` workflow publikuje tylko w GHCR.
 
 ### Docker Compose
 
