@@ -176,9 +176,13 @@ func day(s string) domain.Date {
 	return d
 }
 
-func pln(amount string) usecase.MoneyInput { return usecase.MoneyInput{Amount: amount, Currency: "PLN"} }
+func pln(amount string) usecase.MoneyInput {
+	return usecase.MoneyInput{Amount: amount, Currency: "PLN"}
+}
 
-func usd(amount string) usecase.MoneyInput { return usecase.MoneyInput{Amount: amount, Currency: "USD"} }
+func usd(amount string) usecase.MoneyInput {
+	return usecase.MoneyInput{Amount: amount, Currency: "USD"}
+}
 
 func wantField(t *testing.T, err error, field string) {
 	t.Helper()
