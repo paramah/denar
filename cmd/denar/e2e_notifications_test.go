@@ -149,9 +149,9 @@ func TestNotificationsEndToEnd(t *testing.T) {
 		t.Errorf("headers = %v", headers[0])
 	}
 	var payload struct {
-		Type      string            `json:"type"`
-		Title     string            `json:"title"`
-		URL       string            `json:"url"`
+		Type      string `json:"type"`
+		Title     string `json:"title"`
+		URL       string `json:"url"`
 		Household struct{ ID, Name string }
 		Data      map[string]string `json:"data"`
 	}
