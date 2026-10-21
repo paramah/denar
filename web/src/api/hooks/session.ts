@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 import { api, unwrap } from '../client.ts'
 import { keys } from '../keys.ts'
 import { staleTime } from '../queryClient.ts'
@@ -34,7 +34,7 @@ export const SessionContext = createContext<SessionUser | null>(null)
 
 /** Użytkownik i jego gospodarstwa pod RequireSession. */
 export function useSessionUser(): SessionUser {
-  const session = useContext(SessionContext)
+  const session = use(SessionContext)
   if (!session) {
     throw new Error('useSessionUser outside RequireSession')
   }

@@ -16,7 +16,7 @@ const modes: { value: EntryMode; tone: 'outflow' | 'inflow' }[] = [
 /** Rodzaj wpisu: wydatek (−), wpływ (+) albo zwrot (+, wraca do koperty). */
 export function ModePicker({ value, onChange }: { value: EntryMode; onChange: (mode: EntryMode) => void }) {
   const { t } = useTranslation('transactions')
-  const name = useId()
+  const groupId = useId()
   return (
     <fieldset className={styles.segmented}>
       <legend>{t('mode.legend')}</legend>
@@ -25,7 +25,7 @@ export function ModePicker({ value, onChange }: { value: EntryMode; onChange: (m
           <label key={mode.value} data-tone={mode.tone}>
             <input
               type="radio"
-              name={name}
+              name={groupId}
               value={mode.value}
               checked={value === mode.value}
               onChange={() => onChange(mode.value)}

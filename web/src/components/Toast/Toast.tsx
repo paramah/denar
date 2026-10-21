@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconButton } from '../Button/Button.tsx'
 import { Icon } from '../Icon/Icon.tsx'
 import styles from './Toast.module.css'
@@ -24,7 +24,7 @@ const visibleFor = 5000
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
-  const nextId = useRef(1)
+  const nextIdRef = useRef(1)
 
   const dismiss = useCallback((id: number) => {
     setToasts((current) => current.filter((toast) => toast.id !== id))
@@ -35,13 +35,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if (current.some((toast) => toast.message === input.message && toast.kind === input.kind)) {
         return current
       }
-      return [...current, { ...input, id: nextId.current++ }]
+      return [...current, { ...input, id: nextIdRef.current++ }]
     })
   }, [])
 
   const api = useMemo(() => ({ show }), [show])
   return (
-    <ToastContext.Provider value={api}>
+    <ToastContext value={api}>
       {children}
       <div role="status" aria-live="polite" className={styles.region}>
         {toasts.length > 0 && (
@@ -52,7 +52,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           </ul>
         )}
       </div>
-    </ToastContext.Provider>
+    </ToastContext>
   )
 }
 
@@ -85,7 +85,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
 }
 
 export function useToast(): ToastApi {
-  const api = useContext(ToastContext)
+  const api = use(ToastContext)
   if (!api) {
     throw new Error('useToast needs a ToastProvider above it')
   }

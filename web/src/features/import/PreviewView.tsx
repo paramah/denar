@@ -67,7 +67,7 @@ export function PreviewView({ preview, currency }: { preview: ImportPreview; cur
 
       {shownRows > 0 && (
         // Przewijany poziomo na wąskim ekranie: focus pozwala przewijać klawiaturą.
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        // eslint-disable-next-line jsx-a11y-x/no-noninteractive-tabindex
         <div className={styles.tableWrap} role="region" aria-label={t('preview.rowsRegion')} tabIndex={0}>
           <table className={styles.table}>
             <caption className={styles.caption}>

@@ -36,9 +36,9 @@ function OpenDialog({ title, onClose, children, footer, onSubmit, role, size = '
   const ref = useRef<HTMLDialogElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const close = useRef(onClose)
+  const closeRef = useRef(onClose)
   useLayoutEffect(() => {
-    close.current = onClose
+    closeRef.current = onClose
   })
 
   useEffect(() => {
@@ -53,7 +53,7 @@ function OpenDialog({ title, onClose, children, footer, onSubmit, role, size = '
 
     const onCancel = (event: Event) => {
       event.preventDefault()
-      close.current()
+      closeRef.current()
     }
     let pressedOnBackdrop = false
     const onPointerDown = (event: PointerEvent) => {
@@ -61,7 +61,7 @@ function OpenDialog({ title, onClose, children, footer, onSubmit, role, size = '
     }
     const onBackdrop = (event: MouseEvent) => {
       if (event.target === dialog && pressedOnBackdrop) {
-        close.current()
+        closeRef.current()
       }
       pressedOnBackdrop = false
     }

@@ -46,7 +46,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
   const active = (wallets.data ?? []).filter((wallet) => !wallet.archived_at)
   const [from, setFrom] = useState(fromWalletId ?? '')
   const [to, setTo] = useState('')
-  const [date, setDate] = useState(todayIn(household.timezone))
+  const [date, setDate] = useState(() => todayIn(household.timezone))
   const [amount, setAmount] = useState('')
   const [toAmount, setToAmount] = useState('')
   const [status, setStatus] = useState<TransactionStatus>('cleared')

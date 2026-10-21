@@ -83,7 +83,7 @@ function QuoteChecker() {
   const currencies = useCurrencies()
   const foreign = (currencies.data ?? []).map((c) => c.code).filter((c) => c !== household.base_currency)
   const [currency, setCurrency] = useState('')
-  const [date, setDate] = useState(todayIn(household.timezone))
+  const [date, setDate] = useState(() => todayIn(household.timezone))
   const chosen = currency || (foreign.includes('EUR') ? 'EUR' : (foreign[0] ?? ''))
   const quote = useFxQuote(household.id, chosen, /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '')
 
@@ -137,7 +137,7 @@ function SetRateForm() {
   const toast = useToast()
   const foreign = (currencies.data ?? []).map((c) => c.code).filter((c) => c !== household.base_currency)
   const [currency, setCurrency] = useState(params.get('currency') ?? '')
-  const [date, setDate] = useState(params.get('date') ?? todayIn(household.timezone))
+  const [date, setDate] = useState(() => params.get('date') ?? todayIn(household.timezone))
   const [rate, setRate] = useState('')
   const [error, setError] = useState<string>()
   const chosen = currency && foreign.includes(currency) ? currency : (foreign.includes('USD') ? 'USD' : (foreign[0] ?? ''))

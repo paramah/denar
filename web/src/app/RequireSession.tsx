@@ -24,9 +24,9 @@ export function RequireSession() {
 
   if (session) {
     return (
-      <SessionContext.Provider value={session}>
+      <SessionContext value={session}>
         <Outlet />
-      </SessionContext.Provider>
+      </SessionContext>
     )
   }
   if (me.isPending) {

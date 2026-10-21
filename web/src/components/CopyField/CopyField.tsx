@@ -109,7 +109,7 @@ export function CopyBlock({ label, value, hint }: { label: string; value: string
         </Button>
       </div>
       {/* Przewijalny region musi być osiągalny klawiaturą (axe: scrollable-region-focusable). */}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+      {/* eslint-disable-next-line jsx-a11y-x/no-noninteractive-tabindex */}
       <pre ref={preRef} className={styles.block} tabIndex={0} aria-labelledby={`${id}-label`} aria-describedby={hint ? `${id}-hint` : undefined}>
         <code>{value}</code>
       </pre>

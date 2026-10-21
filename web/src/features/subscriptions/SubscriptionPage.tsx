@@ -350,7 +350,7 @@ function PriceDialog({ subscription: s, onClose }: { subscription: Subscription;
   const { t } = useTranslation('subscriptions')
   const [from, setFrom] = useState(today)
   const [currency, setCurrency] = useState(s.price.currency)
-  const [amount, setAmount] = useState(amountForInput(s.price.amount))
+  const [amount, setAmount] = useState(() => amountForInput(s.price.amount))
   const [errors, setErrors] = useState<Record<string, string | undefined>>({})
   const server = fieldErrors(change.error)
 

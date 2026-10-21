@@ -49,13 +49,13 @@ export function NotificationBell({ placement }: { placement: 'rail' | 'topbar' }
   const markAll = useMarkAllNotificationsRead()
 
   // Nowe powiadomienie (licznik się zmienił): odśwież otwarte listy.
-  const previous = useRef<number | undefined>(undefined)
+  const previousRef = useRef<number | undefined>(undefined)
   useEffect(() => {
     if (unread.data === undefined) return
-    if (previous.current !== undefined && previous.current !== unread.data) {
+    if (previousRef.current !== undefined && previousRef.current !== unread.data) {
       void client.invalidateQueries({ queryKey: [...keys.notifications(), 'list'] })
     }
-    previous.current = unread.data
+    previousRef.current = unread.data
   }, [unread.data, client])
 
   const badge = count > 99 ? '99+' : String(count)

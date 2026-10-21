@@ -162,7 +162,7 @@ function EnvelopeForm({
   const update = useUpdateEnvelope(household.id)
   const toast = useToast()
   const mutation = envelope ? update : create
-  const goalName = useId()
+  const goalGroupId = useId()
   const [name, setName] = useState(envelope?.name ?? '')
   const [group, setGroup] = useState(envelope?.group_id ?? groupId ?? month.groups[0]?.id ?? '')
   const [hidden, setHidden] = useState(envelope?.hidden ?? false)
@@ -260,7 +260,7 @@ function EnvelopeForm({
         <div className={styles.radios}>
           {(['none', 'monthly', 'target_by_date'] as GoalChoice[]).map((type) => (
             <label key={type}>
-              <input type="radio" name={goalName} checked={goal.type === type} onChange={() => setType(type)} />
+              <input type="radio" name={goalGroupId} checked={goal.type === type} onChange={() => setType(type)} />
               {goalTypeLabel(type)}
             </label>
           ))}

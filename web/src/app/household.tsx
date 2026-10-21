@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react'
+import { createContext, use, useEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Outlet, useParams } from 'react-router'
 import { useSessionUser } from '../api/hooks/session.ts'
@@ -15,7 +15,7 @@ const HouseholdContext = createContext<HouseholdContextValue | null>(null)
 
 /** Gospodarstwo bieżącej trasy /h/:householdId i rola zalogowanego w nim. */
 export function useHousehold(): HouseholdContextValue {
-  const value = useContext(HouseholdContext)
+  const value = use(HouseholdContext)
   if (!value) {
     throw new Error('useHousehold outside /h/:householdId')
   }
@@ -23,7 +23,7 @@ export function useHousehold(): HouseholdContextValue {
 }
 
 export function HouseholdProvider({ value, children }: { value: HouseholdContextValue; children: ReactNode }) {
-  return <HouseholdContext.Provider value={value}>{children}</HouseholdContext.Provider>
+  return <HouseholdContext value={value}>{children}</HouseholdContext>
 }
 
 export const canManage = (role: Role) => role === 'owner' || role === 'admin'
