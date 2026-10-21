@@ -3,13 +3,18 @@ import { InvitePage } from '../features/auth/InvitePage.tsx'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { CreateHouseholdPage } from '../features/households/CreateHouseholdPage.tsx'
 import { ComingSoonPage } from '../features/placeholders/ComingSoonPage.tsx'
-import { DashboardPage } from '../features/placeholders/DashboardPage.tsx'
+import { DashboardPage } from '../features/dashboard/DashboardPage.tsx'
 import { AuditTab } from '../features/settings/AuditTab.tsx'
 import { BotsTab } from '../features/settings/BotsTab.tsx'
 import { GeneralTab } from '../features/settings/GeneralTab.tsx'
 import { InvitationsTab } from '../features/settings/InvitationsTab.tsx'
 import { MembersTab } from '../features/settings/MembersTab.tsx'
+import { PayeesTab } from '../features/settings/PayeesTab.tsx'
+import { RatesTab } from '../features/settings/RatesTab.tsx'
 import { RequireTab, SettingsLayout } from '../features/settings/SettingsLayout.tsx'
+import { TransactionsPage } from '../features/transactions/TransactionsPage.tsx'
+import { WalletPage } from '../features/wallets/WalletPage.tsx'
+import { WalletsPage } from '../features/wallets/WalletsPage.tsx'
 import { HomePage } from './HomePage.tsx'
 import { HouseholdRoute } from './household.tsx'
 import { NotFoundPage } from './NotFoundPage.tsx'
@@ -33,7 +38,9 @@ export const routes: RouteObject[] = [
         element: <HouseholdRoute />,
         children: [
           { index: true, element: <DashboardPage /> },
-          { path: 'wallets', element: <ComingSoonPage section="wallets" /> },
+          { path: 'wallets', element: <WalletsPage /> },
+          { path: 'wallets/:walletId', element: <WalletPage /> },
+          { path: 'transactions', element: <TransactionsPage /> },
           { path: 'budget', element: <ComingSoonPage section="budget" /> },
           { path: 'subscriptions', element: <ComingSoonPage section="subscriptions" /> },
           { path: 'notifications', element: <ComingSoonPage section="notifications" /> },
@@ -60,6 +67,8 @@ export const routes: RouteObject[] = [
                   </RequireTab>
                 ),
               },
+              { path: 'payees', element: <PayeesTab /> },
+              { path: 'rates', element: <RatesTab /> },
               {
                 path: 'audit',
                 element: (

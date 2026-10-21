@@ -89,3 +89,21 @@ export function timeZones(): string[] {
 export function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Warsaw'
 }
+
+/** Dzisiejsza data (YYYY-MM-DD) w strefie IANA, np. strefie gospodarstwa. */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
+  } catch {
+    return toDateInput(now)
+  }
+}
+
+/** Dzień kalendarzowy z API („2026-10-21”) → „21 paź 2026”, bez przesunięcia strefy. */
+export function formatDay(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) {
+    return value
+  }
+  return dateFormat.format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+}

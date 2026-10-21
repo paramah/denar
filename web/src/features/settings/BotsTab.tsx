@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useBots, useCreateBot, useDeleteBot, useRotateBotToken, useUpdateBot } from '../../api/hooks/bots.ts'
-import type { Bot, BotWithToken, Scope } from '../../api/types.ts'
+import { useWallets } from '../../api/hooks/wallets.ts'
+import type { Bot, BotWithToken, Scope, Wallet } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
 import { Badge } from '../../components/Badge/Badge.tsx'
 import { Button } from '../../components/Button/Button.tsx'
@@ -17,6 +18,7 @@ import { useToast } from '../../components/Toast/Toast.tsx'
 import { addDays, endOfLocalDay, formatDate, formatRelative, toDateInput } from '../../lib/format.ts'
 import { allScopes, readScopes, roleAllowsScope, scopeGroups, scopeLabel, toggleScope } from '../../lib/scopes.ts'
 import styles from './settings.module.css'
+import { walletIdsOf, walletScopeError, WalletScopePicker, type WalletScope } from './WalletScopePicker.tsx'
 
 /** Domyślne wygaśnięcie nowego tokenu. */
 export const defaultExpiryDays = 90
@@ -44,6 +46,8 @@ export function BotsTab() {
   const [token, setToken] = useState<BotWithToken | null>(null)
   const [rotating, setRotating] = useState<Bot | null>(null)
   const [deleting, setDeleting] = useState<Bot | null>(null)
+  const [scoping, setScoping] = useState<Bot | null>(null)
+  const wallets = useWallets(household.id, { includeArchived: true })
 
   return (
     <section className={styles.section} aria-labelledby="bots-heading">
@@ -84,7 +88,13 @@ export function BotsTab() {
               </EmptyState>
             }
             renderItem={(bot) => (
-              <BotRow bot={bot} onRotate={() => setRotating(bot)} onDelete={() => setDeleting(bot)} />
+              <BotRow
+                bot={bot}
+                wallets={wallets.data ?? []}
+                onWallets={() => setScoping(bot)}
+                onRotate={() => setRotating(bot)}
+                onDelete={() => setDeleting(bot)}
+              />
             )}
           />
         )}
@@ -111,11 +121,37 @@ export function BotsTab() {
         />
       )}
       {deleting && <DeleteDialog bot={deleting} onDone={() => setDeleting(null)} />}
+      <Dialog open={!!scoping} title={scoping ? `Portfele bota ${scoping.name}` : ''} onClose={() => setScoping(null)}>
+        {scoping && <BotWalletsForm bot={scoping} wallets={wallets.data ?? []} onDone={() => setScoping(null)} />}
+      </Dialog>
     </section>
   )
 }
 
-function BotRow({ bot, onRotate, onDelete }: { bot: Bot; onRotate: () => void; onDelete: () => void }) {
+/** „wszystkie widoczne dla twórcy” albo nazwy portfeli bota. */
+export function botWalletsLabel(bot: Bot, wallets: Wallet[]): string {
+  if (bot.wallet_ids.length === 0) {
+    return 'wszystkie widoczne dla twórcy'
+  }
+  const names = new Map(wallets.map((w) => [w.id, w.name]))
+  const known = bot.wallet_ids.flatMap((id) => (names.has(id) ? [names.get(id)!] : []))
+  const hidden = bot.wallet_ids.length - known.length
+  return [...known, ...(hidden > 0 ? [`niewidoczne dla Ciebie: ${hidden}`] : [])].join(', ')
+}
+
+function BotRow({
+  bot,
+  wallets,
+  onWallets,
+  onRotate,
+  onDelete,
+}: {
+  bot: Bot
+  wallets: Wallet[]
+  onWallets: () => void
+  onRotate: () => void
+  onDelete: () => void
+}) {
   const { household } = useHousehold()
   const update = useUpdateBot(household.id)
   const toast = useToast()
@@ -134,6 +170,7 @@ function BotRow({ bot, onRotate, onDelete }: { bot: Bot; onRotate: () => void; o
           {bot.last_used_at ? `ostatnio użyty ${formatRelative(bot.last_used_at)}` : 'jeszcze nieużyty'},{' '}
           {bot.expires_at ? `wygasa ${formatDate(bot.expires_at)}` : 'bez daty wygaśnięcia'}
         </span>
+        <span className={styles.rowMeta}>Portfele: {botWalletsLabel(bot, wallets)}</span>
         <ul className={styles.chips} aria-label="Uprawnienia">
           {bot.scopes.map((scope) => (
             <li key={scope}>
@@ -171,6 +208,9 @@ function BotRow({ bot, onRotate, onDelete }: { bot: Bot; onRotate: () => void; o
         >
           {bot.disabled ? 'Włącz' : 'Wyłącz'}
         </Button>
+        <Button size="sm" icon="wallet" onClick={onWallets} aria-label={`Portfele bota ${bot.name}`}>
+          Portfele
+        </Button>
         <Button size="sm" icon="key" onClick={onRotate} aria-label={`Nowy token dla ${bot.name}`}>
           Nowy token
         </Button>
@@ -201,6 +241,8 @@ function CreateBotDialog({
 function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: (result: BotWithToken) => void }) {
   const { household, role } = useHousehold()
   const create = useCreateBot(household.id)
+  const wallets = useWallets(household.id)
+  const [walletScope, setWalletScope] = useState<WalletScope>({ restricted: false, ids: [] })
   const [name, setName] = useState('')
   const [scopes, setScopes] = useState<Scope[]>(readScopes)
   const [expires, setExpires] = useState(true)
@@ -217,12 +259,17 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       scopes: scopes.length > 0 ? undefined : 'Wybierz co najmniej jedno uprawnienie.',
       expires_at:
         expires && (!expiresAt || new Date(expiresAt) <= new Date()) ? 'Wybierz datę w przyszłości.' : undefined,
+      wallet_ids: walletScopeError(walletScope),
     }
     setErrors(next)
-    if (next.name || next.scopes || next.expires_at) {
+    if (next.name || next.scopes || next.expires_at || next.wallet_ids) {
       return
     }
-    create.mutate({ name: name.trim(), scopes, expires_at: expiresAt }, { onSuccess: onCreated })
+    const walletIds = walletIdsOf(walletScope)
+    create.mutate(
+      { name: name.trim(), scopes, expires_at: expiresAt, ...(walletIds.length > 0 ? { wallet_ids: walletIds } : {}) },
+      { onSuccess: onCreated },
+    )
   }
 
   return (
@@ -238,7 +285,7 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       {duplicate ? (
         <Callout tone="warn">Bot o tej nazwie już istnieje. Wybierz inną.</Callout>
       ) : (
-        <FormAlert error={create.error} shownFields={['name', 'scopes', 'expires_at']} />
+        <FormAlert error={create.error} shownFields={['name', 'scopes', 'expires_at', 'wallet_ids']} />
       )}
       <TextField
         label="Nazwa"
@@ -307,11 +354,14 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
             {errors.scopes ?? server.scopes}
           </p>
         )}
-        <p className={styles.rowMeta}>
-          Ograniczenie bota do wybranych portfeli pojawi się razem z portfelami. Do tego czasu bot widzi wszystkie
-          portfele, które widzisz Ty.
-        </p>
       </fieldset>
+
+      <WalletScopePicker
+        value={walletScope}
+        onChange={setWalletScope}
+        wallets={(wallets.data ?? []).filter((w) => !w.archived_at)}
+        error={errors.wallet_ids ?? server.wallet_ids}
+      />
 
       <fieldset className={styles.fieldset}>
         <legend>Ważność tokenu</legend>
@@ -417,5 +467,47 @@ function DeleteDialog({ bot, onDone }: { bot: Bot; onDone: () => void }) {
     >
       <p>Token przestanie działać. Wpisy bota w dzienniku zmian zostaną.</p>
     </ConfirmDialog>
+  )
+}
+
+function BotWalletsForm({ bot, wallets, onDone }: { bot: Bot; wallets: Wallet[]; onDone: () => void }) {
+  const { household } = useHousehold()
+  const update = useUpdateBot(household.id)
+  const toast = useToast()
+  const [scope, setScope] = useState<WalletScope>({ restricted: bot.wallet_ids.length > 0, ids: bot.wallet_ids })
+  const [error, setError] = useState<string>()
+  const server = fieldErrors(update.error)
+  return (
+    <form
+      noValidate
+      aria-label={`Portfele bota ${bot.name}`}
+      className={styles.section}
+      onSubmit={(event) => {
+        event.preventDefault()
+        const problem = walletScopeError(scope)
+        setError(problem)
+        if (problem) {
+          return
+        }
+        update.mutate(
+          { botId: bot.id, body: { wallet_ids: walletIdsOf(scope) } },
+          {
+            onSuccess: () => {
+              toast.show({ message: `Zapisano portfele bota ${bot.name}.` })
+              onDone()
+            },
+          },
+        )
+      }}
+    >
+      <FormAlert error={update.error} shownFields={['wallet_ids']} />
+      <WalletScopePicker value={scope} onChange={setScope} wallets={wallets} error={error ?? server.wallet_ids} />
+      <div className={styles.rowActions}>
+        <Button onClick={onDone}>Anuluj</Button>
+        <Button type="submit" variant="primary" busy={update.isPending}>
+          Zapisz
+        </Button>
+      </div>
+    </form>
   )
 }

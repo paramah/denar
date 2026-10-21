@@ -1,0 +1,112 @@
+.layout {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.wallets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.wallets li {
+  border-bottom: 1px solid var(--line);
+}
+
+.walletLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.walletLink:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.walletName {
+  font-weight: 640;
+  overflow-wrap: anywhere;
+}
+
+.walletMeta {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.walletAmount {
+  grid-row: span 2;
+  display: grid;
+  justify-items: end;
+}
+
+.recent {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.recent li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.recentTitle {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.facts div {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 60rem) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

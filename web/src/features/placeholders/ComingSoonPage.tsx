@@ -4,20 +4,9 @@ import type { IconName } from '../../components/Icon/Icon.tsx'
 import { PageHeader } from '../../components/PageHeader/PageHeader.tsx'
 import styles from './placeholders.module.css'
 
-export type Section = 'wallets' | 'budget' | 'subscriptions' | 'notifications'
+export type Section = 'budget' | 'subscriptions' | 'notifications'
 
 const sections: Record<Section, { title: string; icon: IconName; lead: string; empty: string; points: string[] }> = {
-  wallets: {
-    title: 'Portfele',
-    icon: 'wallet',
-    lead: 'Konta, gotówka, karty i oszczędności w jednym miejscu, każde w swojej walucie.',
-    empty: 'Rejestr portfeli jest w przygotowaniu',
-    points: [
-      'Salda portfeli w ich walutach i łącznie w walucie gospodarstwa',
-      'Szybkie dodawanie wydatków, wpływów i przelewów między portfelami',
-      'Portfele prywatne, widoczne tylko dla wybranych domowników',
-    ],
-  },
   budget: {
     title: 'Budżet',
     icon: 'budget',
@@ -53,7 +42,7 @@ const sections: Record<Section, { title: string; icon: IconName; lead: string; e
   },
 }
 
-/** Dopracowany pusty stan sekcji, którą wypełnią części B/C etapu 007. */
+/** Dopracowany pusty stan sekcji, którą wypełni część C etapu 007. */
 export function ComingSoonPage({ section }: { section: Section }) {
   const info = sections[section]
   return (

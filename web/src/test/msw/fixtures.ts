@@ -2,6 +2,12 @@ import type {
   AuditEntry,
   AuthConfig,
   Bot,
+  FxOverride,
+  FxQuote,
+  Money,
+  Payee,
+  Transaction,
+  Wallet,
   Household,
   Invitation,
   Me,
@@ -109,5 +115,101 @@ export function problem(status: number, code: string, extra: Record<string, unkn
     title: 'Problem',
     status,
     ...Object.fromEntries(Object.entries(extra).filter(([key]) => key !== 'reason')),
+  }
+}
+
+const decimalsByCurrency: Record<string, number> = { JPY: 0 }
+
+/** Kwota odpowiedzi API z poprawnym `minor` (liczone na bigint, jak w aplikacji). */
+export function money(amount: string, currency = 'PLN'): Money {
+  const decimals = decimalsByCurrency[currency] ?? 2
+  const negative = amount.startsWith('-')
+  const [whole = '0', fraction = ''] = amount.replace('-', '').split('.')
+  const minor = Number(BigInt(whole + fraction.padEnd(decimals, '0')) * (negative ? -1n : 1n))
+  return { amount, currency, minor }
+}
+
+export function wallet(overrides: Partial<Wallet> = {}): Wallet {
+  const currency = overrides.currency ?? 'PLN'
+  return {
+    id: 'w-konto',
+    name: 'Konto',
+    type: 'checking',
+    currency,
+    on_budget: true,
+    visibility: 'shared',
+    member_ids: [],
+    created_by: 'u-ada',
+    created_at: '2026-10-01T10:00:00Z',
+    archived_at: null,
+    balance: money('1000.00', currency),
+    cleared_balance: money('1000.00', currency),
+    base_balance: money('1000.00', 'PLN'),
+    rate_pending: false,
+    ...overrides,
+  }
+}
+
+export function transaction(overrides: Partial<Transaction> = {}): Transaction {
+  const amount = overrides.amount ?? money('-50.00')
+  return {
+    id: 't-1',
+    wallet_id: 'w-konto',
+    date: '2026-10-20',
+    amount,
+    base_amount: amount.currency === 'PLN' ? amount : null,
+    fx_rate: amount.currency === 'PLN' ? '1' : null,
+    rate_pending: amount.currency !== 'PLN',
+    payee_id: 'p-sklep',
+    payee_name: 'Sklep',
+    envelope_id: null,
+    kind: 'expense',
+    status: 'cleared',
+    source: 'manual',
+    tags: [],
+    note: '',
+    external_id: null,
+    transfer_pair_id: null,
+    transfer_wallet_id: null,
+    splits: [],
+    created_by: { kind: 'user', id: 'u-ada' },
+    created_at: '2026-10-20T10:00:00Z',
+    updated_at: '2026-10-20T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function payee(overrides: Partial<Payee> = {}): Payee {
+  return {
+    id: 'p-sklep',
+    name: 'Sklep',
+    patterns: [],
+    default_envelope_id: null,
+    created_at: '2026-10-01T10:00:00Z',
+    updated_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function fxQuote(overrides: Partial<FxQuote> = {}): FxQuote {
+  return {
+    currency: 'USD',
+    base_currency: 'PLN',
+    date: '2026-10-20',
+    rate: '4.01230000',
+    rate_date: '2026-10-20',
+    source: 'nbp',
+    ...overrides,
+  }
+}
+
+export function fxOverride(overrides: Partial<FxOverride> = {}): FxOverride {
+  return {
+    currency: 'USD',
+    date: '2026-10-19',
+    rate: '4.1',
+    created_by: { kind: 'user', id: 'u-ada' },
+    created_at: '2026-10-19T10:00:00Z',
+    ...overrides,
   }
 }

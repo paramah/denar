@@ -148,6 +148,67 @@ const paths: Record<string, ReactNode> = {
       <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
     </>
   ),
+  list: (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" />
+    </>
+  ),
+  transfer: (
+    <>
+      <path d="M4 8h14l-3.5-3.5" />
+      <path d="M20 16H6l3.5 3.5" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M4 20h4L19 9l-4-4L4 16z" />
+      <path d="M13.5 6.5l4 4" />
+    </>
+  ),
+  archive: (
+    <>
+      <path d="M3.5 4.5h17v4h-17z" />
+      <path d="M5 8.5V19.5h14V8.5M10 12.5h4" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="9.5" rx="1.5" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4.5 4.5" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M3.5 12.5V4.5h8l9 9-8 8z" />
+      <circle cx="8" cy="9" r="1.3" />
+    </>
+  ),
+  rate: (
+    <>
+      <path d="M4 18 9.5 12l3.5 3.5L20 8" />
+      <path d="M15 8h5v5" />
+    </>
+  ),
+  circle: <circle cx="12" cy="12" r="7.5" />,
+  checkCircle: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m8.5 12.2 2.4 2.4 4.6-4.9" />
+    </>
+  ),
 }
 
 export type IconName = keyof typeof paths

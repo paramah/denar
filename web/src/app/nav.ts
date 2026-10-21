@@ -11,6 +11,7 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { path: '', label: 'Pulpit', icon: 'dashboard' },
   { path: 'wallets', label: 'Portfele', icon: 'wallet' },
+  { path: 'transactions', label: 'Transakcje', icon: 'list' },
   { path: 'budget', label: 'Budżet', icon: 'budget' },
   { path: 'subscriptions', label: 'Subskrypcje', icon: 'repeat' },
   { path: 'notifications', label: 'Powiadomienia', icon: 'bell' },

@@ -5,6 +5,11 @@ export type AuditFilters = Pick<
   'actor_kind' | 'actor_id' | 'resource_type'
 >
 
+export type TransactionFilters = Pick<
+  NonNullable<operations['searchTransactions']['parameters']['query']>,
+  'wallet_id' | 'from' | 'to' | 'payee_id' | 'envelope_id' | 'q' | 'kind' | 'status' | 'tag'
+>
+
 // Pomija puste filtry, żeby jeden stan filtrów dawał jeden klucz.
 function normalize<T extends object>(filters: T): Partial<T> {
   return Object.fromEntries(
@@ -29,4 +34,21 @@ export const keys = {
   bots: (hid: string) => ['household', hid, 'bots'] as const,
   audit: (hid: string, filters?: AuditFilters) =>
     filters ? (['household', hid, 'audit', normalize(filters)] as const) : (['household', hid, 'audit'] as const),
+
+  /** Bez opcji — prefiks wszystkich list portfeli. */
+  wallets: (hid: string, options?: { archived: boolean }) =>
+    options ? (['household', hid, 'wallets', options] as const) : (['household', hid, 'wallets'] as const),
+  wallet: (hid: string, id?: string) =>
+    id ? (['household', hid, 'wallet', id] as const) : (['household', hid, 'wallet'] as const),
+  /** Bez filtrów — prefiks wszystkich rejestrów (każdego filtra i ostatnich transakcji). */
+  transactions: (hid: string, filters?: TransactionFilters & { limit?: number }) =>
+    filters
+      ? (['household', hid, 'transactions', normalize(filters)] as const)
+      : (['household', hid, 'transactions'] as const),
+  payees: (hid: string) => ['household', hid, 'payees'] as const,
+  fxQuote: (hid: string, currency?: string, date?: string) =>
+    currency ? (['household', hid, 'fx-quote', currency, date ?? ''] as const) : (['household', hid, 'fx-quote'] as const),
+  fxOverrides: (hid: string) => ['household', hid, 'fx-overrides'] as const,
 }
+
+export { normalize as normalizeFilters }
