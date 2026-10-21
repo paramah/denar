@@ -80,3 +80,12 @@ func (o *EventOutbox) MarkDispatched(ctx context.Context, id domain.ID, at time.
 	}
 	return affected(res)
 }
+
+func (o *EventOutbox) DeleteDispatchedBefore(ctx context.Context, before time.Time) (int, error) {
+	res, err := o.db.Exec(ctx).ExecContext(ctx, `DELETE FROM domain_events WHERE dispatched_at IS NOT NULL AND dispatched_at < ?`, toMicros(before))
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	return int(n), err
+}

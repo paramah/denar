@@ -95,3 +95,20 @@ func (r *HouseholdRepository) ByIDs(ctx context.Context, ids []domain.ID) ([]hou
 	}
 	return out, nil
 }
+
+func (r *HouseholdRepository) ListIDs(ctx context.Context) ([]domain.ID, error) {
+	rows, err := r.db.Query(ctx).QueryContext(ctx, `SELECT id FROM households ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []domain.ID{}
+	for rows.Next() {
+		var id domain.ID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}

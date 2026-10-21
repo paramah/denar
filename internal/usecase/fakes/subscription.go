@@ -433,3 +433,16 @@ func (o *EventOutbox) All() []event.Event {
 	})
 	return out
 }
+
+func (o *EventOutbox) DeleteDispatchedBefore(ctx context.Context, before time.Time) (n int, err error) {
+	o.store.Do(ctx, func() {
+		o.events = slices.DeleteFunc(o.events, func(e event.Event) bool {
+			if e.Dispatched() && e.DispatchedAt.Before(before) {
+				n++
+				return true
+			}
+			return false
+		})
+	})
+	return n, nil
+}

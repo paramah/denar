@@ -37,6 +37,11 @@ type Env struct {
 	Subscriptions usecase.SubscriptionRepository
 	Charges       usecase.ChargeRepository
 	Events        usecase.EventOutbox
+	// Stage 005.
+	Notifications usecase.NotificationRepository
+	Channels      usecase.ChannelRepository
+	Preferences   usecase.PreferenceRepository
+	Deliveries    usecase.DeliveryRepository
 	Tx            usecase.TxManager
 	Clock         usecase.Clock
 }

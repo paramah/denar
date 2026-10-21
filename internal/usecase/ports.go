@@ -14,6 +14,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/event"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
 	"git.eiac.dev/tools/denar/internal/domain/subscription"
 	"git.eiac.dev/tools/denar/internal/domain/transaction"
@@ -149,6 +150,8 @@ type HouseholdRepository interface {
 	ByID(ctx context.Context, id domain.ID) (household.Household, error)
 	// ByIDs returns the households that exist; unknown ids are skipped.
 	ByIDs(ctx context.Context, ids []domain.ID) ([]household.Household, error)
+	// ListIDs returns the ids of every household, for the jobs.
+	ListIDs(ctx context.Context) ([]domain.ID, error)
 }
 
 type MembershipRepository interface {
@@ -491,4 +494,122 @@ type EventOutbox interface {
 	ListPending(ctx context.Context, limit int) ([]event.Event, error)
 	// MarkDispatched stores the time the event was dispatched.
 	MarkDispatched(ctx context.Context, id domain.ID, at time.Time) error
+	// DeleteDispatchedBefore removes the events dispatched before the time
+	// and returns how many it removed (stage 005, retention).
+	DeleteDispatchedBefore(ctx context.Context, before time.Time) (int, error)
+}
+
+// NotificationFilter narrows the notifications of one person.
+type NotificationFilter struct {
+	UserID      domain.ID // required
+	HouseholdID domain.ID // "" means every household
+	UnreadOnly  bool
+	// RestrictWallets keeps only notifications without a wallet or with
+	// one of WalletIDs (a bot limited to wallets).
+	RestrictWallets bool
+	WalletIDs       []domain.ID
+}
+
+// NotificationRepository stores the notifications of the app. Lookups by
+// id take the person, so that another person's notification is not found.
+type NotificationRepository interface {
+	// Create stores the notification unless the person has one of the same
+	// event, and reports whether it stored it.
+	Create(ctx context.Context, n notification.Notification) (bool, error)
+	ByID(ctx context.Context, userID, id domain.ID) (notification.Notification, error)
+	// List returns the matching notifications, newest first (by id
+	// descending).
+	List(ctx context.Context, f NotificationFilter, p Page) (items []notification.Notification, next string, err error)
+	CountUnread(ctx context.Context, f NotificationFilter) (int, error)
+	// MarkRead sets ReadAt unless it is set already.
+	MarkRead(ctx context.Context, userID, id domain.ID, at time.Time) error
+	// MarkAllRead marks the matching unread notifications read and returns
+	// how many it marked.
+	MarkAllRead(ctx context.Context, f NotificationFilter, at time.Time) (int, error)
+	// DeleteReadBefore removes notifications read before the time.
+	DeleteReadBefore(ctx context.Context, before time.Time) (int, error)
+}
+
+// ChannelRepository stores the channels of people.
+type ChannelRepository interface {
+	// Create and Update return a domain.ConflictError with
+	// ConflictDuplicateName when the person has a channel of that name,
+	// case-insensitively.
+	Create(ctx context.Context, c notification.Channel) error
+	// Update stores every field except the id, person, type and creation
+	// time.
+	Update(ctx context.Context, c notification.Channel) error
+	// Delete removes the channel with its deliveries.
+	Delete(ctx context.Context, userID, id domain.ID) error
+	ByID(ctx context.Context, userID, id domain.ID) (notification.Channel, error)
+	// ListByUser returns the person's channels by name, then id.
+	ListByUser(ctx context.Context, userID domain.ID) ([]notification.Channel, error)
+}
+
+// PreferenceRepository stores what people want to be told per household
+// and event type; a type without a stored preference has the default.
+type PreferenceRepository interface {
+	// List returns the stored preferences in the order of event.Types.
+	List(ctx context.Context, userID, householdID domain.ID) ([]notification.Preference, error)
+	// Replace stores exactly these preferences of the person in the
+	// household. The household must exist (domain.ErrNotFound).
+	Replace(ctx context.Context, userID, householdID domain.ID, prefs []notification.Preference) error
+}
+
+// DeliveryRepository is the outbox of messages to channels.
+type DeliveryRepository interface {
+	// Create stores the delivery unless there is one of the same event,
+	// person and channel, and reports whether it stored it.
+	Create(ctx context.Context, d notification.Delivery) (bool, error)
+	// ListDue returns up to limit pending deliveries whose next attempt is
+	// due at now, the most overdue first.
+	ListDue(ctx context.Context, now time.Time, limit int) ([]notification.Delivery, error)
+	ByID(ctx context.Context, id domain.ID) (notification.Delivery, error)
+	// Update stores the status, attempts, next attempt, last error, update
+	// and send times.
+	Update(ctx context.Context, d notification.Delivery) error
+	// DeleteFinishedBefore removes sent and failed deliveries last updated
+	// before the time.
+	DeleteFinishedBefore(ctx context.Context, before time.Time) (int, error)
+}
+
+// ChannelTarget is a channel as a Notifier needs it: its settings and its
+// secrets in the clear.
+type ChannelTarget struct {
+	Type    notification.ChannelType
+	Config  map[string]string
+	Secrets map[string]string
+}
+
+// OutgoingMessage is what a Notifier sends.
+type OutgoingMessage struct {
+	// ID identifies the message; sending the same ID twice is the same
+	// message (a Matrix transaction id, the webhook delivery header).
+	ID            string
+	Type          string
+	Title         string
+	Body          string
+	URL           string // absolute; "" for none
+	HouseholdID   domain.ID
+	HouseholdName string
+	OccurredAt    time.Time
+	Data          map[string]string
+}
+
+// Notifier sends messages over one type of channel. Errors are short and
+// never contain secrets.
+type Notifier interface {
+	Send(ctx context.Context, target ChannelTarget, msg OutgoingMessage) error
+}
+
+// Mailer sends plain-text e-mail through the server's SMTP settings.
+type Mailer interface {
+	SendMail(ctx context.Context, to, subject, body string) error
+}
+
+// SecretBox encrypts secrets kept in the database. aad binds a sealed
+// value to its record.
+type SecretBox interface {
+	Seal(plaintext, aad []byte) ([]byte, error)
+	Open(sealed, aad []byte) ([]byte, error)
 }

@@ -101,3 +101,11 @@ func (r *HouseholdRepository) ByIDs(ctx context.Context, ids []domain.ID) (out [
 	slices.SortFunc(out, func(a, b household.Household) int { return cmp.Compare(a.ID, b.ID) })
 	return out, nil
 }
+
+func (r *HouseholdRepository) ListIDs(ctx context.Context) (out []domain.ID, err error) {
+	r.store.Do(ctx, func() { out = slices.Sorted(maps.Keys(r.households)) })
+	if out == nil {
+		out = []domain.ID{}
+	}
+	return out, nil
+}

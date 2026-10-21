@@ -14,6 +14,7 @@ func newEnv(*testing.T) portstest.Env {
 		Wallets: r.Wallets, Transactions: r.Transactions, Payees: r.Payees, FxRates: r.FxRates, FxOverrides: r.FxOverrides,
 		EnvelopeGroups: r.EnvelopeGroups, Envelopes: r.Envelopes, Assignments: r.Assignments,
 		Subscriptions: r.Subscriptions, Charges: r.Charges, Events: r.Events,
+		Notifications: r.Notifications, Channels: r.Channels, Preferences: r.Preferences, Deliveries: r.Deliveries,
 	}
 }
 
@@ -36,3 +37,10 @@ func TestAssignmentRepositoryContract(t *testing.T)    { portstest.RunAssignment
 func TestSubscriptionRepositoryContract(t *testing.T)  { portstest.RunSubscriptionSuite(t, newEnv) }
 func TestChargeRepositoryContract(t *testing.T)        { portstest.RunChargeSuite(t, newEnv) }
 func TestEventOutboxContract(t *testing.T)             { portstest.RunEventOutboxSuite(t, newEnv) }
+func TestNotificationRepositoryContract(t *testing.T)  { portstest.RunNotificationSuite(t, newEnv) }
+func TestChannelRepositoryContract(t *testing.T)       { portstest.RunChannelSuite(t, newEnv) }
+func TestPreferenceRepositoryContract(t *testing.T)    { portstest.RunPreferenceSuite(t, newEnv) }
+func TestDeliveryRepositoryContract(t *testing.T)      { portstest.RunDeliverySuite(t, newEnv) }
+func TestNotificationHousekeepingContract(t *testing.T) {
+	portstest.RunNotificationHousekeepingSuite(t, newEnv)
+}

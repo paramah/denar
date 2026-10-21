@@ -6,6 +6,7 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/audit"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 )
 
 // Deps is what the household, member, invitation, bot and audit use cases
@@ -40,6 +41,21 @@ type Deps struct {
 	Charges           ChargeRepository
 	Events            EventOutbox
 	ChargeHorizonDays int
+	// Notifications, Channels, Preferences and Deliveries hold the
+	// notifications (stage 005). Notifiers send over each channel type
+	// the server can reach; Mailer sends e-mail (nil without SMTP);
+	// Secrets encrypts channel secrets (nil without a master key).
+	// BaseURL starts the links sent outside the app. GoalDueDays is how
+	// many days ahead a goal is reminded of; 0 means 7.
+	Notifications NotificationRepository
+	Channels      ChannelRepository
+	Preferences   PreferenceRepository
+	Deliveries    DeliveryRepository
+	Notifiers     map[notification.ChannelType]Notifier
+	Mailer        Mailer
+	Secrets       SecretBox
+	BaseURL       string
+	GoalDueDays   int
 	// Rates gives exchange rates against PLN; nil means only the base
 	// currency, overrides and cached rates are known.
 	Rates RateProvider

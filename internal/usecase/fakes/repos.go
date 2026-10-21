@@ -31,6 +31,11 @@ type Repos struct {
 	Subscriptions *SubscriptionRepository
 	Charges       *ChargeRepository
 	Events        *EventOutbox
+	// Stage 005.
+	Notifications *NotificationRepository
+	Channels      *ChannelRepository
+	Preferences   *PreferenceRepository
+	Deliveries    *DeliveryRepository
 	Rates         *RateProvider
 	Tx            *TxManager
 	Clock         *Clock
@@ -70,8 +75,13 @@ func NewRepos() *Repos {
 	r.Subscriptions = NewSubscriptionRepository(s)
 	r.Charges = NewChargeRepository(s, r.Subscriptions)
 	r.Events = NewEventOutbox(s)
+	r.Notifications = NewNotificationRepository(s)
+	r.Deliveries = NewDeliveryRepository(s)
+	r.Channels = NewChannelRepository(s, r.Deliveries)
+	r.Preferences = NewPreferenceRepository(s, r.Households)
 	r.Households.Cascade(r.Memberships, r.Invitations, r.Bots, r.Audit, r.Wallets, r.Transactions, r.Payees, r.FxOverrides,
-		r.Assignments, r.Envelopes, r.EnvelopeGroups, r.Subscriptions, r.Charges, r.Events)
+		r.Assignments, r.Envelopes, r.EnvelopeGroups, r.Subscriptions, r.Charges, r.Events,
+		r.Notifications, r.Preferences, r.Deliveries)
 	return r
 }
 
@@ -83,6 +93,7 @@ func (r *Repos) Deps() usecase.Deps {
 		Wallets: r.Wallets, Transactions: r.Transactions, Payees: r.Payees, FxRates: r.FxRates, FxOverrides: r.FxOverrides,
 		EnvelopeGroups: r.EnvelopeGroups, Envelopes: r.Envelopes, Assignments: r.Assignments,
 		Subscriptions: r.Subscriptions, Charges: r.Charges, Events: r.Events,
+		Notifications: r.Notifications, Channels: r.Channels, Preferences: r.Preferences, Deliveries: r.Deliveries,
 		Rates: r.Rates,
 		IDs:   r.IDs, Tokens: r.Tokens, Clock: r.Clock, Hasher: r.Hasher, Tx: r.Tx,
 	}

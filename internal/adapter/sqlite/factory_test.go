@@ -37,6 +37,11 @@ func newEnv(t *testing.T) portstest.Env {
 		Subscriptions: NewSubscriptionRepository(db),
 		Charges:       NewChargeRepository(db),
 		Events:        NewEventOutbox(db),
+
+		Notifications: NewNotificationRepository(db),
+		Channels:      NewChannelRepository(db),
+		Preferences:   NewPreferenceRepository(db),
+		Deliveries:    NewDeliveryRepository(db),
 		Tx:            db,
 		Clock:         fakes.NewClock(time.Date(2026, 10, 21, 9, 30, 0, 123456789, time.UTC)),
 	}
@@ -74,3 +79,10 @@ func TestAssignmentRepositoryContract(t *testing.T)    { portstest.RunAssignment
 func TestSubscriptionRepositoryContract(t *testing.T)  { portstest.RunSubscriptionSuite(t, newEnv) }
 func TestChargeRepositoryContract(t *testing.T)        { portstest.RunChargeSuite(t, newEnv) }
 func TestEventOutboxContract(t *testing.T)             { portstest.RunEventOutboxSuite(t, newEnv) }
+func TestNotificationRepositoryContract(t *testing.T)  { portstest.RunNotificationSuite(t, newEnv) }
+func TestChannelRepositoryContract(t *testing.T)       { portstest.RunChannelSuite(t, newEnv) }
+func TestPreferenceRepositoryContract(t *testing.T)    { portstest.RunPreferenceSuite(t, newEnv) }
+func TestDeliveryRepositoryContract(t *testing.T)      { portstest.RunDeliverySuite(t, newEnv) }
+func TestNotificationHousekeepingContract(t *testing.T) {
+	portstest.RunNotificationHousekeepingSuite(t, newEnv)
+}
