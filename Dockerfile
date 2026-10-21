@@ -2,7 +2,7 @@
 
 # Web UI: React SPA built by Vite into web/dist, embedded by web/embed.go.
 # It runs on the build platform only: the output is the same for every target.
-FROM --platform=$BUILDPLATFORM node:22-alpine AS web
+FROM --platform=$BUILDPLATFORM node:25-alpine AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json web/.npmrc ./
 # postinstall writes node_modules/go.mod (keeps node_modules out of `go ./...`).
