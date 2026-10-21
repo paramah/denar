@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../Button/Button.tsx'
 import { inputClass } from '../Field/Field.tsx'
 import styles from './CopyField.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type Copied = 'ok' | 'manual' | null
 
@@ -33,7 +34,7 @@ function useCopy(value: string, select: () => void) {
 function CopyStatus({ copied }: { copied: Copied }) {
   return (
     <p className="visually-hidden" aria-live="polite">
-      {copied === 'ok' ? 'Skopiowano do schowka' : copied === 'manual' ? 'Zaznaczono — skopiuj skrótem klawiszowym' : ''}
+      {copied === 'ok' ? tk('common:components.copiedToClipboard') : copied === 'manual' ? tk('common:components.selectedToCopy') : ''}
     </p>
   )
 }
@@ -70,7 +71,7 @@ export function CopyField({ label, value, hint, initialFocus }: Props) {
           data-autofocus={initialFocus || undefined}
         />
         <Button icon={copied === 'ok' ? 'check' : 'copy'} onClick={() => void copy()}>
-          {copied === 'ok' ? 'Skopiowano' : 'Kopiuj'}
+          {copied === 'ok' ? tk('common:components.copied') : tk('common:components.copy')}
           <span className="visually-hidden">: {label}</span>
         </Button>
       </div>
@@ -103,7 +104,7 @@ export function CopyBlock({ label, value, hint }: { label: string; value: string
           {label}
         </span>
         <Button size="sm" icon={copied === 'ok' ? 'check' : 'copy'} onClick={() => void copy()}>
-          {copied === 'ok' ? 'Skopiowano' : 'Kopiuj'}
+          {copied === 'ok' ? tk('common:components.copied') : tk('common:components.copy')}
           <span className="visually-hidden">: {label}</span>
         </Button>
       </div>

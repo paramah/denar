@@ -3,7 +3,7 @@ import { createContext, useContext } from 'react'
 import { api, unwrap } from '../client.ts'
 import { keys } from '../keys.ts'
 import { staleTime } from '../queryClient.ts'
-import type { Household, User } from '../types.ts'
+import type { Household, Me, User, UserUpdate } from '../types.ts'
 
 export function useAuthConfig() {
   return useQuery({
@@ -47,6 +47,19 @@ export function useLogin() {
     mutationFn: async (body: { email: string; password: string }) =>
       unwrap(await api.POST('/auth/login', { body })),
     onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: keys.me() })
+    },
+  })
+}
+
+/** Zmienia preferencje człowieka (język); odświeża /me. */
+export function useUpdateMe() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: UserUpdate) => unwrap(await api.PATCH('/me', { body })),
+    onSuccess: async (user) => {
+      // Od razu nowy użytkownik w /me (np. wybór języka po ponownym zamontowaniu), potem odświeżenie.
+      client.setQueryData<Me>(keys.me(), (me) => (me ? { ...me, user } : me))
       await client.invalidateQueries({ queryKey: keys.me() })
     },
   })

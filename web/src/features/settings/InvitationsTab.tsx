@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fieldErrors } from '../../api/errors.ts'
+import { translateDeliveryError } from '../../api/messages.ts'
 import { useCreateInvitation, useInvitations, useRevokeInvitation } from '../../api/hooks/invitations.ts'
 import { useChannelTypes } from '../../api/hooks/notifications.ts'
 import type { Invitation, InvitationCreated, Role } from '../../api/types.ts'
@@ -114,7 +115,7 @@ export function InvitationsTab() {
             )}
             {created.email_error && (
               <Callout tone="warn" title="Nie udało się wysłać e-maila">
-                {created.email_error}. Zaproszenie powstało — przekaż link samodzielnie.
+                {translateDeliveryError(created.email_error)}. Zaproszenie powstało — przekaż link samodzielnie.
               </Callout>
             )}
             <CopyField label="Link z zaproszeniem" value={created.url} initialFocus />

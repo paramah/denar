@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useSessionUser } from '../api/hooks/session.ts'
 import { LinkButton } from '../components/Button/Button.tsx'
@@ -20,23 +21,21 @@ export function HomePage() {
 
 function Welcome() {
   const { user } = useSessionUser()
-  useDocumentTitle('Witaj')
+  const { t } = useTranslation()
+  useDocumentTitle(t('welcome.documentTitle'))
   return (
     <PlainLayout>
       <EmptyState
         icon="home"
         headingLevel={1}
-        title={`Witaj, ${user.name}`}
+        title={t('welcome.title', { name: user.name })}
         action={
           <LinkButton to="/households/new" variant="primary" icon="plus">
-            Załóż gospodarstwo
+            {t('welcome.create')}
           </LinkButton>
         }
       >
-        <p>
-          Nie należysz jeszcze do żadnego gospodarstwa. Załóż własne — z walutą, w której prowadzisz budżet — albo
-          poproś domownika o link z zaproszeniem.
-        </p>
+        <p>{t('welcome.body')}</p>
       </EmptyState>
     </PlainLayout>
   )

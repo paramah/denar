@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import { useLogout, useSessionUser } from '../api/hooks/session.ts'
 import type { Household } from '../api/types.ts'
@@ -25,17 +26,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [drawerAt, setDrawerAt] = useState<string | null>(null)
   const drawerOpen = drawerAt === location.pathname
   const setDrawerOpen = (open: boolean) => setDrawerAt(open ? location.pathname : null)
+  const { t } = useTranslation()
 
   return (
     <div className={styles.shell}>
       <SkipLink />
-      <aside className={styles.rail} aria-label="Menu aplikacji">
+      <aside className={styles.rail} aria-label={t('shell.appMenu')}>
         <RailContent bell />
       </aside>
       <header className={styles.topbar}>
         <IconButton
           icon="menu"
-          label="Otwórz menu"
+          label={t('shell.openMenu')}
           className={styles.menuButton}
           aria-expanded={drawerOpen}
           onClick={() => setDrawerOpen(true)}
@@ -57,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function Drawer({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dialog = ref.current!
@@ -83,10 +86,10 @@ function Drawer({ onClose }: { onClose: () => void }) {
     }
   }, [onClose])
   return (
-    <dialog ref={ref} className={styles.drawer} aria-label="Menu aplikacji">
+    <dialog ref={ref} className={styles.drawer} aria-label={t('shell.appMenu')}>
       <div className={styles.drawerInner}>
         <div className={styles.drawerClose}>
-          <IconButton icon="close" label="Zamknij menu" onClick={onClose} className={styles.railButton} />
+          <IconButton icon="close" label={t('shell.closeMenu')} onClick={onClose} className={styles.railButton} />
         </div>
         <RailContent />
       </div>
@@ -97,17 +100,18 @@ function Drawer({ onClose }: { onClose: () => void }) {
 /** Treść paska; dzwonek tylko w stałym pasku (na telefonie jest w górnej belce). */
 function RailContent({ bell = false }: { bell?: boolean }) {
   const { household, role } = useHousehold()
+  const { t } = useTranslation()
   return (
     <div className={styles.railContent}>
       <div className={styles.brandRow}>
         <Link to={householdPath(household.id)} className={styles.brand}>
           <CoinMark size={40} />
-          <span className={styles.wordmark}>Denar</span>
+          <span className={styles.wordmark}>{t('appName')}</span>
         </Link>
         {bell && <NotificationBell placement="rail" />}
       </div>
       <HouseholdSwitcher current={household} roleLabel={roleLabels[role]} />
-      <nav aria-label="Główna" className={styles.nav}>
+      <nav aria-label={t('nav.label')} className={styles.nav}>
         <ul>
           {navItems.map((item) => (
             <li key={item.path}>
@@ -117,7 +121,7 @@ function RailContent({ bell = false }: { bell?: boolean }) {
                 className={({ isActive }) => (isActive ? `${styles.navLink} ${styles.active}` : styles.navLink)}
               >
                 <Icon name={item.icon} />
-                {item.label}
+                {t(`nav.${item.label}`)}
               </NavLink>
             </li>
           ))}
@@ -138,6 +142,7 @@ function HouseholdSwitcher({ current, roleLabel }: { current: Household; roleLab
   const menu = useDisclosure(containerRef, buttonRef)
   const menuId = useId()
   const others = households.filter((h) => h.id !== current.id)
+  const { t } = useTranslation()
 
   return (
     <div className={styles.switcher} ref={containerRef}>
@@ -150,19 +155,19 @@ function HouseholdSwitcher({ current, roleLabel }: { current: Household; roleLab
         onClick={menu.toggle}
       >
         <span className={styles.switcherText}>
-          <span className={styles.switcherLabel}>Gospodarstwo</span>
+          <span className={styles.switcherLabel}>{t('shell.household')}</span>
           <span className={styles.householdName}>{current.name}</span>
           <span className={styles.switcherMeta}>
             {roleLabel}, {current.base_currency}
           </span>
         </span>
         <Icon name="chevronDown" size={18} />
-        <span className="visually-hidden">— zmień gospodarstwo</span>
+        <span className="visually-hidden">{t('shell.switchHousehold')}</span>
       </button>
       {menu.open && (
         <div id={menuId} className={styles.popover}>
           {others.length > 0 && (
-            <ul aria-label="Twoje gospodarstwa" className={styles.popoverList}>
+            <ul aria-label={t('shell.yourHouseholds')} className={styles.popoverList}>
               {others.map((h) => (
                 <li key={h.id}>
                   <Link
@@ -182,7 +187,7 @@ function HouseholdSwitcher({ current, roleLabel }: { current: Household; roleLab
           )}
           <Link to="/households/new" className={styles.popoverItem} onClick={() => menu.close()}>
             <Icon name="plus" size={18} />
-            <span>Nowe gospodarstwo</span>
+            <span>{t('shell.newHousehold')}</span>
           </Link>
         </div>
       )}
@@ -190,10 +195,10 @@ function HouseholdSwitcher({ current, roleLabel }: { current: Household; roleLab
   )
 }
 
-const themeOptions: { value: ThemeChoice; label: string; icon: 'monitor' | 'sun' | 'moon' }[] = [
-  { value: 'system', label: 'Systemowy', icon: 'monitor' },
-  { value: 'light', label: 'Jasny', icon: 'sun' },
-  { value: 'dark', label: 'Ciemny', icon: 'moon' },
+const themeOptions: { value: ThemeChoice; icon: 'monitor' | 'sun' | 'moon' }[] = [
+  { value: 'system', icon: 'monitor' },
+  { value: 'light', icon: 'sun' },
+  { value: 'dark', icon: 'moon' },
 ]
 
 export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
@@ -205,6 +210,7 @@ export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menu = useDisclosure(containerRef, buttonRef)
   const menuId = useId()
+  const { t } = useTranslation()
   const initials = user.name
     .split(/\s+/)
     .filter(Boolean)
@@ -226,7 +232,7 @@ export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
           {initials || '?'}
         </span>
         <span className={styles.userName}>{user.name}</span>
-        <span className="visually-hidden">— menu konta</span>
+        <span className="visually-hidden">{t('userMenu.open')}</span>
       </button>
       {menu.open && (
         <div id={menuId} className={`${styles.popover} ${styles[placement]}`}>
@@ -235,7 +241,7 @@ export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
             <p className={styles.popoverMeta}>{user.email}</p>
           </div>
           <fieldset className={styles.themes}>
-            <legend>Motyw</legend>
+            <legend>{t('theme.legend')}</legend>
             <div className={styles.themeButtons}>
               {themeOptions.map((option) => (
                 <button
@@ -246,11 +252,15 @@ export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
                   onClick={() => setTheme(option.value)}
                 >
                   <Icon name={option.icon} size={16} />
-                  {option.label}
+                  {t(`theme.${option.value}`)}
                 </button>
               ))}
             </div>
           </fieldset>
+          <Link to="/profile" className={styles.popoverItem} onClick={() => menu.close()}>
+            <Icon name="user" size={18} />
+            <span>{t('userMenu.profile')}</span>
+          </Link>
           <button
             type="button"
             className={styles.popoverItem}
@@ -263,7 +273,7 @@ export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
             }
           >
             <Icon name="logout" size={18} />
-            <span>Wyloguj się</span>
+            <span>{t('userMenu.logout')}</span>
           </button>
         </div>
       )}
@@ -273,13 +283,14 @@ export function UserMenu({ placement = 'up' }: { placement?: 'up' | 'down' }) {
 
 /** Układ stron bez gospodarstwa (powitanie, nowe gospodarstwo). */
 export function PlainLayout({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   return (
     <div className={styles.plain}>
       <SkipLink />
       <header className={styles.plainBar}>
         <Link to="/" className={styles.plainBrand}>
           <CoinMark size={32} />
-          <span className={styles.wordmark}>Denar</span>
+          <span className={styles.wordmark}>{t('appName')}</span>
         </Link>
         <UserMenu placement="down" />
       </header>

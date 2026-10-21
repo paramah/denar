@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useCurrencies } from '../../api/hooks/households.ts'
 import { SelectField, TextField } from '../../components/Field/Field.tsx'
 import { timeZones } from '../../lib/format.ts'
+import { perLocale } from '../../lib/intl.ts'
 import styles from './households.module.css'
 
 export type HouseholdValues = {
@@ -20,13 +21,13 @@ type Props = {
   readOnly?: boolean
 }
 
-const currencyNames = (() => {
+const currencyNames = perLocale((locale) => {
   try {
-    return new Intl.DisplayNames('pl-PL', { type: 'currency' })
+    return new Intl.DisplayNames(locale, { type: 'currency' })
   } catch {
     return null
   }
-})()
+})
 
 const days = Array.from({ length: 28 }, (_, i) => String(i + 1))
 
@@ -41,7 +42,7 @@ export function HouseholdFields({ values, onChange, errors, currencyLocked, read
 
   const currencyOptions = (currencies.data ?? [{ code: values.base_currency, decimals: 2 }]).map((c) => ({
     value: c.code,
-    label: `${c.code} — ${currencyNames?.of(c.code) ?? c.code}`,
+    label: `${c.code} — ${currencyNames()?.of(c.code) ?? c.code}`,
   }))
 
   return (

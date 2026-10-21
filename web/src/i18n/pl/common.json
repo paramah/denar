@@ -1,0 +1,94 @@
+{
+  "appName": "Denar",
+  "language": {
+    "label": "Język",
+    "auto": "Automatycznie",
+    "pl": "Polski",
+    "en": "English"
+  },
+  "amount": {
+    "required": "Podaj kwotę.",
+    "number": "Wpisz liczbę, np. 1250,00.",
+    "unsigned": "Wpisz kwotę bez znaku, np. 12,50.",
+    "noFraction": "Ta waluta nie ma części ułamkowej.",
+    "maxDecimals": "Najwyżej {{n}} miejsca po przecinku.",
+    "invalid": "Wpisz poprawną kwotę.",
+    "positive": "Kwota musi być większa od zera.",
+    "tooLarge": "Kwota jest za duża."
+  },
+  "rate": {
+    "required": "Podaj kurs.",
+    "invalid": "Wpisz kurs dodatni, najwyżej 12 miejsc po przecinku, np. 4,2512.",
+    "positive": "Kurs musi być większy od zera."
+  },
+  "time": {
+    "now": "teraz"
+  },
+  "nav": {
+    "label": "Główna",
+    "dashboard": "Pulpit",
+    "wallets": "Portfele",
+    "transactions": "Transakcje",
+    "budget": "Budżet",
+    "subscriptions": "Subskrypcje",
+    "notifications": "Powiadomienia",
+    "settings": "Ustawienia"
+  },
+  "shell": {
+    "appMenu": "Menu aplikacji",
+    "openMenu": "Otwórz menu",
+    "closeMenu": "Zamknij menu",
+    "household": "Gospodarstwo",
+    "switchHousehold": "— zmień gospodarstwo",
+    "yourHouseholds": "Twoje gospodarstwa",
+    "newHousehold": "Nowe gospodarstwo"
+  },
+  "theme": {
+    "legend": "Motyw",
+    "system": "Systemowy",
+    "light": "Jasny",
+    "dark": "Ciemny"
+  },
+  "userMenu": {
+    "open": "— menu konta",
+    "profile": "Profil",
+    "logout": "Wyloguj się"
+  },
+  "session": {
+    "checking": "Sprawdzanie sesji…",
+    "checkFailed": "Nie udało się sprawdzić sesji"
+  },
+  "notFound": {
+    "title": "Nie ma takiej strony",
+    "explanation": "Adres jest niepełny albo strona została przeniesiona. Sprawdź link albo wróć do aplikacji.",
+    "toStart": "Przejdź na start",
+    "toDashboard": "Wróć na pulpit"
+  },
+  "missingHousehold": {
+    "title": "Nie znaleziono gospodarstwa",
+    "explanation": "Gospodarstwo nie istnieje albo nie jesteś już jego członkiem.",
+    "back": "Wróć do swoich gospodarstw"
+  },
+  "welcome": {
+    "documentTitle": "Witaj",
+    "title": "Witaj, {{name}}",
+    "create": "Załóż gospodarstwo",
+    "body": "Nie należysz jeszcze do żadnego gospodarstwa. Załóż własne — z walutą, w której prowadzisz budżet — albo poproś domownika o link z zaproszeniem."
+  },
+  "components": {
+    "formInvalid": "Popraw dane formularza.",
+    "loading": "Wczytywanie…",
+    "loadMore": "Pokaż więcej",
+    "dismissToast": "Zamknij komunikat",
+    "close": "Zamknij",
+    "typeToConfirmBefore": "Wpisz ",
+    "typeToConfirmAfter": ", aby potwierdzić",
+    "skipToContent": "Przejdź do treści",
+    "copiedToClipboard": "Skopiowano do schowka",
+    "selectedToCopy": "Zaznaczono — skopiuj skrótem klawiszowym",
+    "copied": "Skopiowano",
+    "copy": "Kopiuj",
+    "loadFailed": "Nie udało się wczytać danych",
+    "retry": "Spróbuj ponownie"
+  }
+}

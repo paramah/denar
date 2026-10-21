@@ -1,5 +1,10 @@
 import type { ChargeStatus, Cycle, CycleUnit, SubscriptionStatus } from '../api/types.ts'
-import { locale, toMinor } from './money.ts'
+import { perLocale } from './intl.ts'
+import { toMinor } from './money.ts'
+
+// Wielkość liter w nazwach (dane użytkownika, nie tekst interfejsu) — zawsze
+// według reguł polskich, niezależnie od języka interfejsu.
+const dataLocale = 'pl'
 
 // Czyste funkcje subskrypcji: cykl po polsku, kolejne terminy (ta sama
 // arytmetyka co serwer — 004 FR-302), monogram i odcień dostawcy, dni do terminu.
@@ -54,7 +59,7 @@ const unitWords: Record<CycleUnit, { every1: string; one: string; few: string; m
 }
 
 const weekdayOn = ['w niedzielę', 'w poniedziałek', 'we wtorek', 'w środę', 'w czwartek', 'w piątek', 'w sobotę']
-const dayMonth = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' })
+const dayMonth = perLocale((locale) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }))
 
 type Day = { y: number; m: number; d: number }
 
@@ -102,7 +107,7 @@ export function cycleLabel(cycle: Pick<Cycle, 'unit' | 'every' | 'anchor'>): str
     case 'month':
       return `${head}, ${anchor.d}.`
     case 'year':
-      return `${head}, ${dayMonth.format(new Date(anchor.y, anchor.m - 1, anchor.d))}`
+      return `${head}, ${dayMonth().format(new Date(anchor.y, anchor.m - 1, anchor.d))}`
     default:
       return head
   }
@@ -184,15 +189,15 @@ export function monogram(name: string): string {
     return '?'
   }
   if (words.length >= 2) {
-    return (words[0]![0]! + words[1]![0]!).toLocaleUpperCase(locale)
+    return (words[0]![0]! + words[1]![0]!).toLocaleUpperCase(dataLocale)
   }
   const word = words[0]!
   // Wielbłądzi zapis: pierwsza litera i kolejna wielka (OpenAI, YouTube, GitHub, iCloud).
-  const capital = [...word.slice(1)].find((ch) => ch !== ch.toLocaleLowerCase(locale) && ch === ch.toLocaleUpperCase(locale))
+  const capital = [...word.slice(1)].find((ch) => ch !== ch.toLocaleLowerCase(dataLocale) && ch === ch.toLocaleUpperCase(dataLocale))
   if (capital) {
     return `${word[0]}${capital}`
   }
-  return word.slice(0, 2).replace(/^./, (ch) => ch.toLocaleUpperCase(locale))
+  return word.slice(0, 2).replace(/^./, (ch) => ch.toLocaleUpperCase(dataLocale))
 }
 
 /** Stop monety (1–6) dla dostawcy: stały dla klucza, bez zewnętrznych logo (CSP). */

@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { classify } from '../api/errors.ts'
 import { SessionContext, useMe } from '../api/hooks/session.ts'
 import { SectionError } from '../components/QueryState/QueryState.tsx'
 import { Skeleton } from '../components/Skeleton/Skeleton.tsx'
+import { useProfileLocale } from '../i18n/useProfileLocale.ts'
 import { loginUrl } from '../lib/returnTo.ts'
 
 /**
@@ -17,6 +19,8 @@ export function RequireSession() {
   const user = me.data?.user
   const households = me.data?.households
   const session = useMemo(() => (user && households ? { user, households } : null), [user, households])
+  const { t } = useTranslation()
+  useProfileLocale(user?.locale)
 
   if (session) {
     return (
@@ -28,14 +32,14 @@ export function RequireSession() {
   if (me.isPending) {
     return (
       <main id="main" className="plain-main">
-        <Skeleton lines={4} label="Sprawdzanie sesji…" />
+        <Skeleton lines={4} label={t('session.checking')} />
       </main>
     )
   }
   if (me.isError && classify(me.error) !== 'unauthenticated') {
     return (
       <main id="main" className="plain-main">
-        <SectionError title="Nie udało się sprawdzić sesji" error={me.error} onRetry={() => void me.refetch()} />
+        <SectionError title={t('session.checkFailed')} error={me.error} onRetry={() => void me.refetch()} />
       </main>
     )
   }

@@ -4,6 +4,8 @@
 export const storageKeys = {
   theme: 'denar:theme',
   household: 'denar:household',
+  /** Język interfejsu wybrany w przeglądarce (013): pl | en. */
+  locale: 'denar:locale',
   /** sessionStorage: token zaproszenia między logowaniem a przyjęciem. */
   invite: 'denar:invite',
 } as const

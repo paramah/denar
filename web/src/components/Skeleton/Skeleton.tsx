@@ -1,4 +1,5 @@
 import styles from './Skeleton.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type Props = {
   /** Liczba wierszy. */
@@ -8,7 +9,7 @@ type Props = {
 }
 
 /** Zastępczy kształt ładowanej treści; kontener ogłasza zajętość. */
-export function Skeleton({ lines = 3, label = 'Wczytywanie…' }: Props) {
+export function Skeleton({ lines = 3, label = tk('common:components.loading') }: Props) {
   return (
     <div className={styles.skeleton} aria-busy="true" role="status">
       <span className="visually-hidden">{label}</span>

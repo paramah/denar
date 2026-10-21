@@ -1,14 +1,14 @@
+import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
 import { LinkButton } from '../components/Button/Button.tsx'
 import { EmptyState } from '../components/EmptyState/EmptyState.tsx'
 import { useDocumentTitle } from '../components/PageHeader/PageHeader.tsx'
 import { householdPath } from './nav.ts'
 
-const title = 'Nie ma takiej strony'
-const explanation = 'Adres jest niepełny albo strona została przeniesiona. Sprawdź link albo wróć do aplikacji.'
-
 /** Nieznany adres poza gospodarstwem: osobna strona bez nawigacji. */
 export function NotFoundPage() {
+  const { t } = useTranslation()
+  const title = t('notFound.title')
   useDocumentTitle(title)
   return (
     <main id="main" className="plain-main">
@@ -18,11 +18,11 @@ export function NotFoundPage() {
         title={title}
         action={
           <LinkButton to="/" variant="primary">
-            Przejdź na start
+            {t('notFound.toStart')}
           </LinkButton>
         }
       >
-        <p>{explanation}</p>
+        <p>{t('notFound.explanation')}</p>
       </EmptyState>
     </main>
   )
@@ -33,6 +33,8 @@ export function NotFoundPage() {
  * nawigacja zostawała pod ręką, z powrotem na pulpit gospodarstwa.
  */
 export function HouseholdNotFoundPage() {
+  const { t } = useTranslation()
+  const title = t('notFound.title')
   useDocumentTitle(title)
   const { householdId = '' } = useParams()
   return (
@@ -42,11 +44,11 @@ export function HouseholdNotFoundPage() {
       title={title}
       action={
         <LinkButton to={householdPath(householdId)} variant="primary">
-          Wróć na pulpit
+          {t('notFound.toDashboard')}
         </LinkButton>
       }
     >
-      <p>{explanation}</p>
+      <p>{t('notFound.explanation')}</p>
     </EmptyState>
   )
 }

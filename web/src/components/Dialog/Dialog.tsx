@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEventHand
 import { Button, IconButton } from '../Button/Button.tsx'
 import { inputClass } from '../Field/Field.tsx'
 import styles from './Dialog.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type Props = {
   open: boolean
@@ -97,7 +98,7 @@ function OpenDialog({ title, onClose, children, footer, onSubmit, role, size = '
         <h2 id={titleId} className={styles.title}>
           {title}
         </h2>
-        <IconButton icon="close" label="Zamknij" onClick={onClose} />
+        <IconButton icon="close" label={tk('common:components.close')} onClick={onClose} />
       </header>
       <div ref={contentRef} className={styles.content}>
         {onSubmit ? (
@@ -191,7 +192,9 @@ function ConfirmBody({
       {requirePhrase && (
         <div className={styles.phrase}>
           <label htmlFor={phraseId}>
-            Wpisz <strong>{requirePhrase}</strong>, aby potwierdzić
+            {tk('common:components.typeToConfirmBefore')}
+            <strong>{requirePhrase}</strong>
+            {tk('common:components.typeToConfirmAfter')}
           </label>
           <input
             id={phraseId}

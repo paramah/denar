@@ -1,4 +1,5 @@
 import { http, HttpResponse, type RequestHandler } from 'msw'
+import type { User } from '../../api/types.ts'
 import * as f from './fixtures.ts'
 import { apiUrl } from './url.ts'
 
@@ -17,6 +18,11 @@ export function problemResponse(status: number, code: string, extra: Record<stri
 export const handlers: RequestHandler[] = [
   http.get(apiUrl('/auth/config'), () => HttpResponse.json(f.authConfig)),
   http.get(apiUrl('/me'), () => HttpResponse.json(f.me())),
+  // Bez stanu: zwraca Adę z nowym językiem. Testy, które czytają /me po zmianie, nadpisują oba.
+  http.patch(apiUrl('/me'), async ({ request }) => {
+    const body = (await request.json()) as { locale: User['locale'] }
+    return HttpResponse.json({ ...f.user, locale: body.locale })
+  }),
   http.get(apiUrl('/currencies'), () =>
     HttpResponse.json({
       items: [

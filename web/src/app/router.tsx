@@ -8,6 +8,7 @@ import { ImportLayout } from '../features/import/ImportLayout.tsx'
 import { ImportWizardPage } from '../features/import/ImportWizardPage.tsx'
 import { CreateHouseholdPage } from '../features/households/CreateHouseholdPage.tsx'
 import { NotificationsPage } from '../features/notifications/NotificationsPage.tsx'
+import { ProfilePage } from '../features/profile/ProfilePage.tsx'
 import { ChargesQueuePage } from '../features/subscriptions/ChargesQueuePage.tsx'
 import { ListPage as SubscriptionListPage } from '../features/subscriptions/ListPage.tsx'
 import { OverviewPage as SubscriptionOverviewPage } from '../features/subscriptions/OverviewPage.tsx'
@@ -45,6 +46,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <HomePage /> },
       { path: 'households/new', element: <CreateHouseholdPage /> },
+      { path: 'profile', element: <ProfilePage /> },
       {
         path: 'h/:householdId',
         element: <HouseholdRoute />,

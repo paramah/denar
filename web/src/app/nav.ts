@@ -3,19 +3,20 @@ import type { IconName } from '../components/Icon/Icon.tsx'
 export type NavItem = {
   /** Ścieżka względem /h/:householdId ('' = pulpit). */
   path: string
-  label: string
+  /** Klucz w common.json → nav. */
+  label: 'dashboard' | 'wallets' | 'transactions' | 'budget' | 'subscriptions' | 'notifications' | 'settings'
   icon: IconName
 }
 
 /** Główna nawigacja gospodarstwa; części B/C wypełniają te strony treścią. */
 export const navItems: NavItem[] = [
-  { path: '', label: 'Pulpit', icon: 'dashboard' },
-  { path: 'wallets', label: 'Portfele', icon: 'wallet' },
-  { path: 'transactions', label: 'Transakcje', icon: 'list' },
-  { path: 'budget', label: 'Budżet', icon: 'budget' },
-  { path: 'subscriptions', label: 'Subskrypcje', icon: 'repeat' },
-  { path: 'notifications', label: 'Powiadomienia', icon: 'bell' },
-  { path: 'settings', label: 'Ustawienia', icon: 'settings' },
+  { path: '', label: 'dashboard', icon: 'dashboard' },
+  { path: 'wallets', label: 'wallets', icon: 'wallet' },
+  { path: 'transactions', label: 'transactions', icon: 'list' },
+  { path: 'budget', label: 'budget', icon: 'budget' },
+  { path: 'subscriptions', label: 'subscriptions', icon: 'repeat' },
+  { path: 'notifications', label: 'notifications', icon: 'bell' },
+  { path: 'settings', label: 'settings', icon: 'settings' },
 ]
 
 export const householdPath = (hid: string, path = '') => (path ? `/h/${hid}/${path}` : `/h/${hid}`)
