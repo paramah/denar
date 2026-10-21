@@ -59,6 +59,8 @@ export function useTransactionsChanged(hid: string) {
       client.invalidateQueries({ queryKey: keys.wallet(hid) }),
       client.invalidateQueries({ queryKey: keys.payees(hid) }),
       client.invalidateQueries({ queryKey: keys.budget(hid) }),
+      // Usunięta transakcja zwalnia obciążenie subskrypcji; nowa może być sugestią.
+      client.invalidateQueries({ queryKey: keys.subscriptionsAll(hid) }),
       client.invalidateQueries({ queryKey: keys.audit(hid) }),
     ])
   }

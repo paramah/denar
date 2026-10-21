@@ -59,6 +59,34 @@ export const keys = {
   envelopes: (hid: string) => ['household', hid, 'budget', 'envelopes'] as const,
   envelopeActivity: (hid: string, month: string, envelopeId: string) =>
     ['household', hid, 'budget', 'activity', month, envelopeId] as const,
+
+  vendors: () => ['vendors'] as const,
+  /** Prefiks wszystkiego o subskrypcjach i obciążeniach (zmiana jednego unieważnia całość). */
+  subscriptionsAll: (hid: string) => ['household', hid, 'subscriptions'] as const,
+  subscriptions: (hid: string, filters: SubscriptionFilters = {}) =>
+    ['household', hid, 'subscriptions', 'list', normalize(filters)] as const,
+  subscription: (hid: string, id: string) => ['household', hid, 'subscriptions', 'one', id] as const,
+  subscriptionPrices: (hid: string, id: string) => ['household', hid, 'subscriptions', 'prices', id] as const,
+  subscriptionSummary: (hid: string) => ['household', hid, 'subscriptions', 'summary'] as const,
+  upcomingRenewals: (hid: string, days: number) => ['household', hid, 'subscriptions', 'upcoming', days] as const,
+  charges: (hid: string, filters: ChargeFilters & { limit?: number }) =>
+    ['household', hid, 'subscriptions', 'charges', normalize(filters)] as const,
+  chargeSuggestions: (hid: string, chargeId: string, limit: number) =>
+    ['household', hid, 'subscriptions', 'charge-suggestions', chargeId, limit] as const,
+  transactionChargeSuggestions: (hid: string, transactionId: string) =>
+    ['household', hid, 'subscriptions', 'transaction-suggestions', transactionId] as const,
+}
+
+export type SubscriptionFilters = Pick<
+  NonNullable<operations['listSubscriptions']['parameters']['query']>,
+  'status' | 'vendor' | 'wallet_id'
+>
+
+export type ChargeFilters = {
+  subscription_id?: string
+  status?: string[]
+  from?: string
+  to?: string
 }
 
 export { normalize as normalizeFilters }

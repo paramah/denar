@@ -76,8 +76,8 @@ describe('session and households', () => {
   })
 
   it('shows coming soon pages for sections of later parts', async () => {
-    renderApp('/h/h-dom/subscriptions')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Subskrypcje' })).toBeInTheDocument()
+    renderApp('/h/h-dom/notifications')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Powiadomienia' })).toBeInTheDocument()
     expect(screen.getByText('Wkrótce')).toBeInTheDocument()
   })
 })

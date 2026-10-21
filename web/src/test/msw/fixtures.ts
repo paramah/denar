@@ -1,5 +1,10 @@
 import type {
   AuditEntry,
+  Charge,
+  PricePoint,
+  Subscription,
+  SubscriptionSummary,
+  Vendor,
   BudgetEnvelope,
   BudgetGroup,
   BudgetMonth,
@@ -304,6 +309,89 @@ export function budgetMonth(overrides: Partial<BudgetMonth> = {}): BudgetMonth {
     incomplete: false,
     pending_transactions: 0,
     groups: [],
+    ...overrides,
+  }
+}
+
+export const vendors: Vendor[] = [
+  { key: 'openai', name: 'OpenAI' },
+  { key: 'anthropic', name: 'Anthropic' },
+  { key: 'netflix', name: 'Netflix' },
+  { key: 'spotify', name: 'Spotify' },
+  { key: 'other', name: 'Inne' },
+]
+
+export function subscription(overrides: Partial<Subscription> = {}): Subscription {
+  const price = overrides.price ?? money('20.00', 'USD')
+  return {
+    id: 's-openai',
+    name: 'ChatGPT Plus',
+    vendor: 'openai',
+    vendor_name: 'OpenAI',
+    external_ref: null,
+    price,
+    price_effective_from: '2026-01-31',
+    cycle: { unit: 'month', every: 1, anchor: '2026-01-31' },
+    trial_ends_at: null,
+    status: 'active',
+    cancelled_at: null,
+    ends_at: null,
+    wallet_id: 'w-konto',
+    envelope_id: null,
+    reminder_offsets: [3],
+    match_rule: { payee_pattern: '', amount_tolerance_pct: 10, date_window_days: 3 },
+    note: '',
+    manage_url: null,
+    next_due: '2026-10-31',
+    monthly: price,
+    yearly: money('240.00', price.currency),
+    created_by: { kind: 'user', id: 'u-ada' },
+    created_at: '2026-10-01T10:00:00Z',
+    updated_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function pricePoint(overrides: Partial<PricePoint> = {}): PricePoint {
+  return {
+    id: 'pp-1',
+    effective_from: '2026-01-31',
+    price: money('20.00', 'USD'),
+    created_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function charge(overrides: Partial<Charge> = {}): Charge {
+  return {
+    id: 'c-oct',
+    subscription_id: 's-openai',
+    subscription_name: 'ChatGPT Plus',
+    vendor: 'openai',
+    wallet_id: 'w-konto',
+    due_date: '2026-10-31',
+    amount: money('20.00', 'USD'),
+    status: 'expected',
+    transaction_id: null,
+    created_at: '2026-10-01T10:00:00Z',
+    updated_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function subscriptionSummary(overrides: Partial<SubscriptionSummary> = {}): SubscriptionSummary {
+  return {
+    currency: 'PLN',
+    monthly: money('0.00'),
+    yearly: money('0.00'),
+    incomplete: false,
+    missing_currencies: [],
+    counts: { trial: 0, active: 0, paused: 0, cancelled: 0 },
+    by_vendor: [],
+    by_envelope: [],
+    upcoming: [],
+    trials_ending: [],
+    price_changes: [],
     ...overrides,
   }
 }

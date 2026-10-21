@@ -1,0 +1,1068 @@
+/*
+ * Subskrypcje „Mennica”: każdy dostawca to moneta z własnego stopu
+ * (monogram na krążku z karbowanym rantem), a kalendarz odnowień to pasek
+ * dni, na którym monety „wybijają” terminy płatności. Reszta cicha: cienkie
+ * linie księgi, cyfry tabelaryczne, kolor tylko w stanie płatności.
+ */
+
+.page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.lead {
+  max-width: 62ch;
+  color: var(--muted);
+}
+
+/* ---------- Moneta dostawcy ---------- */
+
+.coin {
+  --coin: 2.5rem;
+  --m-bg: var(--metal-1-bg);
+  --m-ink: var(--metal-1-ink);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--coin);
+  height: var(--coin);
+  border-radius: 50%;
+  /* Rant: drobne karby dookoła krążka. */
+  background: repeating-conic-gradient(from 2deg, var(--m-ink) 0deg 2.5deg, var(--m-bg) 2.5deg 8deg);
+  color: var(--m-ink);
+}
+
+.coin::before {
+  content: '';
+  position: absolute;
+  inset: max(2px, calc(var(--coin) * 0.08));
+  border-radius: 50%;
+  background: var(--m-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m-ink) 40%, transparent);
+}
+
+.coin > span {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: calc(var(--coin) * 0.36);
+  font-weight: 700;
+  font-stretch: 82%;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.coin[data-metal='2'] { --m-bg: var(--metal-2-bg); --m-ink: var(--metal-2-ink); }
+.coin[data-metal='3'] { --m-bg: var(--metal-3-bg); --m-ink: var(--metal-3-ink); }
+.coin[data-metal='4'] { --m-bg: var(--metal-4-bg); --m-ink: var(--metal-4-ink); }
+.coin[data-metal='5'] { --m-bg: var(--metal-5-bg); --m-ink: var(--metal-5-ink); }
+.coin[data-metal='6'] { --m-bg: var(--metal-6-bg); --m-ink: var(--metal-6-ink); }
+
+.coin-sm { --coin: 1.6rem; }
+.coin-md { --coin: 2.5rem; }
+.coin-lg { --coin: 3.5rem; }
+
+/* ---------- Zakładki ---------- */
+
+.tabs {
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs ul {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-weight: 560;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.activeTab {
+  border-bottom-color: var(--patina);
+  color: var(--ink);
+}
+
+.tabCount {
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--outflow-soft);
+  color: var(--outflow);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ---------- Przegląd: koszt i kalendarz ---------- */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.heroCost {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: calc(var(--space-5) + 6px) var(--space-5) var(--space-5);
+  border-right: 1px solid var(--line);
+}
+
+/* Rant monety wzdłuż górnej krawędzi. */
+.heroCost::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, var(--patina) 0 6px, var(--patina-strong) 6px 8px);
+}
+
+.heroLabel {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.heroAmount {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-stretch: 80%;
+  line-height: 1.05;
+}
+
+.heroAmount > span:first-child {
+  font-size: inherit;
+}
+
+.heroMark {
+  color: var(--warn);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.heroYear {
+  font-size: var(--text-lg);
+}
+
+.calendar {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* Pasek 31 dni: dzień = kolumna, monety w dniach płatności. */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(31, minmax(0, 1fr));
+  grid-auto-rows: minmax(1.75rem, auto);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.stripDay {
+  position: relative;
+  grid-row: 1 / span 4;
+  min-height: 5.5rem;
+  border-left: 1px solid var(--line);
+}
+
+.stripDay[data-weekend] {
+  background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
+}
+
+.stripDay[data-today] {
+  border-left: 2px solid var(--patina);
+}
+
+.stripLabel {
+  position: absolute;
+  top: 0;
+  left: 3px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stripMarker {
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-self: center;
+  min-width: 0;
+  overflow: visible;
+}
+
+.renewals {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.renewal {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.renewalWhen {
+  display: grid;
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+.renewalName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 620;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.renewalName:hover {
+  color: var(--patina);
+  text-decoration: underline;
+}
+
+.renewalAmount {
+  display: grid;
+  justify-items: end;
+  font-weight: 600;
+}
+
+/* ---------- Panele i słupki ---------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.bars {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.barLabel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+  font-weight: 600;
+}
+
+.barTrack {
+  grid-column: 1 / -1;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  width: var(--share, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--patina);
+}
+
+.plainList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.listRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.listRow > a {
+  font-weight: 620;
+  margin-right: auto;
+}
+
+.priceShift {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* ---------- Lista ---------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.filters > div {
+  min-width: 10rem;
+}
+
+.filtersClear {
+  margin-bottom: 0.3rem;
+}
+
+.cards {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.card[data-inactive] {
+  opacity: 0.78;
+}
+
+.card[data-inactive] .coin {
+  filter: grayscale(0.8);
+}
+
+.cardMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cardTitle {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  font-stretch: 90%;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.cardTitle:hover {
+  color: var(--patina);
+  text-decoration: underline;
+}
+
+.cardStatus {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.cardPrice {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.cardNext {
+  font-size: var(--text-sm);
+}
+
+.estimate {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* ---------- Formularz ---------- */
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.fieldset {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.fieldset legend {
+  padding: 0 var(--space-1);
+  font-weight: 650;
+}
+
+.cycleRow {
+  display: grid;
+  grid-template-columns: 6rem minmax(9rem, 12rem) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.cyclePreview {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3);
+  border-left: 3px solid var(--patina);
+  background: var(--patina-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.cyclePreview .muted {
+  color: var(--ink);
+}
+
+.cycleText {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  font-stretch: 90%;
+}
+
+.cycleText::first-letter {
+  text-transform: uppercase;
+}
+
+.priceNow {
+  display: grid;
+  gap: 2px;
+}
+
+.priceNow > span:first-child {
+  font-weight: 650;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 560;
+}
+
+.chip input {
+  margin: 0;
+  accent-color: var(--patina);
+}
+
+.chip[data-checked] {
+  border-color: var(--patina);
+  background: var(--patina-soft);
+}
+
+.chip:has(input:disabled) {
+  cursor: not-allowed;
+  color: var(--muted);
+}
+
+.chip:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.fieldError {
+  color: var(--outflow);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.advanced {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}
+
+.advanced[open] {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.advanced summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.formFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Szczegóły ---------- */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.headerMeta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.detailHero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: var(--space-4) var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+}
+
+.detailPrice {
+  display: grid;
+  gap: 2px;
+}
+
+.detailCycle {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  font-stretch: 90%;
+}
+
+.detailCycle::first-letter {
+  text-transform: uppercase;
+}
+
+.detailFacts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.detailFacts div,
+.facts div {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.detailFacts dt,
+.facts dt {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.detailFacts dd,
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.note {
+  white-space: pre-wrap;
+}
+
+.priceList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.pricePoint {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 6rem;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.pricePoint[data-current] {
+  font-weight: 650;
+}
+
+.pricePoint[data-future] {
+  color: var(--muted);
+}
+
+.delta {
+  justify-self: end;
+}
+
+/* ---------- Harmonogram płatności ---------- */
+
+.chargeRow {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.chargeRow[data-status='missed'] .chargeWhen time {
+  color: var(--outflow);
+  font-weight: 650;
+}
+
+.chargeRow[data-status='skipped'] .chargeAmount {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.chargeWhen {
+  display: grid;
+  line-height: 1.3;
+}
+
+.chargeMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.chargeSub {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 620;
+}
+
+.chargeAmount {
+  font-weight: 600;
+  text-align: right;
+}
+
+.chargeActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.chargeSummary {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Sugestie i kolejka ---------- */
+
+.dialogBody {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.suggestions {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.suggestion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 8.5rem auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.suggestionText {
+  display: grid;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.suggestionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+
+.score {
+  display: grid;
+  gap: 2px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.scoreBar {
+  display: block;
+  height: 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.scoreBar > span {
+  display: block;
+  width: var(--score, 0%);
+  height: 100%;
+  background: var(--line-strong);
+}
+
+.score[data-level='high'] .scoreBar > span {
+  background: var(--inflow);
+}
+
+.score[data-level='mid'] .scoreBar > span {
+  background: var(--warn);
+}
+
+.inlineLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--patina);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.queue {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queueItem {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.queueItem[data-status='missed'] {
+  border-left-color: var(--outflow);
+}
+
+.queueHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.queueTitle {
+  display: grid;
+  min-width: 0;
+}
+
+.queueTitle h2 {
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+.queueTitle a {
+  color: var(--ink);
+}
+
+.queueActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ---------- Pulpit ---------- */
+
+.dashTile {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.dashCost {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: calc(var(--space-5) + 6px) var(--space-5) var(--space-5);
+  border-right: 1px solid var(--line);
+}
+
+.dashCost::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, var(--patina) 0 6px, var(--patina-strong) 6px 8px);
+}
+
+.dashCost h2,
+.dashRenewals h2 {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.dashRenewals {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  min-width: 0;
+}
+
+.dashRenewals .calendar {
+  padding: 0;
+}
+
+.dashEmpty {
+  color: var(--muted);
+}
+
+/* ---------- Telefon ---------- */
+
+@media (max-width: 60rem) {
+  .hero,
+  .dashTile,
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroCost,
+  .dashCost {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .detailHero {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .detailFacts {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 48rem) {
+  .heroCost,
+  .calendar,
+  .dashCost,
+  .dashRenewals,
+  .detailHero {
+    padding: var(--space-4);
+  }
+
+  .heroCost,
+  .dashCost {
+    padding-top: calc(var(--space-4) + 6px);
+  }
+
+  /* Na wąskim pasku monety maleją do kropek w kolorze stopu. */
+  .stripMarker .coin {
+    --coin: 0.7rem;
+  }
+
+  .stripMarker .coin > span {
+    display: none;
+  }
+
+  .stripDay {
+    min-height: 3.5rem;
+  }
+
+  .strip {
+    grid-auto-rows: minmax(1rem, auto);
+  }
+
+  .renewal {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .renewalWhen {
+    grid-column: 1 / -1;
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: var(--space-2);
+  }
+
+  .card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .cardPrice {
+    grid-column: 1 / -1;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .cycleRow {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .cycleRow > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .detailFacts div,
+  .facts div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .chargeRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .chargeMain {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .chargeActions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .suggestion {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .queueHead {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pricePoint {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .delta {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip {
+    transition: background-color var(--duration), border-color var(--duration);
+  }
+}

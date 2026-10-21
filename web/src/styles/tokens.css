@@ -32,6 +32,20 @@
   --rail-active: #24443e;
   --silver: #c3cfcb;
 
+  /* Stopy monet dostawców subskrypcji (monogramy; tekst ≥ 4.5:1 do tła). */
+  --metal-1-bg: #d6e7e1;
+  --metal-1-ink: #1a5246;
+  --metal-2-bg: #ecdcc4;
+  --metal-2-ink: #6b4512;
+  --metal-3-bg: #dde3e8;
+  --metal-3-ink: #34495a;
+  --metal-4-bg: #efe4bd;
+  --metal-4-ink: #5e4a06;
+  --metal-5-bg: #f0d9d2;
+  --metal-5-ink: #7d3424;
+  --metal-6-bg: #e0dcea;
+  --metal-6-ink: #463d6b;
+
   --focus: #23695b;
   --backdrop: rgb(10 22 20 / 55%);
 
@@ -89,6 +103,18 @@
     --rail-active: #1c2c29;
     --focus: #72c4b0;
     --backdrop: rgb(0 0 0 / 65%);
+    --metal-1-bg: #1f3a35;
+    --metal-1-ink: #93d6c5;
+    --metal-2-bg: #3a2c18;
+    --metal-2-ink: #e6c48f;
+    --metal-3-bg: #263340;
+    --metal-3-ink: #b9cde0;
+    --metal-4-bg: #383015;
+    --metal-4-ink: #e8d27e;
+    --metal-5-bg: #3d231d;
+    --metal-5-ink: #f0ab98;
+    --metal-6-bg: #2c2840;
+    --metal-6-ink: #c9bff0;
   }
 }
 
@@ -118,4 +144,16 @@
   --rail-active: #1c2c29;
   --focus: #72c4b0;
   --backdrop: rgb(0 0 0 / 65%);
+  --metal-1-bg: #1f3a35;
+  --metal-1-ink: #93d6c5;
+  --metal-2-bg: #3a2c18;
+  --metal-2-ink: #e6c48f;
+  --metal-3-bg: #263340;
+  --metal-3-ink: #b9cde0;
+  --metal-4-bg: #383015;
+  --metal-4-ink: #e8d27e;
+  --metal-5-bg: #3d231d;
+  --metal-5-ink: #f0ab98;
+  --metal-6-bg: #2c2840;
+  --metal-6-ink: #c9bff0;
 }

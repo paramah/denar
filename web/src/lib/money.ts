@@ -217,3 +217,29 @@ export function formatRate(rate: string): string {
   const fraction = parsed.fraction.replace(/0+$/, '')
   return `${parsed.whole}${fraction ? `,${fraction}` : ''}`
 }
+
+/**
+ * Przeliczenie kwoty kursem (1 waluta kwoty = rate waluty docelowej) na
+ * bigint, z zaokrągleniem half-even do miejsc waluty docelowej — szacunek
+ * w UI (np. „≈ 80,00 zł”). null dla niepoprawnych danych.
+ */
+export function convertAmount(amount: string, fromDecimals: number, rate: string, toDecimals: number): string | null {
+  const minor = toMinor(amount, fromDecimals)
+  const parsedRate = parseDecimal(rate)
+  if (minor === null || !parsedRate || parsedRate.negative) {
+    return null
+  }
+  const rateScale = parsedRate.fraction.length
+  const rateMinor = BigInt(parsedRate.whole + parsedRate.fraction)
+  const numerator = minor * rateMinor * 10n ** BigInt(toDecimals)
+  const denominator = 10n ** BigInt(fromDecimals + rateScale)
+  const negative = numerator < 0n
+  const abs = negative ? -numerator : numerator
+  let quotient = abs / denominator
+  const remainder = abs % denominator
+  const twice = remainder * 2n
+  if (twice > denominator || (twice === denominator && quotient % 2n === 1n)) {
+    quotient += 1n
+  }
+  return fromMinor(negative ? -quotient : quotient, toDecimals)
+}

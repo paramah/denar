@@ -21,6 +21,7 @@ import { walletTotals } from '../wallets/totals.ts'
 import { WalletDialog } from '../wallets/WalletDialog.tsx'
 import { WalletSummary } from '../wallets/WalletCard.tsx'
 import { BudgetTile } from '../budget/BudgetTile.tsx'
+import { SubscriptionsTile } from '../subscriptions/SubscriptionsTile.tsx'
 import placeholder from '../placeholders/placeholders.module.css'
 import styles from './dashboard.module.css'
 
@@ -39,7 +40,7 @@ const recentShown = 5
 /**
  * Pulpit: salda portfeli w walucie bazowej, portfele i ostatnie transakcje.
  * Budżet (część C1): kafelek „Do przydzielenia” i przekroczone koperty.
- * Część C2 dopisze tu najbliższe odnowienia subskrypcji.
+ * Subskrypcje (część C2): koszt miesięczny i najbliższe odnowienia.
  */
 export function DashboardPage() {
   const { household, role } = useHousehold()
@@ -127,6 +128,7 @@ export function DashboardPage() {
                   currency={household.base_currency}
                 />
                 <BudgetTile />
+                <SubscriptionsTile />
                 <div className={styles.columns}>
                   <section className={styles.panel} aria-labelledby="dash-wallets">
                     <div className={styles.panelHead}>
