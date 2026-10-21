@@ -180,11 +180,8 @@
   accent-color: var(--patina);
 }
 
-.scopeArea {
-  display: grid;
-}
-
 .scopeArea span {
+  display: block;
   color: var(--muted);
   font-size: var(--text-sm);
   font-weight: 400;

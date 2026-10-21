@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createContext, useContext } from 'react'
 import { api, unwrap } from '../client.ts'
 import { keys } from '../keys.ts'
 import { staleTime } from '../queryClient.ts'
+import type { Household, User } from '../types.ts'
 
 export function useAuthConfig() {
   return useQuery({
@@ -21,13 +23,22 @@ export function useMe() {
   })
 }
 
-/** useMe() tam, gdzie RequireSession już zagwarantował dane. */
-export function useSessionUser() {
-  const me = useMe()
-  if (!me.data?.user) {
+export type SessionUser = { user: User; households: Household[] }
+
+/**
+ * Zalogowany człowiek, podawany przez RequireSession. Kontekst, nie
+ * bezpośrednio useMe(): po wylogowaniu cache znika, a komponenty, które
+ * jeszcze się renderują, dostają ostatnią znaną wartość zamiast błędu.
+ */
+export const SessionContext = createContext<SessionUser | null>(null)
+
+/** Użytkownik i jego gospodarstwa pod RequireSession. */
+export function useSessionUser(): SessionUser {
+  const session = useContext(SessionContext)
+  if (!session) {
     throw new Error('useSessionUser outside RequireSession')
   }
-  return { user: me.data.user, households: me.data.households }
+  return session
 }
 
 export function useLogin() {

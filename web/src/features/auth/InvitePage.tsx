@@ -206,15 +206,15 @@ function RegisterForm({ token, email }: { token: string; email: string }) {
     if (errors.name || errors.password || errors.repeat) {
       return
     }
-    register.mutate(
-      { token, name: name.trim(), password },
-      {
-        onSuccess: (result) => {
-          forgetToken()
-          void navigate(householdPath(result.household.id), { replace: true })
-        },
-      },
-    )
+    // mutateAsync, nie callback mutate: po rejestracji /me ma już użytkownika
+    // i strona przełącza się na widok zalogowanego, odmontowując ten formularz.
+    register
+      .mutateAsync({ token, name: name.trim(), password })
+      .then((result) => {
+        forgetToken()
+        void navigate(householdPath(result.household.id), { replace: true })
+      })
+      .catch(() => undefined)
   }
 
   return (

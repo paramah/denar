@@ -34,7 +34,8 @@ test/                       setup.ts, render.tsx, dialogShim.ts, openapiValidato
 
 ### Konwencje dla części B/C
 
-- **Nowa strona:** komponent w `features/<obszar>/<Nazwa>Page.tsx`, trasa w `app/router.tsx` pod `/h/:householdId/<ścieżka>`, pozycja menu w `app/nav.ts`. Strona dostaje gospodarstwo z `useHousehold()` (`{household, role}`), tytuł przez `<PageHeader title=…/>` (ustawia też `document.title`).
+- **Nowa strona:** komponent w `features/<obszar>/<Nazwa>Page.tsx`, trasa w `app/router.tsx` pod `/h/:householdId/<ścieżka>` (zastępuje `ComingSoonPage`), pozycja menu w `app/nav.ts`. Strona dostaje gospodarstwo z `useHousehold()` (`app/household.tsx`: `{household, role}`, `canManage(role)`), zalogowanego z `useSessionUser()` (kontekst podawany przez `RequireSession`), tytuł przez `<PageHeader title=…/>` (ustawia też `document.title`).
+- **Nawigacja po mutacji zmieniającej `/me`:** `mutateAsync().then(navigate)` albo zapis `/me` przez `setQueryData` przed przejściem — callback `mutate(…, {onSuccess})` nie zadziała, jeśli komponent zdąży się odmontować.
 - **Zapytania:** jeden plik `api/hooks/<zasób>.ts` z `use<Zasób>()`/`use<Akcja>()`; klucze wyłącznie z `api/keys.ts` (prefiks `['household', hid, …]`, więc unieważnienie gospodarstwa czyści wszystko pod nim). Wywołania przez `api.GET/POST…` + `unwrap()`; klient rzuca `ApiError`/`NetworkError`, nigdy nie zwraca `error`.
 - **Mutacje:** `onSuccess` unieważnia/aktualizuje klucze; komunikat sukcesu przez `useToast().show({message})`; błąd 422 do formularza przez `fieldErrors(error)`, reszta przez `<FormAlert error/>` lub toast.
 - **Kwoty:** zawsze `<Money amount="12.34" currency="PLN"/>` lub `formatMoney()`; nigdy `Number(amount)` ani arytmetyka na floatach. Sumy liczy serwer; gdyby UI musiało coś zsumować — `lib/money.ts` ma `addDecimal` na `bigint` jednostek minimalnych.
@@ -148,6 +149,7 @@ Audit: `useInfiniteQuery` po `cursor`, filtry `actor_kind` i `resource_type` w k
 | AD-A09 | `task web:e2e` poza `task verify` | Wymaga przeglądarek Playwright; uruchamiane osobno (wynik w tasks.md) |
 | AD-A10 | Root `Taskfile.yml`: zadania `web:*` z `web/Taskfile.yml` (include) zamiast warunkowych skryptów | `web/package.json` istnieje od tego etapu |
 | AD-A11 | Wpisy `PLAN.md`/`INDEX.md` dopisuje orkiestrator przy scaleniu | Równolegle na `main` pracuje etap 002; worktree dotyka tylko `web/`, `Taskfile.yml` i tej specyfikacji |
+| AD-A12 | `useSessionUser()` czyta kontekst `RequireSession`, nie cache `/me` | Po wylogowaniu (czyszczenie cache) komponenty w trakcie renderu nie rzucają błędu |
 
 ## Ograniczenia
 

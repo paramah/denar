@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { classify } from '../api/errors.ts'
-import { useMe } from '../api/hooks/session.ts'
+import { SessionContext, useMe } from '../api/hooks/session.ts'
 import { SectionError } from '../components/QueryState/QueryState.tsx'
 import { Skeleton } from '../components/Skeleton/Skeleton.tsx'
 import { loginUrl } from '../lib/returnTo.ts'
@@ -13,9 +14,16 @@ import { loginUrl } from '../lib/returnTo.ts'
 export function RequireSession() {
   const me = useMe()
   const location = useLocation()
+  const user = me.data?.user
+  const households = me.data?.households
+  const session = useMemo(() => (user && households ? { user, households } : null), [user, households])
 
-  if (me.data?.user) {
-    return <Outlet />
+  if (session) {
+    return (
+      <SessionContext.Provider value={session}>
+        <Outlet />
+      </SessionContext.Provider>
+    )
   }
   if (me.isPending) {
     return (

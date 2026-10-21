@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, unwrap } from '../client.ts'
 import { keys } from '../keys.ts'
 import { staleTime } from '../queryClient.ts'
-import type { Role } from '../types.ts'
+import type { Me, Role } from '../types.ts'
 
 export function useInvitations(hid: string) {
   return useQuery({
@@ -67,8 +67,11 @@ export function useRegisterWithInvitation() {
   return useMutation({
     mutationFn: async (body: { token: string; name: string; password: string }) =>
       unwrap(await api.POST('/invitations/register', { body })),
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: keys.me() })
+    // Nowe konto ma dokładnie to jedno gospodarstwo: /me ustawiamy od razu,
+    // żeby przejście do gospodarstwa nie trafiło na nieaktualny brak sesji.
+    onSuccess: (registered) => {
+      client.setQueryData<Me>(keys.me(), { kind: 'user', user: registered.user, households: [registered.household] })
+      void client.invalidateQueries({ queryKey: keys.me() })
     },
   })
 }

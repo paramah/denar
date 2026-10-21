@@ -367,7 +367,7 @@
 
 @media (max-width: 47.99rem) {
   .shell {
-    grid-template-columns: minmax(0, 1fr);
+    display: block;
   }
 
   .rail {
