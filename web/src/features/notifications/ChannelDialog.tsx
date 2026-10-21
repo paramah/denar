@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { fieldErrors } from '../../api/errors.ts'
 import { useCreateChannel, useUpdateChannel } from '../../api/hooks/notifications.ts'
 import { useSessionUser } from '../../api/hooks/session.ts'
@@ -11,8 +12,8 @@ import { useToast } from '../../components/Toast/Toast.tsx'
 import { channelTypeLabels, unavailableReasonLabels } from '../../lib/labels.ts'
 import {
   canRemoveSecrets,
-  channelGuides,
-  channelTypeDescriptions,
+  channelGuide,
+  channelTypeDescription,
   createBody,
   describeField,
   emptyForm,
@@ -34,10 +35,11 @@ type Props = {
 }
 
 export function ChannelDialog({ open, channel, types, onClose }: Props) {
+  const { t } = useTranslation('notifications')
   return (
     <Dialog
       open={open}
-      title={channel ? `Edycja kanału ${channel.name}` : 'Nowy kanał powiadomień'}
+      title={channel ? t('dialog.editTitle', { name: channel.name }) : t('dialog.newTitle')}
       onClose={onClose}
       size="lg"
     >
@@ -51,6 +53,7 @@ function firstAvailable(types: ChannelTypeInfo[]): ChannelType {
 }
 
 function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
+  const { t } = useTranslation('notifications')
   const { user } = useSessionUser()
   const toast = useToast()
   const create = useCreateChannel()
@@ -65,7 +68,7 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
   const canSecrets = secretsAvailable(types)
 
   if (!info) {
-    return <p>Ten serwer nie obsługuje kanału typu {form.type}.</p>
+    return <p>{t('dialog.unsupportedType', { type: form.type })}</p>
   }
 
   const set = (patch: Partial<ChannelFormState>) => setForm((f) => ({ ...f, ...patch }))
@@ -91,10 +94,10 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
           return
         }
         const saved = await update.mutateAsync({ id: channel.id, body })
-        toast.show({ message: `Zapisano kanał ${saved.name}.` })
+        toast.show({ message: t('dialog.savedToast', { name: saved.name }) })
       } else {
         const saved = await create.mutateAsync(createBody(form, info))
-        toast.show({ message: `Dodano kanał ${saved.name}. Wyślij test, żeby sprawdzić, czy działa.` })
+        toast.show({ message: t('dialog.addedToast', { name: saved.name }) })
       }
       onClose()
     } catch {
@@ -105,7 +108,7 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
   return (
     <form
       noValidate
-      aria-label={channel ? 'Edycja kanału' : 'Nowy kanał'}
+      aria-label={channel ? t('dialog.editForm') : t('dialog.newForm')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -115,37 +118,39 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
       <FormAlert error={mutation.error} shownFields={shownFields} />
       {channel ? (
         <p className={styles.formMeta}>
-          Typ: <strong>{channelTypeLabels[channel.type]}</strong> — typu kanału nie da się zmienić.
+          <Trans t={t} i18nKey="dialog.typeFixed" values={{ type: channelTypeLabels[channel.type] }} />
         </p>
       ) : (
         <fieldset className={styles.fieldset}>
-          <legend>Typ kanału</legend>
+          <legend>{t('dialog.typeLegend')}</legend>
           <div className={styles.typeGrid}>
-            {types.map((t) => (
+            {types.map((ct) => (
               <label
-                key={t.type}
-                htmlFor={`channel-type-${t.type}`}
+                key={ct.type}
+                htmlFor={`channel-type-${ct.type}`}
                 className={styles.typeOption}
-                data-disabled={!t.available || undefined}
+                data-disabled={!ct.available || undefined}
               >
                 <input
-                  id={`channel-type-${t.type}`}
+                  id={`channel-type-${ct.type}`}
                   type="radio"
                   name="channel-type"
-                  value={t.type}
-                  checked={form.type === t.type}
-                  disabled={!t.available}
+                  value={ct.type}
+                  checked={form.type === ct.type}
+                  disabled={!ct.available}
                   onChange={() => {
                     setErrors({})
-                    setForm((f) => ({ ...emptyForm(t.type), name: f.name, enabled: f.enabled }))
+                    setForm((f) => ({ ...emptyForm(ct.type), name: f.name, enabled: f.enabled }))
                   }}
                 />
                 <span className={styles.typeName}>
-                  {channelTypeLabels[t.type] ?? t.type}
+                  {channelTypeLabels[ct.type] ?? ct.type}
                   <small>
-                    {t.available
-                      ? (channelTypeDescriptions[t.type] ?? '')
-                      : `Niedostępny: ${unavailableReasonLabels[t.unavailable_reason ?? ''] ?? 'serwer go nie obsługuje.'}`}
+                    {ct.available
+                      ? channelTypeDescription(ct.type)
+                      : t('dialog.unavailable', {
+                          reason: unavailableReasonLabels[ct.unavailable_reason ?? ''] ?? t('channels.unsupported'),
+                        })}
                   </small>
                 </span>
               </label>
@@ -155,11 +160,11 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
       )}
 
       <TextField
-        label="Nazwa"
+        label={t('dialog.name')}
         value={form.name}
         onChange={(event) => set({ name: event.target.value })}
         error={error('name')}
-        hint="Np. „Telefon (ntfy)” — tak kanał nazywa się w preferencjach."
+        hint={t('dialog.nameHint')}
         maxLength={100}
         autoComplete="off"
         data-autofocus
@@ -168,11 +173,11 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
 
       {info.config_fields.map((field) => {
         const meta = describeField(form.type, field.name)
-        const hint = form.type === 'email' && field.name === 'address' ? `Puste — ${user.email}.` : meta.hint
+        const hint = form.type === 'email' && field.name === 'address' ? t('dialog.emailHint', { email: user.email }) : meta.hint
         return (
           <TextField
             key={`config.${field.name}`}
-            label={field.required ? meta.label : `${meta.label} (opcjonalnie)`}
+            label={field.required ? meta.label : t('dialog.optional', { label: meta.label })}
             type={meta.inputType ?? 'text'}
             value={form.config[field.name] ?? ''}
             placeholder={meta.placeholder}
@@ -200,22 +205,22 @@ function ChannelForm({ channel, types, onClose }: Omit<Props, 'open'>) {
       )}
 
       <Checkbox
-        label="Włączony"
-        hint="Wyłączony kanał nie dostaje powiadomień, ale zostaje w preferencjach."
+        label={t('dialog.enabled')}
+        hint={t('dialog.enabledHint')}
         checked={form.enabled}
         onChange={(event) => set({ enabled: event.target.checked })}
       />
 
-      <Callout title={`Jak ustawić: ${channelTypeLabels[form.type]}`}>
-        {channelGuides[form.type]?.map((text) => (
+      <Callout title={t('dialog.guideTitle', { type: channelTypeLabels[form.type] })}>
+        {channelGuide(form.type).map((text) => (
           <p key={text}>{text}</p>
         ))}
       </Callout>
 
       <div className={styles.footer}>
-        <Button onClick={onClose}>Anuluj</Button>
+        <Button onClick={onClose}>{t('dialog.cancel')}</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>
-          {channel ? 'Zapisz zmiany' : 'Dodaj kanał'}
+          {channel ? t('dialog.save') : t('dialog.add')}
         </Button>
       </div>
     </form>
@@ -238,24 +243,21 @@ type SecretProps = {
  * edycji: zostaw bez zmian, zmień albo usuń (gdy żaden nie jest wymagany).
  */
 function SecretFields({ info, form, channel, canSecrets, showInputs, error, onMode, onSecret }: SecretProps) {
+  const { t } = useTranslation('notifications')
   const required = info.secret_fields.some((f) => f.required)
   const modes: { value: SecretMode; label: string; hint: string }[] = [
-    { value: 'keep', label: 'Zostaw bez zmian', hint: 'Zapisany sekret działa dalej.' },
-    { value: 'change', label: 'Zmień', hint: 'Wpisz nową wartość — zastąpi zapisaną.' },
+    { value: 'keep', label: t('dialog.secretKeep'), hint: t('dialog.secretKeepHint') },
+    { value: 'change', label: t('dialog.secretChange'), hint: t('dialog.secretChangeHint') },
     ...(canRemoveSecrets(info)
-      ? [{ value: 'remove' as const, label: 'Usuń', hint: 'Kanał będzie działał bez sekretu.' }]
+      ? [{ value: 'remove' as const, label: t('dialog.secretRemove'), hint: t('dialog.secretRemoveHint') }]
       : []),
   ]
   return (
     <fieldset className={styles.fieldset}>
-      <legend>{required ? 'Sekret' : 'Sekret (opcjonalnie)'}</legend>
-      {!canSecrets && (
-        <Callout tone="warn">
-          Serwer nie ma klucza DENAR_MASTER_KEY, więc nie zapisze sekretu. Poproś administratora o ustawienie klucza.
-        </Callout>
-      )}
+      <legend>{required ? t('dialog.secret') : t('dialog.secretOptional')}</legend>
+      {!canSecrets && <Callout tone="warn">{t('dialog.noMasterKey')}</Callout>}
       {channel?.has_secret && (
-        <div className={styles.secretModes} role="radiogroup" aria-label="Zapisany sekret">
+        <div className={styles.secretModes} role="radiogroup" aria-label={t('dialog.storedSecret')}>
           {modes.map((mode) => (
             <label key={mode.value} className={styles.radio}>
               <input
@@ -279,7 +281,7 @@ function SecretFields({ info, form, channel, canSecrets, showInputs, error, onMo
           return (
             <TextField
               key={`secrets.${field.name}`}
-              label={field.required ? meta.label : `${meta.label} (opcjonalnie)`}
+              label={field.required ? meta.label : t('dialog.optional', { label: meta.label })}
               type="password"
               value={form.secrets[field.name] ?? ''}
               hint={meta.hint}
@@ -293,7 +295,7 @@ function SecretFields({ info, form, channel, canSecrets, showInputs, error, onMo
             />
           )
         })}
-      <p className={styles.formMeta}>Sekret szyfrujemy na serwerze i nigdy go nie pokazujemy — nawet Tobie.</p>
+      <p className={styles.formMeta}>{t('dialog.secretNote')}</p>
     </fieldset>
   )
 }

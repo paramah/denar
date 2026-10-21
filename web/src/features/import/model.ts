@@ -1,4 +1,5 @@
 import type { CsvColumns, CsvImportOptions, CsvParseOptions, ImportBatch, ImportPreset } from '../../api/types.ts'
+import { tk } from '../../i18n/translate.ts'
 import { formatNumber } from '../../lib/intl.ts'
 
 /** Limit pliku po stronie serwera (008 FR-812). */
@@ -7,49 +8,73 @@ export const previewLimit = 50
 
 export type ColumnField = keyof CsvColumns
 
-/** Kolumny w kolejności formularza, z etykietą i podpowiedzią. */
-export const columnFields: { field: ColumnField; label: string; hint: string }[] = [
-  { field: 'date', label: 'Data', hint: 'Pierwsza istniejąca z listy.' },
-  { field: 'amount', label: 'Kwota', hint: 'Kwota ze znakiem. Bez niej — obciążenie i uznanie.' },
-  { field: 'debit', label: 'Obciążenie', hint: 'Wydatki w osobnej kolumnie (znak pomijany).' },
-  { field: 'credit', label: 'Uznanie', hint: 'Wpływy w osobnej kolumnie.' },
-  { field: 'payee', label: 'Kontrahent', hint: 'Pierwsza niepusta wartość w wierszu.' },
-  { field: 'memo', label: 'Opis', hint: 'Wszystkie kolumny z listy, złączone.' },
-  { field: 'external_id', label: 'Identyfikator operacji', hint: 'Bez niego duplikaty rozpoznaje skrót daty, kwoty i opisu.' },
-  { field: 'currency', label: 'Waluta', hint: 'Inna niż waluta portfela — błąd wiersza.' },
-  { field: 'fee', label: 'Opłata', hint: 'Odejmowana od kwoty.' },
-  { field: 'state', label: 'Stan', hint: 'Z listą „Importowane stany” pomija np. operacje oczekujące.' },
+const columnFieldOrder: ColumnField[] = [
+  'date',
+  'amount',
+  'debit',
+  'credit',
+  'payee',
+  'memo',
+  'external_id',
+  'currency',
+  'fee',
+  'state',
 ]
 
-export const delimiterOptions = [
-  { value: ';', label: 'Średnik (;)' },
-  { value: ',', label: 'Przecinek (,)' },
-  { value: 'tab', label: 'Tabulator' },
-  { value: '|', label: 'Kreska pionowa (|)' },
-]
+/**
+ * Kolumny w kolejności formularza, z etykietą i podpowiedzią. Etykiety są
+ * getterami (tłumaczenie w chwili odczytu, jak w `lib/labels.ts`).
+ */
+export const columnFields: { field: ColumnField; label: string; hint: string }[] = columnFieldOrder.map((field) => ({
+  field,
+  get label() {
+    return tk(`import:column.${field}.label`)
+  },
+  get hint() {
+    return tk(`import:column.${field}.hint`)
+  },
+}))
 
-export const encodingOptions = [
+type Option = { value: string; label: string }
+
+function options(entries: [value: string, key: string][]): Option[] {
+  return entries.map(([value, key]) => ({
+    value,
+    get label() {
+      return tk(key)
+    },
+  }))
+}
+
+export const delimiterOptions: Option[] = options([
+  [';', 'import:delimiterOption.semicolon'],
+  [',', 'import:delimiterOption.comma'],
+  ['tab', 'import:delimiterOption.tab'],
+  ['|', 'import:delimiterOption.pipe'],
+])
+
+export const encodingOptions: Option[] = [
   { value: 'utf-8', label: 'UTF-8' },
-  { value: 'windows-1250', label: 'Windows-1250 (polskie banki)' },
+  ...options([['windows-1250', 'import:encodingOption.windows1250']]),
 ]
 
-export const decimalOptions = [
-  { value: ',', label: 'Przecinek (12,34)' },
-  { value: '.', label: 'Kropka (12.34)' },
-]
+export const decimalOptions: Option[] = options([
+  [',', 'import:decimalOption.comma'],
+  ['.', 'import:decimalOption.dot'],
+])
 
 /** Wykryty separator czytelnie („średnik”). */
 export function delimiterLabel(value: string): string {
   switch (value) {
     case ';':
-      return 'średnik (;)'
+      return tk('import:delimiterName.semicolon')
     case ',':
-      return 'przecinek (,)'
+      return tk('import:delimiterName.comma')
     case '\t':
     case 'tab':
-      return 'tabulator'
+      return tk('import:delimiterName.tab')
     case '|':
-      return 'kreska pionowa (|)'
+      return tk('import:delimiterName.pipe')
     default:
       return value || '—'
   }
@@ -151,7 +176,7 @@ export function presetColumnsInFile(preset: ImportPreset | undefined, field: Col
   return alternatives.flatMap((alt) => {
     if (/^\d+$/.test(alt)) {
       const header = headers[Number(alt) - 1]
-      return header !== undefined ? [header || `kolumna ${alt}`] : []
+      return header !== undefined ? [header || tk('import:presetColumn', { n: alt })] : []
     }
     const header = known.get(normalizeHeader(alt))
     return header !== undefined ? [header] : []
@@ -166,9 +191,8 @@ export function checkFile(file: File): FileProblem | null {
   return null
 }
 
-export const fileProblemMessages: Record<FileProblem, string> = {
-  empty: 'Plik jest pusty — wybierz wyciąg z operacjami.',
-  tooLarge: 'Plik jest większy niż 5 MiB. Wyeksportuj krótszy okres i zaimportuj go w częściach.',
+export function fileProblemMessage(problem: FileProblem): string {
+  return tk(`import:fileProblem.${problem}`)
 }
 
 export function formatFileSize(bytes: number): string {
@@ -177,20 +201,23 @@ export function formatFileSize(bytes: number): string {
   return `${formatNumber(bytes / 1024 / 1024, { maximumFractionDigits: 1 })} MiB`
 }
 
-/** Pole błędu wiersza po polsku. */
+/** Pole błędu wiersza w aktywnym języku. */
 export function rowFieldLabel(field: string): string {
   const column = columnFields.find((c) => c.field === field)
   if (column) return column.label.toLowerCase()
-  return field === 'row' ? 'wiersz' : field === 'file' ? 'plik' : field
+  return field === 'row' || field === 'file' ? tk(`import:rowField.${field}`) : field
 }
 
 /** Nazwa partii: plik CSV albo połączenie. */
 export function batchTitle(batch: ImportBatch): string {
-  if (batch.source === 'csv') return batch.source_ref || 'Plik CSV'
-  return 'Synchronizacja połączenia'
+  if (batch.source === 'csv') return batch.source_ref || tk('import:batchTitle.csv')
+  return tk('import:batchTitle.sync')
 }
 
-/** Odmiana liczebnika: 1 transakcja, 2 transakcje, 5 transakcji. */
+/**
+ * Odmiana liczebnika po polsku: 1 transakcja, 2 transakcje, 5 transakcji.
+ * Interfejs używa liczby mnogiej i18next (`count`); zostaje dla zgodności.
+ */
 export function plural(n: number, one: string, few: string, many: string): string {
   if (n === 1) return one
   const tens = n % 100

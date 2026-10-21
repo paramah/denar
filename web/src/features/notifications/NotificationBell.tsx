@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useMarkAllNotificationsRead, useRecentNotifications, useUnreadCount } from '../../api/hooks/notifications.ts'
 import { useSessionUser } from '../../api/hooks/session.ts'
@@ -9,6 +10,7 @@ import { householdPath } from '../../app/nav.ts'
 import { Icon } from '../../components/Icon/Icon.tsx'
 import { Skeleton } from '../../components/Skeleton/Skeleton.tsx'
 import { errorMessage } from '../../api/errors.ts'
+import { tk } from '../../i18n/translate.ts'
 import { useDisclosure } from '../../lib/useDisclosure.ts'
 import { NotificationItem } from './NotificationItem.tsx'
 import styles from './notifications.module.css'
@@ -17,11 +19,8 @@ export const bellPanelSize = 8
 
 /** „3 nieprzeczytane”, „1 nieprzeczytane”, „5 nieprzeczytanych”. */
 export function unreadLabel(count: number): string {
-  if (count === 0) return 'brak nieprzeczytanych'
-  const tens = count % 100
-  const units = count % 10
-  const few = units >= 2 && units <= 4 && (tens < 12 || tens > 14)
-  return `${count} ${count === 1 || few ? 'nieprzeczytane' : 'nieprzeczytanych'}`
+  if (count === 0) return tk('notifications:unread.none')
+  return tk('notifications:unread.count', { count })
 }
 
 /** Mapa id gospodarstwa → nazwa, gdy użytkownik ma ich kilka (inaczej nazwa jest zbędna). */
@@ -35,6 +34,7 @@ export function useHouseholdNames(): Map<string, string> | null {
  * do okna) i panelem ostatnich powiadomień.
  */
 export function NotificationBell({ placement }: { placement: 'rail' | 'topbar' }) {
+  const { t } = useTranslation('notifications')
   const { household } = useHousehold()
   const client = useQueryClient()
   const unread = useUnreadCount()
@@ -69,7 +69,7 @@ export function NotificationBell({ placement }: { placement: 'rail' | 'topbar' }
         aria-expanded={panel.open}
         aria-controls={panelId}
         onClick={panel.toggle}
-        title="Powiadomienia"
+        title={t('bell.title')}
       >
         <Icon name="bell" size={22} />
         {count > 0 && (
@@ -77,19 +77,19 @@ export function NotificationBell({ placement }: { placement: 'rail' | 'topbar' }
             {badge}
           </span>
         )}
-        <span className="visually-hidden">Powiadomienia, {unreadLabel(count)}</span>
+        <span className="visually-hidden">{t('bell.srLabel', { unread: unreadLabel(count) })}</span>
       </button>
       {panel.open && (
         <section id={panelId} className={styles.panel} aria-labelledby={headingId}>
           <div className={styles.panelHead}>
-            <h2 id={headingId}>Powiadomienia</h2>
+            <h2 id={headingId}>{t('bell.heading')}</h2>
             <button
               type="button"
               className={styles.textButton}
               disabled={count === 0 || markAll.isPending}
               onClick={() => markAll.mutate(undefined)}
             >
-              Oznacz wszystkie jako przeczytane
+              {t('bell.markAll')}
             </button>
           </div>
           {markAll.isError && (
@@ -103,9 +103,9 @@ export function NotificationBell({ placement }: { placement: 'rail' | 'topbar' }
             ) : recent.isError ? (
               <p className={styles.panelEmpty}>{errorMessage(recent.error)}</p>
             ) : recent.data.length === 0 ? (
-              <p className={styles.panelEmpty}>Nie masz powiadomień. Damy znać o odnowieniach, końcach okresów próbnych i przekroczonych kopertach.</p>
+              <p className={styles.panelEmpty}>{t('bell.empty')}</p>
             ) : (
-              <ul className={styles.panelList} aria-label="Ostatnie powiadomienia">
+              <ul className={styles.panelList} aria-label={t('bell.listLabel')}>
                 {recent.data.map((n) => (
                   <li key={n.id}>
                     <NotificationItem
@@ -121,10 +121,10 @@ export function NotificationBell({ placement }: { placement: 'rail' | 'topbar' }
           </div>
           <div className={styles.panelFoot}>
             <Link to={householdPath(household.id, 'notifications')} onClick={() => panel.close()}>
-              Wszystkie powiadomienia
+              {t('bell.all')}
             </Link>
             <Link to={householdPath(household.id, 'settings/notifications')} onClick={() => panel.close()}>
-              Ustawienia
+              {t('bell.settings')}
             </Link>
           </div>
         </section>

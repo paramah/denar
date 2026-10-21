@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { errorMessage } from '../../api/errors.ts'
 import { translateDeliveryError } from '../../api/messages.ts'
 import {
@@ -28,22 +29,20 @@ export const maxChannels = 20
 
 /** Kanały osoby: e-mail, webhook, ntfy, Telegram, Matrix — wspólne dla wszystkich gospodarstw. */
 export function ChannelsSection() {
+  const { t } = useTranslation('notifications')
   const channels = useChannels()
   const types = useChannelTypes()
   const [editing, setEditing] = useState<Channel | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Channel | null>(null)
   const items = channels.data ?? []
-  const unavailable = (types.data ?? []).filter((t) => !t.available)
+  const unavailable = (types.data ?? []).filter((ct) => !ct.available)
 
   return (
     <section className={settings.section} aria-labelledby="channels-heading">
       <div className={settings.sectionHead}>
         <div>
-          <h2 id="channels-heading">Kanały</h2>
-          <p>
-            Gdzie poza aplikacją wysyłać powiadomienia. Kanały są Twoje — działają we wszystkich Twoich gospodarstwach,
-            a to, co na nie trafia, wybierasz niżej.
-          </p>
+          <h2 id="channels-heading">{t('channels.heading')}</h2>
+          <p>{t('channels.intro')}</p>
         </div>
         <Button
           variant="primary"
@@ -51,24 +50,30 @@ export function ChannelsSection() {
           disabled={!types.data || items.length >= maxChannels}
           onClick={() => setEditing('new')}
         >
-          Dodaj kanał
+          {t('channels.add')}
         </Button>
       </div>
       {unavailable.length > 0 && (
-        <ul className={styles.unavailable} aria-label="Niedostępne typy kanałów">
-          {unavailable.map((t) => (
-            <li key={t.type}>
-              <strong>{channelTypeLabels[t.type]}</strong> niedostępny —{' '}
-              {unavailableReasonLabels[t.unavailable_reason ?? ''] ?? 'serwer go nie obsługuje.'}
+        <ul className={styles.unavailable} aria-label={t('channels.unavailableList')}>
+          {unavailable.map((ct) => (
+            <li key={ct.type}>
+              <Trans
+                t={t}
+                i18nKey="channels.unavailable"
+                values={{
+                  type: channelTypeLabels[ct.type],
+                  reason: unavailableReasonLabels[ct.unavailable_reason ?? ''] ?? t('channels.unsupported'),
+                }}
+              />
             </li>
           ))}
         </ul>
       )}
       {channels.isPending || types.isPending ? (
-        <Skeleton lines={3} label="Wczytywanie kanałów…" />
+        <Skeleton lines={3} label={t('channels.loading')} />
       ) : channels.isError || types.isError ? (
         <SectionError
-          title="Nie udało się wczytać kanałów"
+          title={t('channels.loadFailed')}
           error={channels.error ?? types.error}
           onRetry={() => {
             void channels.refetch()
@@ -78,23 +83,23 @@ export function ChannelsSection() {
       ) : items.length === 0 ? (
         <EmptyState
           icon="send"
-          title="Nie masz jeszcze kanałów"
+          title={t('channels.emptyTitle')}
           headingLevel={3}
           action={
             <Button icon="plus" onClick={() => setEditing('new')}>
-              Dodaj pierwszy kanał
+              {t('channels.addFirst')}
             </Button>
           }
         >
-          <p>Powiadomienia i tak trafiają do dzwonka w aplikacji. Kanał doda e-mail, push z ntfy, Telegram, Matrix albo webhook.</p>
+          <p>{t('channels.emptyBody')}</p>
         </EmptyState>
       ) : (
-        <ul className={styles.channels} aria-label="Twoje kanały">
+        <ul className={styles.channels} aria-label={t('channels.listLabel')}>
           {items.map((channel) => (
             <li key={channel.id}>
               <ChannelRow
                 channel={channel}
-                info={types.data.find((t) => t.type === channel.type)}
+                info={types.data.find((ct) => ct.type === channel.type)}
                 onEdit={() => setEditing(channel)}
                 onDelete={() => setDeleting(channel)}
               />
@@ -126,6 +131,7 @@ function ChannelRow({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const { t } = useTranslation('notifications')
   const test = useTestChannel()
   const update = useUpdateChannel()
   const toast = useToast()
@@ -142,32 +148,37 @@ function ChannelRow({
         <p className={styles.channelMeta}>
           {channelTypeLabels[channel.type] ?? channel.type}
           {summary && <> · <span className={styles.channelTarget}>{summary}</span></>}
-          {channel.has_secret && ' · z sekretem'}
+          {channel.has_secret && t('channels.withSecret')}
         </p>
         <div className={styles.channelBadges}>
-          {channel.enabled ? <Badge tone="positive">Włączony</Badge> : <Badge>Wyłączony</Badge>}
+          {channel.enabled ? <Badge tone="positive">{t('channels.enabled')}</Badge> : <Badge>{t('channels.disabled')}</Badge>}
           {channel.verified_at ? (
-            <Badge tone="brand" title={`Ostatnia udana wiadomość: ${formatDateTime(channel.verified_at)}`}>
-              Zweryfikowany {formatDateTime(channel.verified_at)}
+            <Badge tone="brand" title={t('channels.verifiedTitle', { date: formatDateTime(channel.verified_at) })}>
+              {t('channels.verified', { date: formatDateTime(channel.verified_at) })}
             </Badge>
           ) : (
-            <Badge tone="warn">Niezweryfikowany</Badge>
+            <Badge tone="warn">{t('channels.unverified')}</Badge>
           )}
           {info && !info.available && (
-            <Badge tone="negative">Niedostępny na serwerze</Badge>
+            <Badge tone="negative">{t('channels.unavailableOnServer')}</Badge>
           )}
         </div>
         {channel.last_error && (
           <p className={styles.channelError}>
-            Ostatni błąd{channel.last_error_at && ` (${formatDateTime(channel.last_error_at)})`}: {translateDeliveryError(channel.last_error)}
+            {channel.last_error_at
+              ? t('channels.lastErrorAt', {
+                  date: formatDateTime(channel.last_error_at),
+                  error: translateDeliveryError(channel.last_error),
+                })
+              : t('channels.lastError', { error: translateDeliveryError(channel.last_error) })}
           </p>
         )}
         <div role="status" className={styles.testResult}>
           {result &&
             (result.ok ? (
-              <span className={styles.testOk}>Test wysłany — sprawdź, czy wiadomość dotarła.</span>
+              <span className={styles.testOk}>{t('channels.testOk')}</span>
             ) : (
-              <span className={styles.testFail}>Test nieudany: {translateDeliveryError(result.error)}</span>
+              <span className={styles.testFail}>{t('channels.testFailed', { error: translateDeliveryError(result.error) })}</span>
             ))}
         </div>
       </div>
@@ -176,7 +187,7 @@ function ChannelRow({
           size="sm"
           icon="send"
           busy={test.isPending}
-          aria-label={`Wyślij test: ${channel.name}`}
+          aria-label={t('channels.testNamed', { name: channel.name })}
           onClick={() =>
             test.mutate(channel.id, {
               onSuccess: setResult,
@@ -184,31 +195,45 @@ function ChannelRow({
             })
           }
         >
-          Wyślij test
+          {t('channels.test')}
         </Button>
         <Button
           size="sm"
           icon={channel.enabled ? 'pause' : 'play'}
           busy={update.isPending}
-          aria-label={`${channel.enabled ? 'Wyłącz' : 'Włącz'}: ${channel.name}`}
+          aria-label={
+            channel.enabled
+              ? t('channels.disableNamed', { name: channel.name })
+              : t('channels.enableNamed', { name: channel.name })
+          }
           onClick={() =>
             update.mutate(
               { id: channel.id, body: { enabled: !channel.enabled } },
               {
                 onSuccess: (saved) =>
-                  toast.show({ message: saved.enabled ? `Włączono kanał ${saved.name}.` : `Wyłączono kanał ${saved.name}.` }),
+                  toast.show({
+                    message: saved.enabled
+                      ? t('channels.enabledToast', { name: saved.name })
+                      : t('channels.disabledToast', { name: saved.name }),
+                  }),
                 onError: (error) => toast.show({ message: errorMessage(error), kind: 'error' }),
               },
             )
           }
         >
-          {channel.enabled ? 'Wyłącz' : 'Włącz'}
+          {channel.enabled ? t('channels.disable') : t('channels.enable')}
         </Button>
-        <Button size="sm" icon="edit" aria-label={`Edytuj: ${channel.name}`} onClick={onEdit}>
-          Edytuj
+        <Button size="sm" icon="edit" aria-label={t('channels.editNamed', { name: channel.name })} onClick={onEdit}>
+          {t('channels.edit')}
         </Button>
-        <Button size="sm" variant="danger" icon="trash" aria-label={`Usuń: ${channel.name}`} onClick={onDelete}>
-          Usuń
+        <Button
+          size="sm"
+          variant="danger"
+          icon="trash"
+          aria-label={t('channels.deleteNamed', { name: channel.name })}
+          onClick={onDelete}
+        >
+          {t('channels.delete')}
         </Button>
       </div>
     </article>
@@ -216,28 +241,27 @@ function ChannelRow({
 }
 
 function DeleteChannelDialog({ channel, onDone }: { channel: Channel; onDone: () => void }) {
+  const { t } = useTranslation('notifications')
   const remove = useDeleteChannel()
   const toast = useToast()
   return (
     <ConfirmDialog
       open
-      title="Usunąć kanał?"
-      confirmLabel="Usuń kanał"
+      title={t('channels.deleteTitle')}
+      confirmLabel={t('channels.deleteConfirm')}
       busy={remove.isPending}
       error={<FormAlert error={remove.error} />}
       onCancel={onDone}
       onConfirm={() =>
         remove.mutate(channel.id, {
           onSuccess: () => {
-            toast.show({ message: `Usunięto kanał ${channel.name}.` })
+            toast.show({ message: t('channels.deletedToast', { name: channel.name }) })
             onDone()
           },
         })
       }
     >
-      <p>
-        Kanał {channel.name} zniknie ze wszystkich preferencji, a niewysłane jeszcze powiadomienia na niego przepadną.
-      </p>
+      <p>{t('channels.deleteBody', { name: channel.name })}</p>
     </ConfirmDialog>
   )
 }

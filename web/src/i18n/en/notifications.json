@@ -1,1 +1,237 @@
-{}
+{
+  "day": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "unread": {
+    "none": "none unread",
+    "count_one": "{{count}} unread",
+    "count_other": "{{count}} unread"
+  },
+  "bell": {
+    "title": "Notifications",
+    "srLabel": "Notifications, {{unread}}",
+    "heading": "Notifications",
+    "markAll": "Mark all as read",
+    "empty": "You have no notifications. We'll let you know about renewals, trial endings and overspent envelopes.",
+    "listLabel": "Recent notifications",
+    "all": "All notifications",
+    "settings": "Settings"
+  },
+  "tile": {
+    "heading": "Recent notifications",
+    "all": "All notifications",
+    "listLabel": "Recent notifications in the household"
+  },
+  "item": {
+    "unread": "Unread:",
+    "markRead": "Mark as read",
+    "markReadNamed": "Mark as read: {{title}}"
+  },
+  "page": {
+    "title": "Notifications",
+    "description": "Renewals, trials, price changes and envelopes.",
+    "descriptionUnread": "Renewals, trials, price changes and envelopes — {{unread}}.",
+    "markedRead": "Notifications marked as read.",
+    "allWereRead": "Everything was already read.",
+    "markAll": "Mark all as read",
+    "settings": "Notification settings",
+    "filters": "Notification filters",
+    "unreadOnly": "Unread only",
+    "household": "Household",
+    "allHouseholds": "All",
+    "loading": "Loading notifications…",
+    "loadFailed": "Couldn't load notifications",
+    "allReadTitle": "All caught up",
+    "allReadBody": "You have no unread notifications.",
+    "emptyTitle": "No notifications yet",
+    "emptyAction": "Choose what to be notified about",
+    "emptyBody": "Reminders about subscription renewals, trial endings, price changes, missed charges, overspent envelopes and goal deadlines will appear here. You can also get them by email, ntfy, Telegram, Matrix or webhook.",
+    "dayList": "Notifications — {{day}}",
+    "older": "Show older"
+  },
+  "prefs": {
+    "heading": "What to notify about and where",
+    "introBefore": "For the household ",
+    "introAfter": ". You set this separately in other households. Notifications about subscriptions from private wallets only go to people who can see those wallets.",
+    "loading": "Loading preferences…",
+    "loadFailed": "Couldn't load preferences",
+    "formLabel": "Notification preferences",
+    "saved": "Notification preferences saved.",
+    "caption": "Event type and the places a notification goes to",
+    "event": "Event",
+    "inApp": "In the app",
+    "disabled": " (disabled)",
+    "inAppCell": "{{event}}: in the app",
+    "channelCell": "{{event}}: {{channel}}",
+    "noChannels": "Add a channel above to choose which notifications go outside the app.",
+    "save": "Save preferences",
+    "reset": "Undo changes"
+  },
+  "channels": {
+    "heading": "Channels",
+    "intro": "Where to send notifications outside the app. Channels are yours — they work in all your households, and you choose below what goes to them.",
+    "add": "Add channel",
+    "unavailableList": "Unavailable channel types",
+    "unavailable": "<strong>{{type}}</strong> unavailable — {{reason}}",
+    "unsupported": "the server doesn't support it.",
+    "loading": "Loading channels…",
+    "loadFailed": "Couldn't load channels",
+    "emptyTitle": "You have no channels yet",
+    "addFirst": "Add your first channel",
+    "emptyBody": "Notifications reach the bell in the app anyway. A channel adds email, ntfy push, Telegram, Matrix or a webhook.",
+    "listLabel": "Your channels",
+    "withSecret": " · with secret",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "verifiedTitle": "Last successful message: {{date}}",
+    "verified": "Verified {{date}}",
+    "unverified": "Unverified",
+    "unavailableOnServer": "Unavailable on the server",
+    "lastError": "Last error: {{error}}",
+    "lastErrorAt": "Last error ({{date}}): {{error}}",
+    "testOk": "Test sent — check that the message arrived.",
+    "testFailed": "Test failed: {{error}}",
+    "test": "Send test",
+    "testNamed": "Send test: {{name}}",
+    "enable": "Enable",
+    "disable": "Disable",
+    "enableNamed": "Enable: {{name}}",
+    "disableNamed": "Disable: {{name}}",
+    "enabledToast": "Channel {{name}} enabled.",
+    "disabledToast": "Channel {{name}} disabled.",
+    "edit": "Edit",
+    "editNamed": "Edit: {{name}}",
+    "delete": "Delete",
+    "deleteNamed": "Delete: {{name}}",
+    "deleteTitle": "Delete channel?",
+    "deleteConfirm": "Delete channel",
+    "deletedToast": "Channel {{name}} deleted.",
+    "deleteBody": "Channel {{name}} will disappear from all preferences, and notifications not yet sent to it will be lost.",
+    "summaryChat": "chat {{id}}",
+    "summaryMatrix": "{{room}} on {{server}}"
+  },
+  "dialog": {
+    "editTitle": "Edit channel {{name}}",
+    "newTitle": "New notification channel",
+    "unsupportedType": "This server doesn't support channels of type {{type}}.",
+    "savedToast": "Channel {{name}} saved.",
+    "addedToast": "Channel {{name}} added. Send a test to check that it works.",
+    "editForm": "Edit channel",
+    "newForm": "New channel",
+    "typeFixed": "Type: <strong>{{type}}</strong> — the channel type can't be changed.",
+    "typeLegend": "Channel type",
+    "unavailable": "Unavailable: {{reason}}",
+    "name": "Name",
+    "nameHint": "E.g. “Phone (ntfy)” — this is the channel's name in preferences.",
+    "emailHint": "Empty — {{email}}.",
+    "optional": "{{label}} (optional)",
+    "enabled": "Enabled",
+    "enabledHint": "A disabled channel gets no notifications but stays in preferences.",
+    "guideTitle": "How to set up: {{type}}",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "add": "Add channel",
+    "secretKeep": "Keep unchanged",
+    "secretKeepHint": "The saved secret keeps working.",
+    "secretChange": "Change",
+    "secretChangeHint": "Enter a new value — it replaces the saved one.",
+    "secretRemove": "Remove",
+    "secretRemoveHint": "The channel will work without a secret.",
+    "secret": "Secret",
+    "secretOptional": "Secret (optional)",
+    "noMasterKey": "The server has no DENAR_MASTER_KEY, so it won't store a secret. Ask your administrator to set the key.",
+    "storedSecret": "Saved secret",
+    "secretNote": "We encrypt the secret on the server and never show it — not even to you."
+  },
+  "validation": {
+    "nameRequired": "Enter a channel name.",
+    "nameMax": "At most 100 characters.",
+    "required": "This field is required."
+  },
+  "field": {
+    "email": {
+      "address": {
+        "label": "Email address",
+        "hint": "Empty — your account's address."
+      }
+    },
+    "webhook": {
+      "url": {
+        "label": "URL",
+        "hint": "Denar will POST the JSON of every notification here."
+      },
+      "secret": {
+        "label": "Signing secret",
+        "hint": "Optional. With it, every request has an X-Denar-Signature header (HMAC-SHA256)."
+      }
+    },
+    "ntfy": {
+      "server": {
+        "label": "ntfy server",
+        "hint": "Empty — the public https://ntfy.sh."
+      },
+      "topic": {
+        "label": "Topic",
+        "placeholder": "denar-home-7f3k",
+        "hint": "Letters, digits, “-” and “_”. On a public server pick one that's hard to guess."
+      },
+      "token": {
+        "label": "Access token",
+        "hint": "Optional — for protected topics (tk_…)."
+      }
+    },
+    "telegram": {
+      "chat_id": {
+        "label": "chat_id",
+        "hint": "Chat number (groups start with a minus) or @channel_name."
+      },
+      "bot_token": {
+        "label": "Bot token",
+        "hint": "From @BotFather after creating the bot (/newbot)."
+      }
+    },
+    "matrix": {
+      "homeserver": {
+        "label": "Homeserver"
+      },
+      "room_id": {
+        "label": "Room ID",
+        "hint": "The internal room ID (starts with “!”), not a #room alias."
+      },
+      "access_token": {
+        "label": "Access token",
+        "hint": "Token of the account that posts to the room (ideally a separate bot account)."
+      }
+    }
+  },
+  "typeDescription": {
+    "email": "A message to your inbox",
+    "webhook": "JSON POST to your service (n8n, Home Assistant, your own server)",
+    "ntfy": "Push notifications to your phone via ntfy",
+    "telegram": "A message from your bot on Telegram",
+    "matrix": "A message in a Matrix room (Element)"
+  },
+  "guide": {
+    "email": {
+      "p1": "The Denar server sends messages through the configured SMTP. Check your spam folder after the first test."
+    },
+    "webhook": {
+      "p1": "Every notification is a POST with a JSON body: id, type, title, body, url, household {id, name}, occurred_at and data.",
+      "p2": "With a secret, the request has an X-Denar-Signature: sha256=<hex> header, where <hex> is the HMAC-SHA256 of the raw request body computed with the secret. Compare it on your side before trusting the body.",
+      "p3": "X-Denar-Event is the event type and X-Denar-Delivery the delivery ID (retries share it, so duplicates are easy to drop)."
+    },
+    "ntfy": {
+      "p1": "Install the ntfy app and subscribe to the same topic on the same server.",
+      "p2": "On your own ntfy server with access control, enter the token of a user who can publish to the topic."
+    },
+    "telegram": {
+      "p1": "Create a bot with @BotFather and copy its token.",
+      "p2": "Send anything to your bot (or add it to a group), then open https://api.telegram.org/bot<token>/getUpdates — chat_id is the message.chat.id field."
+    },
+    "matrix": {
+      "p1": "Invite the account whose token you enter to the room and accept the invitation.",
+      "p2": "You'll find the room ID in Element: Room settings → Advanced → Internal room ID."
+    }
+  }
+}

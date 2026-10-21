@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useImportCsv, useImportPresets, usePreviewCsvImport } from '../../api/hooks/imports.ts'
@@ -19,9 +20,8 @@ import { PreviewView } from './PreviewView.tsx'
 import { BatchCounters } from './parts.tsx'
 import {
   checkFile,
-  countLabel,
   emptyParserForm,
-  fileProblemMessages,
+  fileProblemMessage,
   formatFileSize,
   importOptions,
   type ParserForm,
@@ -30,34 +30,35 @@ import styles from './import.module.css'
 
 type Step = 'file' | 'preview' | 'done'
 
-const steps: { key: Step; label: string }[] = [
-  { key: 'file', label: 'Plik' },
-  { key: 'preview', label: 'Podgląd' },
-  { key: 'done', label: 'Podsumowanie' },
-]
+const steps = [
+  { key: 'file', label: 'stepFile' },
+  { key: 'preview', label: 'stepPreview' },
+  { key: 'done', label: 'stepDone' },
+] as const satisfies readonly { key: Step; label: string }[]
 
 /** Kreator importu CSV: plik → podgląd z dostosowaniem → podsumowanie. */
 export function ImportWizardPage() {
-  useDocumentTitle('Import transakcji')
+  const { t } = useTranslation('import')
+  useDocumentTitle(t('wizard.documentTitle'))
   const { household, role } = useHousehold()
   const wallets = useWallets(household.id)
   const presets = useImportPresets()
 
   if (role === 'viewer') {
     return (
-      <EmptyState icon="lock" title="Import wymaga prawa zapisu">
-        <p>Rola „Podgląd” przegląda historię importów, ale nie wgrywa plików. Poproś właściciela o zmianę roli.</p>
+      <EmptyState icon="lock" title={t('wizard.viewerTitle')}>
+        <p>{t('wizard.viewerBody')}</p>
       </EmptyState>
     )
   }
   if (wallets.isPending || presets.isPending) {
-    return <Skeleton lines={5} label="Wczytywanie kreatora…" />
+    return <Skeleton lines={5} label={t('wizard.loading')} />
   }
   if (wallets.isError || presets.isError) {
     const failed = wallets.isError ? wallets : presets
     return (
       <SectionError
-        title="Nie udało się wczytać kreatora importu"
+        title={t('wizard.loadFailed')}
         error={failed.error}
         onRetry={() => void failed.refetch()}
       />
@@ -68,14 +69,14 @@ export function ImportWizardPage() {
     return (
       <EmptyState
         icon="wallet"
-        title="Najpierw dodaj portfel"
+        title={t('wizard.noWalletTitle')}
         action={
           <LinkButton to={householdPath(household.id, 'wallets')} variant="primary">
-            Przejdź do portfeli
+            {t('wizard.noWalletAction')}
           </LinkButton>
         }
       >
-        <p>Transakcje z wyciągu trafiają do jednego portfela — konta, karty albo gotówki.</p>
+        <p>{t('wizard.noWalletBody')}</p>
       </EmptyState>
     )
   }
@@ -83,6 +84,7 @@ export function ImportWizardPage() {
 }
 
 function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset[] }) {
+  const { t } = useTranslation('import')
   const { household } = useHousehold()
   const [search] = useSearchParams()
   const requested = search.get('wallet') ?? ''
@@ -174,7 +176,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
   const current = steps.findIndex((s) => s.key === step)
   return (
     <div className={styles.wizard}>
-      <ol className={styles.steps} aria-label="Kroki importu">
+      <ol className={styles.steps} aria-label={t('wizard.steps')}>
         {steps.map((s, index) => (
           <li
             key={s.key}
@@ -184,8 +186,8 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
             <span className={styles.stepNumber} aria-hidden="true">
               {index < current ? <Icon name="check" size={14} /> : index + 1}
             </span>
-            {s.label}
-            {index < current && <span className="visually-hidden"> (gotowe)</span>}
+            {t(`wizard.${s.label}`)}
+            {index < current && <span className="visually-hidden">{t('wizard.stepCompleted')}</span>}
           </li>
         ))}
       </ol>
@@ -193,7 +195,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
       {step === 'file' && (
         <section className={styles.panel} aria-labelledby="import-step">
           <h2 id="import-step" ref={headingRef} tabIndex={-1} className={styles.stepTitle}>
-            1. Wybierz portfel i plik
+            {t('wizard.fileHeading')}
           </h2>
           <form
             className={styles.stepForm}
@@ -201,18 +203,18 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
             onSubmit={(event) => {
               event.preventDefault()
               if (!file) {
-                setFileProblem('Wybierz plik CSV z wyciągiem.')
+                setFileProblem(t('wizard.noFile'))
                 return
               }
               runPreview(draft)
             }}
           >
             <SelectField
-              label="Portfel docelowy"
+              label={t('wizard.wallet')}
               value={walletId}
               error={errors['options.wallet_id']}
-              hint="Kwoty z pliku muszą być w walucie portfela."
-              options={wallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))}
+              hint={t('wizard.walletHint')}
+              options={wallets.map((w) => ({ value: w.id, label: t('wizard.walletOption', { name: w.name, currency: w.currency }) }))}
               onChange={(e) => {
                 setWalletId(e.target.value)
                 setShown(null)
@@ -223,7 +225,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
               problem={fileProblem ?? errors.file ?? null}
               onFile={(next) => {
                 const problem = next ? checkFile(next) : null
-                setFileProblem(problem ? fileProblemMessages[problem] : null)
+                setFileProblem(problem ? fileProblemMessage(problem) : null)
                 setFile(problem ? null : next)
                 setShown(null)
                 preview.reset()
@@ -233,7 +235,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
             <FormAlert error={hasOptionErrors ? null : preview.error} shownFields={['file', 'options.wallet_id']} />
             <div className={styles.stepActions}>
               <Button type="submit" variant="primary" icon="eye" busy={preview.isPending}>
-                Dalej: podgląd
+                {t('wizard.next')}
               </Button>
             </div>
           </form>
@@ -244,16 +246,16 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
         <section className={styles.panel} aria-labelledby="import-step">
           <div className={styles.stepHead}>
             <h2 id="import-step" ref={headingRef} tabIndex={-1} className={styles.stepTitle}>
-              2. Sprawdź podgląd
+              {t('wizard.previewHeading')}
             </h2>
             <p className={styles.muted}>
-              {file?.name} → {wallet?.name} · preset {preset?.name ?? presetKey}. Nic nie zostało jeszcze zapisane.
+              {t('wizard.previewMeta', { file: file?.name ?? '', wallet: wallet?.name ?? '', preset: preset?.name ?? presetKey })}
             </p>
           </div>
           {preview.error && !hasOptionErrors && <FormAlert error={preview.error} />}
           {hasOptionErrors && (
-            <Callout tone="warn" title="Nie udało się odczytać pliku z tymi ustawieniami">
-              Popraw zaznaczone pola w „Dostosuj” — np. wskaż kolumnę daty i kwoty albo zmień separator.
+            <Callout tone="warn" title={t('wizard.optionErrorsTitle')}>
+              {t('wizard.optionErrorsBody')}
             </Callout>
           )}
           {shown && !hasOptionErrors && <PreviewView preview={shown.preview} currency={wallet?.currency ?? ''} />}
@@ -265,7 +267,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
               aria-controls="import-adjust"
               onClick={() => setAdjusting((v) => !v)}
             >
-              Dostosuj
+              {t('wizard.adjust')}
             </Button>
             <div id="import-adjust" hidden={!adjusting}>
               {adjusting && (
@@ -285,7 +287,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
           <FormAlert error={run.error} />
           <div className={styles.stepActions}>
             <Button icon="undo" onClick={() => setStep('file')}>
-              Wstecz
+              {t('wizard.back')}
             </Button>
             <ImportButton preview={hasOptionErrors ? null : (shown?.preview ?? null)} busy={run.isPending} onImport={runImport} />
           </div>
@@ -295,7 +297,7 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
       {step === 'done' && batch && (
         <section className={styles.panel} aria-labelledby="import-step">
           <h2 id="import-step" ref={headingRef} tabIndex={-1} className={styles.stepTitle}>
-            3. Gotowe
+            {t('wizard.doneHeading')}
           </h2>
           <Summary batch={batch} wallet={wallet} onRestart={restart} />
         </section>
@@ -305,20 +307,20 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
 }
 
 function ImportButton({ preview, busy, onImport }: { preview: ImportPreview | null; busy: boolean; onImport: () => void }) {
+  const { t } = useTranslation('import')
   if (!preview) {
     return null
   }
   if (preview.new_count === 0) {
     return (
       <p className={styles.muted} role="status">
-        Nie ma nic nowego do zaimportowania
-        {preview.duplicate_count > 0 ? ' — wszystkie operacje już są w portfelu.' : '.'}
+        {preview.duplicate_count > 0 ? t('wizard.nothingNewDuplicates') : t('wizard.nothingNew')}
       </p>
     )
   }
   return (
     <Button variant="primary" icon="upload" busy={busy} onClick={onImport}>
-      Importuj {countLabel(preview.new_count, 'transakcję', 'transakcje', 'transakcji')}
+      {t('wizard.importCount', { count: preview.new_count })}
     </Button>
   )
 }
@@ -332,6 +334,7 @@ function FileDrop({
   problem: string | null
   onFile: (file: File | null) => void
 }) {
+  const { t } = useTranslation('import')
   const id = useId()
   const [over, setOver] = useState(false)
   const hintId = `${id}-hint`
@@ -339,7 +342,7 @@ function FileDrop({
   return (
     <div className={styles.fileField}>
       <span className={styles.columnLabel} id={`${id}-label`}>
-        Plik CSV
+        {t('wizard.fileLabel')}
       </span>
       <div
         className={[styles.drop, over ? styles.dropOver : '', problem ? styles.dropInvalid : ''].filter(Boolean).join(' ')}
@@ -360,7 +363,7 @@ function FileDrop({
             <strong>{file.name}</strong> · {formatFileSize(file.size)}
           </p>
         ) : (
-          <p>Przeciągnij plik tutaj albo</p>
+          <p>{t('wizard.drop')}</p>
         )}
         <input
           id={id}
@@ -377,16 +380,16 @@ function FileDrop({
         />
         {file ? (
           <label htmlFor={id} className={styles.fileButton}>
-            Wybierz inny plik
+            {t('wizard.chooseOther')}
           </label>
         ) : (
           <label htmlFor={id} className={styles.fileButton}>
-            Wybierz plik
+            {t('wizard.choose')}
           </label>
         )}
       </div>
       <p id={hintId} className={styles.hint}>
-        Eksport historii z banku w CSV, do 5 MiB. Kodowanie i separator są wykrywane same.
+        {t('wizard.fileHint')}
       </p>
       {problem && (
         <p id={errorId} className={styles.fieldError}>
@@ -406,9 +409,10 @@ function PresetPicker({
   value: string
   onChange: (key: string) => void
 }) {
+  const { t } = useTranslation('import')
   return (
     <fieldset className={styles.presets}>
-      <legend className={styles.columnLabel}>Bank (preset)</legend>
+      <legend className={styles.columnLabel}>{t('wizard.presetLegend')}</legend>
       <div className={styles.presetGrid}>
         {presets.map((preset) => (
           <label key={preset.key} className={styles.preset} data-checked={preset.key === value || undefined}>
@@ -429,13 +433,14 @@ function PresetPicker({
 }
 
 function Summary({ batch, wallet, onRestart }: { batch: ImportBatch; wallet?: Wallet; onRestart: () => void }) {
+  const { t } = useTranslation('import')
   const { household } = useHousehold()
   const lead = useMemo(() => {
     if (batch.created_count === 0) {
-      return 'Nie dodano nowych transakcji — wszystkie operacje z pliku już były w portfelu albo miały błędy.'
+      return t('wizard.noneAdded')
     }
-    return `Dodano ${countLabel(batch.created_count, 'transakcję', 'transakcje', 'transakcji')} do portfela ${wallet?.name ?? ''}.`
-  }, [batch, wallet])
+    return t('wizard.added', { count: batch.created_count, wallet: wallet?.name ?? '' })
+  }, [batch, wallet, t])
   return (
     <div className={styles.summary}>
       <p role="status" className={styles.summaryLead}>
@@ -443,31 +448,27 @@ function Summary({ batch, wallet, onRestart }: { batch: ImportBatch; wallet?: Wa
       </p>
       <BatchCounters batch={batch} />
       {batch.matched_count > 0 && (
-        <Callout title="Subskrypcje odhaczone same">
-          {countLabel(batch.matched_count, 'transakcja opłaciła', 'transakcje opłaciły', 'transakcji opłaciło')} oczekiwane
-          płatności subskrypcji.
-        </Callout>
+        <Callout title={t('wizard.matchedTitle')}>{t('wizard.matched', { count: batch.matched_count })}</Callout>
       )}
       {batch.error_count > 0 && (
-        <Callout tone="warn" title="Część wierszy pominięto">
-          Szczegóły błędów są na stronie importu. Popraw plik albo ustawienia i zaimportuj go ponownie — zapisane już
-          operacje zostaną rozpoznane jako duplikaty.
+        <Callout tone="warn" title={t('wizard.skippedTitle')}>
+          {t('wizard.skippedBody')}
         </Callout>
       )}
       <div className={styles.summaryLinks}>
         {wallet && (
           <LinkButton variant="primary" icon="list" to={householdPath(household.id, `wallets/${wallet.id}`)}>
-            Zobacz w rejestrze
+            {t('wizard.viewRegister')}
           </LinkButton>
         )}
         <LinkButton icon="repeat" to={householdPath(household.id, 'subscriptions/charges')}>
-          Kolejka dopasowań subskrypcji
+          {t('wizard.chargesQueue')}
         </LinkButton>
         <LinkButton icon="history" to={householdPath(household.id, `import/${batch.id}`)}>
-          Szczegóły importu
+          {t('wizard.details')}
         </LinkButton>
         <Button icon="upload" onClick={onRestart}>
-          Importuj kolejny plik
+          {t('wizard.another')}
         </Button>
       </div>
     </div>
