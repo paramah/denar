@@ -161,3 +161,65 @@ describe('bots for a member', () => {
     await waitFor(() => expect(screen.getAllByRole('button', { name: /Nowy bot|Utwórz pierwszego bota/ }).length).toBe(2))
   })
 })
+
+describe('BotsTab — wallets', () => {
+  let created: BotCreate | undefined
+  let patched: Record<string, unknown> | undefined
+  let current: Bot
+
+  beforeEach(() => {
+    created = undefined
+    patched = undefined
+    current = f.bot({ wallet_ids: ['w-konto', 'w-ukryty'] })
+    server.use(
+      http.get(apiUrl('/households/:hid/wallets'), () =>
+        HttpResponse.json({ items: [f.wallet(), f.wallet({ id: 'w-usd', name: 'Dolary', currency: 'USD', balance: f.money('0.00', 'USD'), cleared_balance: f.money('0.00', 'USD') })] }),
+      ),
+      http.get(apiUrl('/households/:hid/bots'), () => HttpResponse.json({ items: [current] })),
+      http.post(apiUrl('/households/:hid/bots'), async ({ request }) => {
+        created = (await request.json()) as BotCreate
+        const bot = f.bot({ id: 'b-new', name: created.name, wallet_ids: created.wallet_ids ?? [] })
+        return HttpResponse.json({ bot, token: 'dnr_x' }, { status: 201, headers: noStore })
+      }),
+      http.patch(apiUrl('/households/:hid/bots/:bid'), async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>
+        current = { ...current, wallet_ids: (patched.wallet_ids as string[]) ?? current.wallet_ids }
+        return HttpResponse.json(current)
+      }),
+    )
+  })
+
+  it('shows the wallet restriction and changes it', async () => {
+    const { user } = renderApp('/h/h-dom/settings/bots')
+    const row = await screen.findByRole('article', { name: 'Bot Claude' })
+    await waitFor(() => expect(row).toHaveTextContent('Portfele: Konto, niewidoczne dla Ciebie: 1'))
+    await user.click(within(row).getByRole('button', { name: 'Portfele bota Claude' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Portfele bota Claude' }))
+    expect(dialog.getByRole('checkbox', { name: 'Konto (PLN)' })).toBeChecked()
+    expect(dialog.getByText(/niewidoczne dla Ciebie: 1/)).toBeInTheDocument()
+    await user.click(dialog.getByRole('checkbox', { name: 'Dolary (USD)' }))
+    await user.click(dialog.getByRole('button', { name: 'Zapisz' }))
+    await waitFor(() => expect(patched).toEqual({ wallet_ids: ['w-konto', 'w-ukryty', 'w-usd'] }))
+
+    await user.click(within(row).getByRole('button', { name: 'Portfele bota Claude' }))
+    const again = within(screen.getByRole('dialog', { name: 'Portfele bota Claude' }))
+    await user.click(again.getByRole('checkbox', { name: 'Tylko wybrane portfele' }))
+    await user.click(again.getByRole('button', { name: 'Zapisz' }))
+    await waitFor(() => expect(patched).toEqual({ wallet_ids: [] }))
+    await waitFor(() => expect(row).toHaveTextContent('Portfele: wszystkie widoczne dla twórcy'))
+  })
+
+  it('limits a new bot to chosen wallets', async () => {
+    const { user } = renderApp('/h/h-dom/settings/bots')
+    await user.click(await screen.findByRole('button', { name: 'Nowy bot' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Nowy bot' }))
+    await user.type(dialog.getByRole('textbox', { name: 'Nazwa' }), 'Import')
+    await user.click(dialog.getByRole('checkbox', { name: 'Tylko wybrane portfele' }))
+    await user.click(dialog.getByRole('button', { name: 'Utwórz bota' }))
+    expect(await dialog.findByText('Wybierz co najmniej jeden portfel albo pozwól na wszystkie.')).toBeInTheDocument()
+    expect(created).toBeUndefined()
+    await user.click(dialog.getByRole('checkbox', { name: 'Dolary (USD)' }))
+    await user.click(dialog.getByRole('button', { name: 'Utwórz bota' }))
+    await waitFor(() => expect(created?.wallet_ids).toEqual(['w-usd']))
+  })
+})

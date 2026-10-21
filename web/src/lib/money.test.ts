@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { addDecimal, currencyDecimals, formatMoney, fromMinor, parseDecimal, toMinor, toneOf } from './money.ts'
+import {
+  absDecimal,
+  addDecimal,
+  amountForInput,
+  currencyDecimals,
+  decimalsOf,
+  formatMoney,
+  formatRate,
+  fromMinor,
+  negateDecimal,
+  parseAmountInput,
+  parseDecimal,
+  parseRateInput,
+  sumAmounts,
+  toMinor,
+  toneOf,
+} from './money.ts'
 
 // Intl wstawia twardą spację (U+00A0) albo wąską (U+202F); w testach obie są spacją.
 const plain = (value: string | null) => value?.replace(/[\u00a0\u202f]/g, ' ')
@@ -71,5 +87,85 @@ describe('minor units', () => {
   it('knows the decimals of a currency', () => {
     expect(currencyDecimals('PLN')).toBe(2)
     expect(currencyDecimals('JPY')).toBe(0)
+  })
+})
+
+describe('parseAmountInput', () => {
+  it.each([
+    ['12,5', 2, '12.50'],
+    ['12.30', 2, '12.30'],
+    ['1 234,56', 2, '1234.56'],
+    ['1 234,5', 2, '1234.50'],
+    ['007', 2, '7.00'],
+    ['1500', 0, '1500'],
+    ['0,001', 3, '0.001'],
+    ['92233720368547758.07', 2, '92233720368547758.07'],
+  ])('%s with %i places → %s', (text, decimals, value) => {
+    expect(parseAmountInput(text, decimals)).toEqual({ ok: true, value })
+  })
+
+  it.each([
+    ['', 2, 'Podaj kwotę.'],
+    ['abc', 2, 'Wpisz kwotę bez znaku, np. 12,50.'],
+    ['-5', 2, 'Wpisz kwotę bez znaku, np. 12,50.'],
+    ['12,345', 2, 'Najwyżej 2 miejsca po przecinku.'],
+    ['1,5', 0, 'Ta waluta nie ma części ułamkowej.'],
+    ['0', 2, 'Kwota musi być większa od zera.'],
+    ['1e5', 2, 'Wpisz kwotę bez znaku, np. 12,50.'],
+    ['92233720368547758.08', 2, 'Kwota jest za duża.'],
+  ])('rejects %j (%i places)', (text, decimals, error) => {
+    expect(parseAmountInput(text, decimals)).toEqual({ ok: false, error })
+  })
+
+  it('accepts a signed or zero amount when asked', () => {
+    expect(parseAmountInput('−1200', 2, { allowNegative: true })).toEqual({ ok: true, value: '-1200.00' })
+    expect(parseAmountInput('0', 2, { allowZero: true })).toEqual({ ok: true, value: '0.00' })
+  })
+})
+
+describe('decimal helpers', () => {
+  it.each([
+    ['12.50', '-12.50'],
+    ['-12.50', '12.50'],
+    ['0.00', '0.00'],
+  ])('negateDecimal(%s) = %s', (value, negated) => {
+    expect(negateDecimal(value)).toBe(negated)
+  })
+
+  it('absDecimal and amountForInput drop the sign', () => {
+    expect(absDecimal('-7.05')).toBe('7.05')
+    expect(amountForInput('-1234.50')).toBe('1234,50')
+  })
+
+  it('sums large amounts exactly (beyond 2^53)', () => {
+    expect(sumAmounts(['90071992547409.93', '0.01', '-0.02'])).toBe('90071992547409.92')
+    expect(sumAmounts([], 2)).toBe('0.00')
+    expect(sumAmounts(['1.5', '2.25'])).toBe('3.75')
+  })
+
+  it('decimalsOf prefers the currency list', () => {
+    expect(decimalsOf('XYZ', [{ code: 'XYZ', decimals: 3 }])).toBe(3)
+    expect(decimalsOf('JPY')).toBe(0)
+  })
+})
+
+describe('rates', () => {
+  it.each([
+    ['4,2512', '4.2512'],
+    ['04.10', '4.10'],
+    ['0.000123456789', '0.000123456789'],
+    ['3', '3'],
+  ])('parseRateInput(%s) = %s', (text, value) => {
+    expect(parseRateInput(text)).toEqual({ ok: true, value })
+  })
+
+  it.each(['', '0', '0,000', '-4', '4,1234567890123', 'abc'])('parseRateInput rejects %j', (text) => {
+    expect(parseRateInput(text).ok).toBe(false)
+  })
+
+  it('formatRate trims trailing zeros and uses a comma', () => {
+    expect(formatRate('4.25120000')).toBe('4,2512')
+    expect(formatRate('1')).toBe('1')
+    expect(formatRate('2.00000000')).toBe('2')
   })
 })
