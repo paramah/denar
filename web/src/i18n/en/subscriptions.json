@@ -1,1 +1,393 @@
-{}
+{
+  "status": {
+    "trial": "Trial",
+    "active": "Active",
+    "paused": "Paused",
+    "cancelled": "Cancelled"
+  },
+  "chargeStatus": {
+    "expected": "Expected",
+    "matched": "Matched",
+    "missed": "Missed",
+    "skipped": "Skipped",
+    "posted": "Posted"
+  },
+  "chargeStatusDescription": {
+    "expected": "Payment not found in the register yet",
+    "matched": "Linked to a transaction from the register",
+    "missed": "The due date and matching window passed without a payment",
+    "skipped": "Marked as not paid on this date",
+    "posted": "Expense recorded from this payment"
+  },
+  "cycleUnit": {
+    "day": "days",
+    "week": "weeks",
+    "month": "months",
+    "year": "years"
+  },
+  "unit": {
+    "day_one": "day",
+    "day_other": "days",
+    "week_one": "week",
+    "week_other": "weeks",
+    "month_one": "month",
+    "month_other": "months",
+    "year_one": "year",
+    "year_other": "years"
+  },
+  "cycle": {
+    "every1": {
+      "day": "daily",
+      "week": "weekly",
+      "month": "monthly",
+      "year": "yearly"
+    },
+    "everyN": {
+      "day_one": "every {{count}} day",
+      "day_other": "every {{count}} days",
+      "week_one": "every {{count}} week",
+      "week_other": "every {{count}} weeks",
+      "month_one": "every {{count}} month",
+      "month_other": "every {{count}} months",
+      "year_one": "every {{count}} year",
+      "year_other": "every {{count}} years"
+    },
+    "withAnchor": "{{cycle}}, {{anchor}}",
+    "monthDay": "day {{day}}",
+    "weekdayOn": {
+      "sun": "on Sunday",
+      "mon": "on Monday",
+      "tue": "on Tuesday",
+      "wed": "on Wednesday",
+      "thu": "on Thursday",
+      "fri": "on Friday",
+      "sat": "on Saturday"
+    },
+    "noteLeapDay": "In non-leap years — 28 February.",
+    "noteMonthEnd": "In shorter months — the last day of the month."
+  },
+  "relative": {
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "yesterday": "yesterday",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
+  },
+  "reminder": {
+    "dueDay": "on the due date",
+    "week": "a week before",
+    "twoWeeks": "2 weeks before",
+    "month": "a month before",
+    "daysBefore_one": "{{count}} day before",
+    "daysBefore_other": "{{count}} days before"
+  },
+  "actions": {
+    "cancel": "Cancel"
+  },
+  "layout": {
+    "title": "Subscriptions",
+    "description": "Recurring costs of the {{name}} household in {{currency}}.",
+    "new": "New subscription"
+  },
+  "tabs": {
+    "label": "Subscriptions",
+    "overview": "Overview",
+    "all": "All",
+    "charges": "To match"
+  },
+  "tile": {
+    "empty": "Paying for Netflix or ChatGPT? <link>Add subscriptions</link> and we'll show their cost and upcoming renewals.",
+    "label": "Subscriptions",
+    "cost": "Subscriptions — cost/month",
+    "yearly": "yearly",
+    "without": " (excluding {{currencies}})",
+    "overview": "Subscriptions overview",
+    "renewals": "Upcoming renewals"
+  },
+  "overview": {
+    "loadError": "Couldn't load the summary",
+    "emptyTitle": "You aren't tracking any subscriptions yet",
+    "emptyAction": "Add your first subscription",
+    "emptyBody": "Record the services you pay for regularly — we'll work out their monthly cost and remind you about renewals.",
+    "counts": {
+      "active": "Active",
+      "trial": "Trial",
+      "paused": "Paused",
+      "cancelled": "Cancelled"
+    },
+    "count": "{{label}}: {{value}}",
+    "costHeading": "Subscriptions cost per month",
+    "partial": " (some currencies excluded)",
+    "yearly": "Yearly",
+    "countsNote": "{{counts}}. Counted from active and trial subscriptions at today's rate.",
+    "incompleteTitle": "Some costs were left out",
+    "incompleteBody": "No rate for today for {{currencies}} → {{base}}; those subscriptions aren't included in the totals.",
+    "setRate": "Set the rate manually"
+  },
+  "calendar": {
+    "label": "Upcoming renewals",
+    "nothing": "Nothing renews in the next {{days}} days.",
+    "list": "Renewals in the next {{days}} days",
+    "more_one": "And {{count}} more payment.",
+    "more_other": "And {{count}} more payments."
+  },
+  "bars": {
+    "count_one": "{{count}} subscription",
+    "count_other": "{{count}} subscriptions",
+    "byVendor": "Monthly by vendor",
+    "byVendorEmpty": "No active subscriptions.",
+    "byEnvelope": "Monthly by envelope",
+    "byEnvelopeEmpty": "Assign envelopes to subscriptions to see which one you pay from.",
+    "envelope": "Envelope",
+    "noEnvelope": "No envelope"
+  },
+  "trials": {
+    "heading": "Trials ending soon",
+    "empty": "No trials end in the next 14 days.",
+    "then": "then"
+  },
+  "priceChanges": {
+    "heading": "Recent price changes",
+    "empty": "No prices have changed in the last 90 days.",
+    "changedTo": "changed to",
+    "from": "from {{date}}"
+  },
+  "list": {
+    "filters": "Subscription filters",
+    "status": "Status",
+    "vendor": "Vendor",
+    "wallet": "Wallet",
+    "any": "Any",
+    "clear": "Clear filters",
+    "loadError": "Couldn't load subscriptions",
+    "noMatchTitle": "No subscriptions match these filters",
+    "noMatchBody": "Change or clear the filters.",
+    "emptyTitle": "No subscriptions yet",
+    "emptyAction": "Add subscription",
+    "emptyBody": "Netflix, ChatGPT, photo cloud storage — record what you pay for monthly or yearly.",
+    "label": "Subscriptions"
+  },
+  "card": {
+    "label": "Subscription {{name}}",
+    "fromWallet": ", from wallet {{wallet}}",
+    "trialUntil": "until {{date}}",
+    "accessUntil": "access until {{date}}",
+    "next": "Next:",
+    "noNext": "No upcoming payments"
+  },
+  "queue": {
+    "lead": "Payments whose due date has passed but which have no linked transaction in the register yet. Confirm a suggestion, post an expense or skip the payment.",
+    "loadError": "Couldn't load payments",
+    "emptyTitle": "Everything matched",
+    "emptyBody": "Every payment with a past due date has its transaction or has been skipped.",
+    "label": "Payments to match",
+    "due": "due {{date}} ({{relative}})"
+  },
+  "link": {
+    "title": "Link to subscription",
+    "loadError": "Couldn't load payments",
+    "none": "No open subscription payment due within ±15 days matches this transaction.",
+    "all": "All subscriptions",
+    "label": "Matching payments",
+    "due": "due {{date}}",
+    "action": "Link",
+    "actionLabel": "Link: {{name}}, {{date}}",
+    "done": "Linked to subscription {{name}}.",
+    "failed": "Couldn't link the transaction."
+  },
+  "charge": {
+    "label": "payment {{date}}",
+    "labelWithName": "{{name}}, payment {{date}}",
+    "match": "Match",
+    "post": "Post",
+    "skip": "Skip",
+    "unmatch": "Undo match",
+    "unmatched": "Undid the match for the {{date}} payment.",
+    "unmatchFailed": "Couldn't undo the match."
+  },
+  "score": {
+    "title": "How well the amount, date, payee and wallet match",
+    "label": "Match {{score}}%"
+  },
+  "suggestions": {
+    "matched": "Matched the {{name}} payment from {{date}}.",
+    "failed": "Couldn't confirm the match.",
+    "loadError": "Couldn't load suggestions",
+    "noneCompact": "No matching transactions.",
+    "none": "There's no transaction in the register that matches the amount and date.",
+    "label": "Suggestions for: {{name}}, {{date}}",
+    "confirm": "Confirm",
+    "confirmLabel": "Confirm: {{title}}, {{date}}"
+  },
+  "matchDialog": {
+    "title": "Match payment",
+    "notFound": "Can't see the payment? Add an expense in the register or <post>post it right away</post>."
+  },
+  "postDialog": {
+    "title": "Post payment",
+    "submit": "Post expense",
+    "intro": "We'll record the expense in the register and link it to this payment right away.",
+    "wallet": "Wallet",
+    "walletPlaceholder": "Choose a wallet",
+    "walletRequired": "Choose the wallet the payment came from.",
+    "amount": "Amount paid ({{currency}})",
+    "otherCurrency": "The wallet is in {{wallet}} and the payment is in {{charge}}. Enter the amount from your statement — after the bank's conversion.",
+    "date": "Date",
+    "dateRequired": "Enter a date.",
+    "payee": "Payee",
+    "payeeHint": "Empty — the vendor's name.",
+    "note": "Note",
+    "posted": "Posted expense {{amount}}."
+  },
+  "skipDialog": {
+    "title": "Skip payment?",
+    "confirm": "Skip payment",
+    "skipped": "Skipped the {{date}} payment.",
+    "body": "Use this when nothing was paid on this date (e.g. a free month). A skipped payment can't be matched later."
+  },
+  "form": {
+    "editTitle": "Edit: {{name}}",
+    "newTitle": "New subscription",
+    "duplicate": "You already have a subscription with this name.",
+    "nameRequired": "Enter a name.",
+    "nameTooLong": "At most 100 characters.",
+    "vendorRequired": "Choose a vendor from the list — or “Other”.",
+    "everyRange": "From 1 to 365.",
+    "anchorRequired": "Enter the payment date.",
+    "trialRequired": "Enter the trial end date.",
+    "remindersMax_one": "At most {{count}} reminder.",
+    "remindersMax_other": "At most {{count}} reminders.",
+    "toleranceRange": "From 0 to 50%.",
+    "windowRange": "From 0 to 15 days.",
+    "urlInvalid": "The address must start with http:// or https://.",
+    "created": "Added subscription {{name}}.",
+    "saved": "Saved subscription {{name}}.",
+    "vendor": "Vendor",
+    "vendorHint": "Type a name or choose from the list.",
+    "name": "Name",
+    "nameHint": "E.g. the service plan — must differ from your other subscriptions.",
+    "priceNow": "Current price",
+    "priceNowHint": "Record a price change from a chosen day on the subscription page.",
+    "price": "Price",
+    "priceHint": "What the vendor charges, in its currency.",
+    "currency": "Currency",
+    "currencyHint": "We'll convert costs to {{currency}}.",
+    "cycle": "Billing cycle",
+    "every": "Every",
+    "unit": "Unit",
+    "anchor": "Payment day",
+    "anchorHint": "Any day a charge arrives — we count the following ones from it.",
+    "cyclePrefix": "Cycle: ",
+    "upcoming": "Upcoming payments: {{dates}}",
+    "cycleIncomplete": "Complete the cycle to see upcoming payments.",
+    "trial": "Trial period",
+    "trialHint": "Payments start after it ends.",
+    "trialEnds": "Trial end date",
+    "wallet": "Payment wallet",
+    "walletHint": "Only people who can see this wallet will see it.",
+    "noWalletHint": "Without a wallet, the whole household sees it.",
+    "noWallet": "No wallet",
+    "reminders": "Reminders",
+    "remindersHint": "When to remind you about the payment — at most {{max}}.",
+    "advanced": "Advanced: payment matching",
+    "advancedIntro": "Denar uses these rules to look for register transactions that pay for the subscription.",
+    "payeePattern": "Payee pattern",
+    "payeePatternHint": "Part of the payee name or note, e.g. OPENAI *CHATGPT. Empty — the vendor and subscription names.",
+    "tolerance": "Amount tolerance (%)",
+    "toleranceHint": "Exchange rate differences or bank fees.",
+    "window": "Date window (days)",
+    "windowHint": "How many days before and after the due date to look for the payment.",
+    "manageUrl": "Management URL",
+    "manageUrlHint": "The page where you change your plan or cancel.",
+    "note": "Note",
+    "saveChanges": "Save changes",
+    "add": "Add subscription"
+  },
+  "page": {
+    "notFoundTitle": "Subscription not found",
+    "notFoundBody": "It may have been deleted, or you pay for it from a wallet you can't see.",
+    "all": "All subscriptions",
+    "loadError": "Couldn't load the subscription",
+    "statusFailed": "Couldn't change the status.",
+    "edit": "Edit",
+    "resume": "Resume",
+    "resumed": "Resumed subscription {{name}}.",
+    "pause": "Pause",
+    "paused": "Paused subscription {{name}}.",
+    "cancel": "Cancel subscription",
+    "delete": "Delete",
+    "hero": "Price and cycle",
+    "nextDue": "Next payment",
+    "none": "none",
+    "monthly": "Monthly average",
+    "yearly": "Yearly",
+    "cancelledTitle": "Subscription cancelled",
+    "cancelledBody": "Access until {{date}}; there will be no further payments.",
+    "pausedTitle": "Subscription paused",
+    "pausedBody": "We won't expect payments until you resume it."
+  },
+  "details": {
+    "heading": "Details",
+    "wallet": "Payment wallet",
+    "walletUnknown": "wallet",
+    "noWallet": "no wallet — the whole household sees it",
+    "envelope": "Envelope",
+    "envelopeUnknown": "envelope",
+    "noEnvelope": "no envelope",
+    "trial": "Trial period",
+    "trialUntil": "until {{date}}",
+    "reminders": "Reminders",
+    "remindersOff": "off",
+    "matching": "Matching",
+    "matchingValue": "{{pattern}}, amount ±{{tolerance}}%, date ±{{days}} days",
+    "patternQuoted": "“{{pattern}}”",
+    "patternDefault": "vendor and subscription name",
+    "manage": "Manage",
+    "newTab": " (opens in a new tab)",
+    "note": "Note"
+  },
+  "prices": {
+    "heading": "Price history",
+    "change": "Change price",
+    "loadError": "Couldn't load prices",
+    "label": "Prices, newest first",
+    "from": "from",
+    "planned": " (scheduled)",
+    "current": " (current)"
+  },
+  "schedule": {
+    "heading": "Payment schedule",
+    "intro": "Expected payments are created 90 days ahead. Match them to register transactions, post them or skip them.",
+    "loadError": "Couldn't load payments",
+    "label": "Payments",
+    "empty": "No payments — the subscription is paused, cancelled or still in its trial period."
+  },
+  "priceDialog": {
+    "title": "Price change: {{name}}",
+    "effectiveRequired": "Enter the day the price takes effect.",
+    "saved": "Saved the new price for {{name}} from {{date}}.",
+    "save": "Save price",
+    "now": "Now: <money/>. The new price goes into the history, and future payments from that day get the new amount.",
+    "from": "Effective from",
+    "fromHint": "The same day as an existing price — corrects it.",
+    "newPrice": "New price",
+    "currency": "Currency"
+  },
+  "cancelDialog": {
+    "title": "Cancel {{name}}?",
+    "confirm": "Cancel subscription",
+    "done": "Cancelled subscription {{name}}.",
+    "body": "Access lasts until the end of the paid period. Future payments disappear from the schedule; the history stays.",
+    "bodyUntil": "Access lasts until the end of the paid period (until {{date}}). Future payments disappear from the schedule; the history stays.",
+    "vendor": "Remember to cancel it with the vendor too."
+  },
+  "deleteDialog": {
+    "title": "Delete {{name}}?",
+    "confirm": "Delete subscription",
+    "done": "Deleted subscription {{name}}.",
+    "body": "The price history and payment schedule will be removed. Register transactions stay.",
+    "hint": "If you're just stopping payments, cancel it instead — it stays in the history."
+  }
+}

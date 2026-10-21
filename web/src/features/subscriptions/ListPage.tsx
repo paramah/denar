@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { useSubscriptions, useVendors } from '../../api/hooks/subscriptions.ts'
 import { useWallets } from '../../api/hooks/wallets.ts'
@@ -32,6 +33,7 @@ export function ListPage() {
   const walletMap = new Map((wallets.data ?? []).map((w) => [w.id, w]))
   const { create, canWrite } = useSubscriptionsLayout()
   const filtered = Object.values(filters).some(Boolean)
+  const { t } = useTranslation('subscriptions')
 
   const set = (name: string, value: string) =>
     setParams(
@@ -46,27 +48,27 @@ export function ListPage() {
 
   return (
     <>
-      <form role="search" aria-label="Filtry subskrypcji" className={styles.filters} onSubmit={(event) => event.preventDefault()}>
+      <form role="search" aria-label={t('list.filters')} className={styles.filters} onSubmit={(event) => event.preventDefault()}>
         <SelectField
-          label="Status"
+          label={t('list.status')}
           value={params.get('status') ?? ''}
           onChange={(event) => set('status', event.target.value)}
           options={[
-            { value: '', label: 'Każdy' },
+            { value: '', label: t('list.any') },
             ...subscriptionStatusOrder.map((status) => ({ value: status, label: subscriptionStatusLabels[status] })),
           ]}
         />
         <SelectField
-          label="Dostawca"
+          label={t('list.vendor')}
           value={params.get('vendor') ?? ''}
           onChange={(event) => set('vendor', event.target.value)}
-          options={[{ value: '', label: 'Każdy' }, ...(vendors.data ?? []).map((v) => ({ value: v.key, label: v.name }))]}
+          options={[{ value: '', label: t('list.any') }, ...(vendors.data ?? []).map((v) => ({ value: v.key, label: v.name }))]}
         />
         <SelectField
-          label="Portfel"
+          label={t('list.wallet')}
           value={params.get('wallet') ?? ''}
           onChange={(event) => set('wallet', event.target.value)}
-          options={[{ value: '', label: 'Każdy' }, ...(wallets.data ?? []).map((w) => ({ value: w.id, label: w.name }))]}
+          options={[{ value: '', label: t('list.any') }, ...(wallets.data ?? []).map((w) => ({ value: w.id, label: w.name }))]}
         />
         {filtered && (
           <Button
@@ -76,34 +78,34 @@ export function ListPage() {
             className={styles.filtersClear}
             onClick={() => setParams(new URLSearchParams(), { replace: true })}
           >
-            Wyczyść filtry
+            {t('list.clear')}
           </Button>
         )}
       </form>
-      <QueryState query={subscriptions} errorTitle="Nie udało się wczytać subskrypcji" loading={<Skeleton lines={5} />}>
+      <QueryState query={subscriptions} errorTitle={t('list.loadError')} loading={<Skeleton lines={5} />}>
         {(items) =>
           items.length === 0 ? (
             filtered ? (
-              <EmptyState icon="search" title="Brak subskrypcji dla tych filtrów" headingLevel={2}>
-                <p>Zmień albo wyczyść filtry.</p>
+              <EmptyState icon="search" title={t('list.noMatchTitle')} headingLevel={2}>
+                <p>{t('list.noMatchBody')}</p>
               </EmptyState>
             ) : (
               <EmptyState
                 icon="repeat"
-                title="Nie ma jeszcze subskrypcji"
+                title={t('list.emptyTitle')}
                 action={
                   canWrite && (
                     <Button variant="primary" icon="plus" onClick={create}>
-                      Dodaj subskrypcję
+                      {t('list.emptyAction')}
                     </Button>
                   )
                 }
               >
-                <p>Netflix, ChatGPT, chmura na zdjęcia — zapisz, za co płacisz co miesiąc lub co rok.</p>
+                <p>{t('list.emptyBody')}</p>
               </EmptyState>
             )
           ) : (
-            <ul className={styles.cards} aria-label="Subskrypcje">
+            <ul className={styles.cards} aria-label={t('list.label')}>
               {items.map((s) => (
                 <li key={s.id}>
                   <SubscriptionCard subscription={s} wallet={s.wallet_id ? walletMap.get(s.wallet_id) : undefined} />
@@ -120,9 +122,10 @@ export function ListPage() {
 export function SubscriptionCard({ subscription: s, wallet }: { subscription: Subscription; wallet?: Wallet }) {
   const { household } = useHousehold()
   const today = useToday()
+  const { t } = useTranslation('subscriptions')
   const inactive = s.status === 'paused' || s.status === 'cancelled'
   return (
-    <article className={styles.card} data-inactive={inactive || undefined} aria-label={`Subskrypcja ${s.name}`}>
+    <article className={styles.card} data-inactive={inactive || undefined} aria-label={t('card.label', { name: s.name })}>
       <VendorCoin vendor={s.vendor} name={coinName(s.vendor, s.vendor_name, s.name)} size="lg" />
       <div className={styles.cardMain}>
         <Link to={householdPath(household.id, `subscriptions/${s.id}`)} className={styles.cardTitle}>
@@ -131,12 +134,12 @@ export function SubscriptionCard({ subscription: s, wallet }: { subscription: Su
         <span className={styles.muted}>
           {s.vendor !== 'other' ? `${s.vendor_name}, ` : ''}
           {cycleLabel(s.cycle)}
-          {wallet ? `, z portfela ${wallet.name}` : ''}
+          {wallet ? t('card.fromWallet', { wallet: wallet.name }) : ''}
         </span>
         <span className={styles.cardStatus}>
           <SubscriptionStatusBadge subscription={s} />
-          {s.status === 'trial' && s.trial_ends_at && <span className={styles.muted}>do {formatDay(s.trial_ends_at)}</span>}
-          {s.status === 'cancelled' && s.ends_at && <span className={styles.muted}>dostęp do {formatDay(s.ends_at)}</span>}
+          {s.status === 'trial' && s.trial_ends_at && <span className={styles.muted}>{t('card.trialUntil', { date: formatDay(s.trial_ends_at) })}</span>}
+          {s.status === 'cancelled' && s.ends_at && <span className={styles.muted}>{t('card.accessUntil', { date: formatDay(s.ends_at) })}</span>}
         </span>
       </div>
       <div className={styles.cardPrice}>
@@ -145,11 +148,11 @@ export function SubscriptionCard({ subscription: s, wallet }: { subscription: Su
         <span className={styles.cardNext}>
           {s.next_due && !inactive ? (
             <>
-              Następna: <time dateTime={s.next_due}>{formatDay(s.next_due)}</time>{' '}
+              {t('card.next')} <time dateTime={s.next_due}>{formatDay(s.next_due)}</time>{' '}
               <span className={styles.muted}>({relativeDay(s.next_due, today)})</span>
             </>
           ) : (
-            <span className={styles.muted}>Bez kolejnych płatności</span>
+            <span className={styles.muted}>{t('card.noNext')}</span>
           )}
         </span>
       </div>

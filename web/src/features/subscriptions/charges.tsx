@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { fieldErrors } from '../../api/errors.ts'
 import {
@@ -46,10 +47,13 @@ export function ChargeRow({ charge, canWrite, showSubscription, onAction }: RowP
   const vendors = useVendorNames()
   const unmatch = useUnmatchCharge(household.id)
   const toast = useToast()
+  const { t } = useTranslation('subscriptions')
   const open = charge.status === 'expected' || charge.status === 'missed'
   const linked = charge.status === 'matched' || charge.status === 'posted'
   const past = charge.due_date < today
-  const label = `${showSubscription ? `${charge.subscription_name}, ` : ''}płatność ${formatDay(charge.due_date)}`
+  const label = showSubscription
+    ? t('charge.labelWithName', { name: charge.subscription_name, date: formatDay(charge.due_date) })
+    : t('charge.label', { date: formatDay(charge.due_date) })
 
   return (
     <article className={styles.chargeRow} data-status={charge.status} data-past={past || undefined} aria-label={label}>
@@ -74,13 +78,13 @@ export function ChargeRow({ charge, canWrite, showSubscription, onAction }: RowP
           {open && (
             <>
               <Button size="sm" variant={past ? 'primary' : 'secondary'} icon="link" onClick={() => onAction({ kind: 'match', charge })}>
-                Dopasuj
+                {t('charge.match')}
               </Button>
               <Button size="sm" onClick={() => onAction({ kind: 'post', charge })}>
-                Zaksięguj
+                {t('charge.post')}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => onAction({ kind: 'skip', charge })}>
-                Pomiń
+                {t('charge.skip')}
               </Button>
             </>
           )}
@@ -91,12 +95,12 @@ export function ChargeRow({ charge, canWrite, showSubscription, onAction }: RowP
               busy={unmatch.isPending}
               onClick={() =>
                 unmatch.mutate(charge.id, {
-                  onSuccess: () => toast.show({ message: `Cofnięto dopasowanie płatności z ${formatDay(charge.due_date)}.` }),
-                  onError: () => toast.show({ message: 'Nie udało się cofnąć dopasowania.', kind: 'error' }),
+                  onSuccess: () => toast.show({ message: t('charge.unmatched', { date: formatDay(charge.due_date) }) }),
+                  onError: () => toast.show({ message: t('charge.unmatchFailed'), kind: 'error' }),
                 })
               }
             >
-              Cofnij dopasowanie
+              {t('charge.unmatch')}
             </Button>
           )}
         </div>
@@ -120,9 +124,10 @@ export function ChargeDialogs({ modal, onClose, onChange }: { modal: ChargeModal
 }
 
 function ChargeSummary({ charge }: { charge: Charge }) {
+  const { t } = useTranslation('subscriptions')
   return (
     <p className={styles.chargeSummary}>
-      <strong>{charge.subscription_name}</strong>, płatność {formatDay(charge.due_date)}:{' '}
+      <strong>{charge.subscription_name}</strong>, {t('charge.label', { date: formatDay(charge.due_date) })}:{' '}
       <Money amount={charge.amount.amount} currency={charge.amount.currency} />
     </p>
   )
@@ -131,12 +136,13 @@ function ChargeSummary({ charge }: { charge: Charge }) {
 /** Wynik dopasowania jako krótka skala (kolor nie jest jedynym nośnikiem — liczba obok). */
 export function ScoreMeter({ score }: { score: number }) {
   const level = score >= 80 ? 'high' : score >= 50 ? 'mid' : 'low'
+  const { t } = useTranslation('subscriptions')
   return (
-    <span className={styles.score} data-level={level} title="Zgodność kwoty, daty, kontrahenta i portfela">
+    <span className={styles.score} data-level={level} title={t('score.title')}>
       <span className={styles.scoreBar} aria-hidden="true">
         <span ref={(el) => el?.style.setProperty('--score', `${score}%`)} />
       </span>
-      Zgodność {score}%
+      {t('score.label', { score })}
     </span>
   )
 }
@@ -159,50 +165,51 @@ export function SuggestionList({
   const walletMap = new Map<string, Wallet>((wallets.data ?? []).map((w) => [w.id, w]))
   const match = useMatchCharge(household.id)
   const toast = useToast()
+  const { t } = useTranslation('subscriptions')
   const confirm = (item: TransactionSuggestion) =>
     match.mutate(
       { chargeId: charge.id, transactionId: item.transaction.id },
       {
         onSuccess: () => {
-          toast.show({ message: `Dopasowano płatność ${charge.subscription_name} z ${formatDay(charge.due_date)}.` })
+          toast.show({ message: t('suggestions.matched', { name: charge.subscription_name, date: formatDay(charge.due_date) }) })
           onConfirmed?.()
         },
-        onError: () => toast.show({ message: 'Nie udało się potwierdzić dopasowania.', kind: 'error' }),
+        onError: () => toast.show({ message: t('suggestions.failed'), kind: 'error' }),
       },
     )
   return (
-    <QueryState query={suggestions} loading={<Skeleton lines={2} />} errorTitle="Nie udało się wczytać sugestii">
+    <QueryState query={suggestions} loading={<Skeleton lines={2} />} errorTitle={t('suggestions.loadError')}>
       {(items) =>
         items.length === 0 ? (
           <p className={styles.muted}>
-            {compact ? 'Brak pasujących transakcji.' : 'W rejestrze nie ma transakcji, która pasowałaby kwotą i datą.'}
+            {compact ? t('suggestions.noneCompact') : t('suggestions.none')}
           </p>
         ) : (
-          <ul className={styles.suggestions} aria-label={`Sugestie dla: ${charge.subscription_name}, ${formatDay(charge.due_date)}`}>
+          <ul className={styles.suggestions} aria-label={t('suggestions.label', { name: charge.subscription_name, date: formatDay(charge.due_date) })}>
             {items.map((item) => {
-              const t = item.transaction
-              const title = transactionTitle(t, walletMap)
+              const tx = item.transaction
+              const title = transactionTitle(tx, walletMap)
               return (
-                <li key={t.id} className={styles.suggestion}>
+                <li key={tx.id} className={styles.suggestion}>
                   <div className={styles.suggestionText}>
                     <span className={styles.suggestionTitle}>{title}</span>
                     <span className={styles.muted}>
-                      {formatDay(t.date)}
-                      {walletMap.get(t.wallet_id) ? `, ${walletMap.get(t.wallet_id)!.name}` : ''}
+                      {formatDay(tx.date)}
+                      {walletMap.get(tx.wallet_id) ? `, ${walletMap.get(tx.wallet_id)!.name}` : ''}
                     </span>
                   </div>
-                  <Money amount={t.amount.amount} currency={t.amount.currency} tone="auto" />
+                  <Money amount={tx.amount.amount} currency={tx.amount.currency} tone="auto" />
                   <ScoreMeter score={item.score} />
                   <Button
                     size="sm"
                     variant="primary"
                     icon="check"
-                    busy={match.isPending && match.variables?.transactionId === t.id}
+                    busy={match.isPending && match.variables?.transactionId === tx.id}
                     disabled={match.isPending}
                     onClick={() => confirm(item)}
-                    aria-label={`Potwierdź: ${title}, ${formatDay(t.date)}`}
+                    aria-label={t('suggestions.confirmLabel', { title, date: formatDay(tx.date) })}
                   >
-                    Potwierdź
+                    {t('suggestions.confirm')}
                   </Button>
                 </li>
               )
@@ -215,17 +222,18 @@ export function SuggestionList({
 }
 
 function MatchDialog({ charge, onClose, onPost }: { charge: Charge; onClose: () => void; onPost: () => void }) {
+  const { t } = useTranslation('subscriptions')
   return (
-    <Dialog open title="Dopasuj płatność" onClose={onClose} size="lg">
+    <Dialog open title={t('matchDialog.title')} onClose={onClose} size="lg">
       <div className={styles.dialogBody}>
         <ChargeSummary charge={charge} />
         <SuggestionList charge={charge} onConfirmed={onClose} />
         <Callout>
-          Nie widzisz płatności? Dodaj wydatek w rejestrze albo{' '}
-          <button type="button" className={styles.inlineLink} onClick={onPost}>
-            zaksięguj ją od razu
-          </button>
-          .
+          <Trans
+            t={t}
+            i18nKey="matchDialog.notFound"
+            components={{ post: <button type="button" className={styles.inlineLink} onClick={onPost} /> }}
+          />
         </Callout>
       </div>
     </Dialog>
@@ -238,6 +246,7 @@ function PostDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
   const decimalsFor = useDecimals()
   const post = usePostCharge(household.id)
   const toast = useToast()
+  const { t } = useTranslation('subscriptions')
   const active = (wallets.data ?? []).filter((w) => !w.archived_at)
   const [walletId, setWalletId] = useState(charge.wallet_id ?? '')
   const chosen = active.find((w) => w.id === walletId)
@@ -256,10 +265,10 @@ function PostDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
 
   const submit = () => {
     const next: Record<string, string | undefined> = {}
-    if (!chosen) next.wallet_id = 'Wybierz portfel, z którego zapłacono.'
+    if (!chosen) next.wallet_id = t('postDialog.walletRequired')
     const parsed = parseAmountInput(shownAmount, decimalsFor(currency))
     if (!parsed.ok) next.amount = parsed.error
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) next.date = 'Podaj datę.'
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) next.date = t('postDialog.dateRequired')
     setErrors(next)
     if (Object.values(next).some(Boolean) || !chosen || !parsed.ok) {
       return
@@ -276,7 +285,9 @@ function PostDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
       {
         onSuccess: (result) => {
           toast.show({
-            message: `Zaksięgowano wydatek ${formatMoney(result.transaction.amount.amount, result.transaction.amount.currency) ?? ''}.`,
+            message: t('postDialog.posted', {
+              amount: formatMoney(result.transaction.amount.amount, result.transaction.amount.currency) ?? '',
+            }),
           })
           onClose()
         },
@@ -285,27 +296,27 @@ function PostDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
   }
 
   return (
-    <Dialog open title="Zaksięguj płatność" onClose={onClose} onSubmit={submit} size="md"
+    <Dialog open title={t('postDialog.title')} onClose={onClose} onSubmit={submit} size="md"
       footer={
         <>
-          <Button onClick={onClose}>Anuluj</Button>
+          <Button onClick={onClose}>{t('actions.cancel')}</Button>
           <Button type="submit" variant="primary" busy={post.isPending}>
-            Zaksięguj wydatek
+            {t('postDialog.submit')}
           </Button>
         </>
       }
     >
       <ChargeSummary charge={charge} />
-      <p className={styles.muted}>Zapiszemy wydatek w rejestrze i od razu powiążemy go z tą płatnością.</p>
+      <p className={styles.muted}>{t('postDialog.intro')}</p>
       <SelectField
-        label="Portfel"
+        label={t('postDialog.wallet')}
         value={walletId}
         onChange={(event) => setWalletId(event.target.value)}
         error={errors.wallet_id ?? pickError(server, 'wallet_id')}
-        options={[{ value: '', label: 'Wybierz portfel' }, ...active.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))]}
+        options={[{ value: '', label: t('postDialog.walletPlaceholder') }, ...active.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` }))]}
       />
       <AmountField
-        label={`Zapłacona kwota (${currency})`}
+        label={t('postDialog.amount', { currency })}
         value={shownAmount}
         onChange={(value) => {
           setAmountTouched(true)
@@ -317,13 +328,13 @@ function PostDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
         error={errors.amount ?? pickError(server, 'amount', 'amount.amount')}
         hint={
           chosen && !sameCurrency
-            ? `Portfel jest w ${chosen.currency}, a płatność w ${charge.amount.currency}. Wpisz kwotę z wyciągu — po przewalutowaniu przez bank.`
+            ? t('postDialog.otherCurrency', { wallet: chosen.currency, charge: charge.amount.currency })
             : undefined
         }
       />
-      <TextField label="Data" type="date" value={date} onChange={(event) => setDate(event.target.value)} error={errors.date ?? pickError(server, 'date')} />
-      <TextField label="Kontrahent" value={payee} onChange={(event) => setPayee(event.target.value)} hint="Pusty — nazwa dostawcy." maxLength={100} autoComplete="off" />
-      <TextField label="Notatka" value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} />
+      <TextField label={t('postDialog.date')} type="date" value={date} onChange={(event) => setDate(event.target.value)} error={errors.date ?? pickError(server, 'date')} />
+      <TextField label={t('postDialog.payee')} value={payee} onChange={(event) => setPayee(event.target.value)} hint={t('postDialog.payeeHint')} maxLength={100} autoComplete="off" />
+      <TextField label={t('postDialog.note')} value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} />
       <FormAlert error={post.error} shownFields={['wallet_id', 'amount', 'amount.amount', 'date']} />
     </Dialog>
   )
@@ -333,11 +344,12 @@ function SkipDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
   const { household } = useHousehold()
   const skip = useSkipCharge(household.id)
   const toast = useToast()
+  const { t } = useTranslation('subscriptions')
   return (
     <ConfirmDialog
       open
-      title="Pominąć płatność?"
-      confirmLabel="Pomiń płatność"
+      title={t('skipDialog.title')}
+      confirmLabel={t('skipDialog.confirm')}
       danger={false}
       busy={skip.isPending}
       error={<FormAlert error={skip.error} />}
@@ -345,14 +357,14 @@ function SkipDialog({ charge, onClose }: { charge: Charge; onClose: () => void }
       onConfirm={() =>
         skip.mutate(charge.id, {
           onSuccess: () => {
-            toast.show({ message: `Pominięto płatność z ${formatDay(charge.due_date)}.` })
+            toast.show({ message: t('skipDialog.skipped', { date: formatDay(charge.due_date) }) })
             onClose()
           },
         })
       }
     >
       <ChargeSummary charge={charge} />
-      <p>Użyj, gdy w tym terminie nic nie zapłacono (np. darmowy miesiąc). Pominiętej płatności nie da się później dopasować.</p>
+      <p>{t('skipDialog.body')}</p>
     </ConfirmDialog>
   )
 }

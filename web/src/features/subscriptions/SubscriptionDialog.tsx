@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useCurrencies } from '../../api/hooks/households.ts'
@@ -21,9 +22,9 @@ import {
   isHttpUrl,
   maxReminders,
   nextDues,
-  plural,
   reminderChoices,
   reminderLabel,
+  unitWord,
 } from '../../lib/subscriptions.ts'
 import { envelopesEnabled, useEnvelopeOptions } from '../transactions/envelopes.ts'
 import { AmountField, EnvelopeField, TextAreaField } from '../transactions/fields.tsx'
@@ -39,11 +40,12 @@ type Props = {
 }
 
 export function SubscriptionDialog({ open, onClose, subscription }: Props) {
+  const { t } = useTranslation('subscriptions')
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title={subscription ? `Edycja: ${subscription.name}` : 'Nowa subskrypcja'}
+      title={subscription ? t('form.editTitle', { name: subscription.name }) : t('form.newTitle')}
       size="lg"
     >
       <SubscriptionForm onClose={onClose} subscription={subscription} />
@@ -52,12 +54,6 @@ export function SubscriptionDialog({ open, onClose, subscription }: Props) {
 }
 
 const units: CycleUnit[] = ['month', 'year', 'week', 'day']
-const unitForms: Record<CycleUnit, [string, string, string]> = {
-  day: ['dzień', 'dni', 'dni'],
-  week: ['tydzień', 'tygodnie', 'tygodni'],
-  month: ['miesiąc', 'miesiące', 'miesięcy'],
-  year: ['rok', 'lata', 'lat'],
-}
 
 /** Dostawca po nazwie lub kluczu (bez wielkości liter). */
 export function findVendor(vendors: Vendor[], text: string): Vendor | undefined {
@@ -153,6 +149,7 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
   const navigate = useNavigate()
   const vendorList = useId()
   const editing = !!subscription
+  const { t } = useTranslation('subscriptions')
 
   const [draft, setDraft] = useState<Draft>(() => initialDraft(subscription, vendors.data ?? [], today, household.base_currency))
   const [errors, setErrors] = useState<Record<string, string | undefined>>({})
@@ -162,7 +159,7 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
   const server = fieldErrors(mutation.error)
   const duplicate = mutation.error instanceof ApiError && mutation.error.reason === 'duplicate-name'
   const error = (field: string, ...serverFields: string[]) =>
-    errors[field] ?? pickError(server, field, ...serverFields) ?? (field === 'name' && duplicate ? 'Masz już subskrypcję o tej nazwie.' : undefined)
+    errors[field] ?? pickError(server, field, ...serverFields) ?? (field === 'name' && duplicate ? t('form.duplicate') : undefined)
 
   const every = intIn(draft.every, 1, 365)
   const preview = every && isDay(draft.anchor) ? { unit: draft.unit, every, anchor: draft.anchor } : null
@@ -190,22 +187,22 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
   const submit = async () => {
     const next: Record<string, string | undefined> = {}
     const name = draft.name.trim()
-    if (!name) next.name = 'Podaj nazwę.'
-    else if (name.length > 100) next.name = 'Najwyżej 100 znaków.'
+    if (!name) next.name = t('form.nameRequired')
+    else if (name.length > 100) next.name = t('form.nameTooLong')
     const vendor = findVendor(vendors.data ?? [], draft.vendor)
-    if (!vendor) next.vendor = 'Wybierz dostawcę z listy — albo „Inne”.'
+    if (!vendor) next.vendor = t('form.vendorRequired')
     const price = parseAmountInput(draft.amount, decimalsFor(draft.currency))
     if (!editing && !price.ok) next.price = price.error
-    if (!every) next.every = 'Od 1 do 365.'
-    if (!isDay(draft.anchor)) next.anchor = 'Podaj datę płatności.'
-    if (draft.trial && !isDay(draft.trialEndsAt)) next.trial_ends_at = 'Podaj koniec okresu próbnego.'
-    if (draft.reminders.length > maxReminders) next.reminder_offsets = `Najwyżej ${maxReminders} przypomnień.`
+    if (!every) next.every = t('form.everyRange')
+    if (!isDay(draft.anchor)) next.anchor = t('form.anchorRequired')
+    if (draft.trial && !isDay(draft.trialEndsAt)) next.trial_ends_at = t('form.trialRequired')
+    if (draft.reminders.length > maxReminders) next.reminder_offsets = t('form.remindersMax', { count: maxReminders })
     const tolerance = intIn(draft.tolerance, 0, 50)
-    if (tolerance === null) next.tolerance = 'Od 0 do 50 %.'
+    if (tolerance === null) next.tolerance = t('form.toleranceRange')
     const window = intIn(draft.window, 0, 15)
-    if (window === null) next.window = 'Od 0 do 15 dni.'
+    if (window === null) next.window = t('form.windowRange')
     const url = draft.manageUrl.trim()
-    if (url && !isHttpUrl(url)) next.manage_url = 'Adres musi zaczynać się od http:// lub https://.'
+    if (url && !isHttpUrl(url)) next.manage_url = t('form.urlInvalid')
     setErrors(next)
     if (Object.values(next).some(Boolean) || !vendor || !every || tolerance === null || window === null) {
       return
@@ -229,7 +226,7 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
           ...(url ? { manage_url: url } : {}),
         }
         const created = await create.mutateAsync(body)
-        toast.show({ message: `Dodano subskrypcję ${created.name}.` })
+        toast.show({ message: t('form.created', { name: created.name }) })
         onClose()
         navigate(householdPath(hid, `subscriptions/${created.id}`))
         return
@@ -249,7 +246,7 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
       if (Object.keys(body).length > 0) {
         await update.mutateAsync({ subscriptionId: subscription.id, body })
       }
-      toast.show({ message: `Zapisano subskrypcję ${name}.` })
+      toast.show({ message: t('form.saved', { name }) })
       onClose()
     } catch {
       // Błąd pokazuje formularz (mutation.error).
@@ -266,7 +263,7 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
       }}
     >
       <div className={styles.formGrid}>
-        <Field label="Dostawca" error={error('vendor')} hint={editing ? undefined : 'Wpisz nazwę albo wybierz z listy.'}>
+        <Field label={t('form.vendor')} error={error('vendor')} hint={editing ? undefined : t('form.vendorHint')}>
           {(control) => (
             <>
               <input
@@ -287,11 +284,11 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
           )}
         </Field>
         <TextField
-          label="Nazwa"
+          label={t('form.name')}
           value={draft.name}
           onChange={(event) => set('name', event.target.value)}
           error={error('name')}
-          hint="Np. plan usługi — musi być inna niż pozostałych subskrypcji."
+          hint={t('form.nameHint')}
           maxLength={100}
           autoComplete="off"
         />
@@ -299,35 +296,35 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
 
       {editing && subscription ? (
         <div className={styles.priceNow}>
-          <span>Cena teraz</span>
+          <span>{t('form.priceNow')}</span>
           <Money amount={subscription.price.amount} currency={subscription.price.currency} size="lg" />
-          <span className={styles.muted}>Zmianę ceny od wybranego dnia zapiszesz na stronie subskrypcji.</span>
+          <span className={styles.muted}>{t('form.priceNowHint')}</span>
         </div>
       ) : (
         <div className={styles.formGrid}>
           <AmountField
-            label="Cena"
+            label={t('form.price')}
             value={draft.amount}
             onChange={(value) => set('amount', value)}
             currency={draft.currency}
             error={error('price', 'price.amount', 'amount')}
-            hint="Tyle, ile pobiera dostawca, w jego walucie."
+            hint={t('form.priceHint')}
           />
           <SelectField
-            label="Waluta"
+            label={t('form.currency')}
             value={draft.currency}
             onChange={(event) => set('currency', event.target.value)}
             options={(currencies.data ?? [{ code: draft.currency, decimals: 2 }]).map((c) => ({ value: c.code, label: c.code }))}
-            hint={draft.currency !== household.base_currency ? `Koszty przeliczymy na ${household.base_currency}.` : undefined}
+            hint={draft.currency !== household.base_currency ? t('form.currencyHint', { currency: household.base_currency }) : undefined}
           />
         </div>
       )}
 
       <fieldset className={styles.fieldset}>
-        <legend>Cykl płatności</legend>
+        <legend>{t('form.cycle')}</legend>
         <div className={styles.cycleRow}>
           <TextField
-            label="Co ile"
+            label={t('form.every')}
             inputMode="numeric"
             value={draft.every}
             onChange={(event) => set('every', event.target.value)}
@@ -335,35 +332,35 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
             className={styles.everyField}
           />
           <SelectField
-            label="Jednostka"
+            label={t('form.unit')}
             value={draft.unit}
             onChange={(event) => set('unit', event.target.value as CycleUnit)}
             error={pickError(server, 'cycle.unit')}
-            options={units.map((unit) => ({ value: unit, label: plural(every ?? 1, ...unitForms[unit]) }))}
+            options={units.map((unit) => ({ value: unit, label: unitWord(unit, every ?? 1) }))}
           />
           <TextField
-            label="Dzień płatności"
+            label={t('form.anchor')}
             type="date"
             value={draft.anchor}
             onChange={(event) => set('anchor', event.target.value)}
             error={error('anchor', 'cycle.anchor')}
-            hint="Dowolny dzień, w którym przychodzi obciążenie — kolejne liczymy od niego."
+            hint={t('form.anchorHint')}
           />
         </div>
         <div className={styles.cyclePreview} aria-live="polite">
           {preview ? (
             <>
               <p className={styles.cycleText}>
-                <span className="visually-hidden">Cykl: </span>
+                <span className="visually-hidden">{t('form.cyclePrefix')}</span>
                 {cycleLabel(preview)}
               </p>
               {cycleNote(preview) && <p className={styles.muted}>{cycleNote(preview)}</p>}
               {upcoming.length > 0 && (
-                <p className={styles.muted}>Najbliższe płatności: {upcoming.map(formatDay).join(', ')}</p>
+                <p className={styles.muted}>{t('form.upcoming', { dates: upcoming.map(formatDay).join(', ') })}</p>
               )}
             </>
           ) : (
-            <p className={styles.muted}>Uzupełnij cykl, żeby zobaczyć najbliższe płatności.</p>
+            <p className={styles.muted}>{t('form.cycleIncomplete')}</p>
           )}
         </div>
       </fieldset>
@@ -371,14 +368,14 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
       <div className={styles.formGrid}>
         <div className={styles.stack}>
           <Checkbox
-            label="Okres próbny"
-            hint="Płatności zaczną się po jego końcu."
+            label={t('form.trial')}
+            hint={t('form.trialHint')}
             checked={draft.trial}
             onChange={(event) => set('trial', event.target.checked)}
           />
           {draft.trial && (
             <TextField
-              label="Koniec okresu próbnego"
+              label={t('form.trialEnds')}
               type="date"
               value={draft.trialEndsAt}
               onChange={(event) => set('trialEndsAt', event.target.value)}
@@ -387,13 +384,13 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
           )}
         </div>
         <SelectField
-          label="Portfel płatności"
+          label={t('form.wallet')}
           value={draft.walletId}
           onChange={(event) => set('walletId', event.target.value)}
           error={error('wallet_id')}
-          hint={draft.walletId ? 'Widzą ją tylko osoby, które widzą ten portfel.' : 'Bez portfela widzi ją całe gospodarstwo.'}
+          hint={draft.walletId ? t('form.walletHint') : t('form.noWalletHint')}
           options={[
-            { value: '', label: 'Bez portfela' },
+            { value: '', label: t('form.noWallet') },
             ...activeWallets.map((w) => ({ value: w.id, label: `${w.name} (${w.currency})` })),
           ]}
         />
@@ -408,9 +405,9 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
       </div>
 
       <fieldset className={styles.fieldset}>
-        <legend>Przypomnienia</legend>
+        <legend>{t('form.reminders')}</legend>
         <p className={styles.muted} id={`${vendorList}-rem`}>
-          Kiedy przypomnieć o płatności — najwyżej {maxReminders}.
+          {t('form.remindersHint', { max: maxReminders })}
         </p>
         <div className={styles.chips} role="group" aria-describedby={`${vendorList}-rem`}>
           {reminderOptions.map((days) => {
@@ -432,50 +429,50 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
       </fieldset>
 
       <details className={styles.advanced}>
-        <summary>Zaawansowane: dopasowanie płatności</summary>
+        <summary>{t('form.advanced')}</summary>
         <p className={styles.muted}>
-          Po tych regułach Denar szuka w rejestrze transakcji, które opłacają subskrypcję.
+          {t('form.advancedIntro')}
         </p>
         <div className={styles.formGrid}>
           <TextField
-            label="Wzorzec kontrahenta"
+            label={t('form.payeePattern')}
             value={draft.payeePattern}
             onChange={(event) => set('payeePattern', event.target.value)}
-            hint="Fragment nazwy kontrahenta lub notatki, np. OPENAI *CHATGPT. Pusty — nazwa dostawcy i subskrypcji."
+            hint={t('form.payeePatternHint')}
             error={pickError(server, 'match_rule.payee_pattern')}
             maxLength={100}
           />
           <TextField
-            label="Tolerancja kwoty (%)"
+            label={t('form.tolerance')}
             inputMode="numeric"
             value={draft.tolerance}
             onChange={(event) => set('tolerance', event.target.value)}
             error={error('tolerance', 'match_rule.amount_tolerance_pct')}
-            hint="Różnica kursu lub opłata banku."
+            hint={t('form.toleranceHint')}
           />
           <TextField
-            label="Okno dat (dni)"
+            label={t('form.window')}
             inputMode="numeric"
             value={draft.window}
             onChange={(event) => set('window', event.target.value)}
             error={error('window', 'match_rule.date_window_days')}
-            hint="Ile dni przed i po terminie szukać płatności."
+            hint={t('form.windowHint')}
           />
         </div>
       </details>
 
       <div className={styles.formGrid}>
         <TextField
-          label="Adres zarządzania"
+          label={t('form.manageUrl')}
           type="url"
           value={draft.manageUrl}
           onChange={(event) => set('manageUrl', event.target.value)}
           error={error('manage_url')}
-          hint="Strona, na której zmienisz plan lub anulujesz."
+          hint={t('form.manageUrlHint')}
           maxLength={500}
           placeholder="https://"
         />
-        <TextAreaField label="Notatka" value={draft.note} onChange={(value) => set('note', value)} maxLength={1000} error={error('note')} />
+        <TextAreaField label={t('form.note')} value={draft.note} onChange={(value) => set('note', value)} maxLength={1000} error={error('note')} />
       </div>
 
       <FormAlert
@@ -501,9 +498,9 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
         ]}
       />
       <footer className={styles.formFooter}>
-        <Button onClick={onClose}>Anuluj</Button>
+        <Button onClick={onClose}>{t('actions.cancel')}</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>
-          {editing ? 'Zapisz zmiany' : 'Dodaj subskrypcję'}
+          {editing ? t('form.saveChanges') : t('form.add')}
         </Button>
       </footer>
     </form>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Charge } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
@@ -23,19 +24,17 @@ export function ChargesQueuePage() {
   const charges = useOpenCharges()
   const { canWrite } = useSubscriptionsLayout()
   const [modal, setModal] = useState<ChargeModal>(null)
+  const { t } = useTranslation(['subscriptions', 'common'])
   return (
     <>
-      <p className={styles.lead}>
-        Płatności, których termin już minął, a w rejestrze nie ma jeszcze powiązanej transakcji. Potwierdź sugestię, zaksięguj wydatek
-        albo pomiń termin.
-      </p>
-      <QueryState query={charges} errorTitle="Nie udało się wczytać płatności" loading={<Skeleton lines={4} />}>
+      <p className={styles.lead}>{t('queue.lead')}</p>
+      <QueryState query={charges} errorTitle={t('queue.loadError')} loading={<Skeleton lines={4} />}>
         {(data) => {
           const items = data.pages.flatMap((page) => page.items)
           if (items.length === 0) {
             return (
-              <EmptyState icon="checkCircle" title="Wszystko dopasowane" headingLevel={2}>
-                <p>Każda płatność z minionym terminem ma swoją transakcję albo została pominięta.</p>
+              <EmptyState icon="checkCircle" title={t('queue.emptyTitle')} headingLevel={2}>
+                <p>{t('queue.emptyBody')}</p>
               </EmptyState>
             )
           }
@@ -45,7 +44,7 @@ export function ChargesQueuePage() {
           )
           return (
             <>
-              <ul className={styles.queue} aria-label="Płatności do dopasowania">
+              <ul className={styles.queue} aria-label={t('queue.label')}>
                 {sorted.map((charge) => (
                   <li key={charge.id}>
                     <QueueItem charge={charge} canWrite={canWrite} onAction={setModal} />
@@ -54,7 +53,7 @@ export function ChargesQueuePage() {
               </ul>
               {charges.hasNextPage && (
                 <Button onClick={() => void charges.fetchNextPage()} busy={charges.isFetchingNextPage}>
-                  Pokaż więcej
+                  {t('common:components.loadMore')}
                 </Button>
               )}
             </>
@@ -71,8 +70,9 @@ function QueueItem({ charge, canWrite, onAction }: { charge: Charge; canWrite: b
   const today = useToday()
   const vendors = useVendorNames()
   const name = coinName(charge.vendor, vendors.get(charge.vendor) ?? '', charge.subscription_name)
+  const { t } = useTranslation('subscriptions')
   return (
-    <article className={styles.queueItem} data-status={charge.status} aria-label={`${charge.subscription_name}, płatność ${formatDay(charge.due_date)}`}>
+    <article className={styles.queueItem} data-status={charge.status} aria-label={t('charge.labelWithName', { name: charge.subscription_name, date: formatDay(charge.due_date) })}>
       <header className={styles.queueHead}>
         <VendorCoin vendor={charge.vendor} name={name} size="md" />
         <div className={styles.queueTitle}>
@@ -80,7 +80,7 @@ function QueueItem({ charge, canWrite, onAction }: { charge: Charge; canWrite: b
             <Link to={householdPath(household.id, `subscriptions/${charge.subscription_id}`)}>{charge.subscription_name}</Link>
           </h2>
           <span className={styles.muted}>
-            termin {formatDay(charge.due_date)} ({relativeDay(charge.due_date, today)})
+            {t('queue.due', { date: formatDay(charge.due_date), relative: relativeDay(charge.due_date, today) })}
           </span>
         </div>
         <ChargeStatusBadge charge={charge} />
@@ -91,10 +91,10 @@ function QueueItem({ charge, canWrite, onAction }: { charge: Charge; canWrite: b
           <SuggestionList charge={charge} limit={3} compact />
           <div className={styles.queueActions}>
             <Button size="sm" onClick={() => onAction({ kind: 'post', charge })}>
-              Zaksięguj
+              {t('charge.post')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => onAction({ kind: 'skip', charge })}>
-              Pomiń
+              {t('charge.skip')}
             </Button>
           </div>
         </>

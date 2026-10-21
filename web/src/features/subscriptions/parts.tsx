@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router'
 import { useFxQuote } from '../../api/hooks/fx.ts'
 import { useCharges, useVendors } from '../../api/hooks/subscriptions.ts'
@@ -106,13 +107,14 @@ export function SubscriptionTabs() {
   const open = useOpenCharges()
   const pending = open.data?.pages.flatMap((page) => page.items).length ?? 0
   const more = open.hasNextPage
+  const { t } = useTranslation('subscriptions')
   const tabs = [
-    { path: 'subscriptions', label: 'Przegląd', end: true },
-    { path: 'subscriptions/list', label: 'Wszystkie', end: true },
-    { path: 'subscriptions/charges', label: 'Do dopasowania', end: true, count: pending },
+    { path: 'subscriptions', label: t('tabs.overview'), end: true },
+    { path: 'subscriptions/list', label: t('tabs.all'), end: true },
+    { path: 'subscriptions/charges', label: t('tabs.charges'), end: true, count: pending },
   ]
   return (
-    <nav aria-label="Subskrypcje" className={styles.tabs}>
+    <nav aria-label={t('tabs.label')} className={styles.tabs}>
       <ul>
         {tabs.map((tab) => (
           <li key={tab.path}>

@@ -1,4 +1,5 @@
 import type { ChargeStatus, Cycle, CycleUnit, SubscriptionStatus } from '../api/types.ts'
+import { tk } from '../i18n/translate.ts'
 import { perLocale } from './intl.ts'
 import { toMinor } from './money.ts'
 
@@ -6,42 +7,36 @@ import { toMinor } from './money.ts'
 // według reguł polskich, niezależnie od języka interfejsu.
 const dataLocale = 'pl'
 
-// Czyste funkcje subskrypcji: cykl po polsku, kolejne terminy (ta sama
+// Czyste funkcje subskrypcji: cykl w języku interfejsu, kolejne terminy (ta sama
 // arytmetyka co serwer — 004 FR-302), monogram i odcień dostawcy, dni do terminu.
 
-export const subscriptionStatusLabels: Record<SubscriptionStatus, string> = {
-  trial: 'Okres próbny',
-  active: 'Aktywna',
-  paused: 'Wstrzymana',
-  cancelled: 'Anulowana',
+// Mapy etykiet jako gettery (jak lib/labels.ts): tekst czytany w chwili odczytu.
+function labelMap<K extends string>(group: string, keys: readonly K[]): Record<K, string> {
+  const map = {} as Record<K, string>
+  for (const key of keys) {
+    Object.defineProperty(map, key, { enumerable: true, get: () => tk(`subscriptions:${group}.${key}`) })
+  }
+  return map
 }
+
+const cycleUnits = ['day', 'week', 'month', 'year'] as const satisfies readonly CycleUnit[]
+const chargeStatuses = ['expected', 'matched', 'missed', 'skipped', 'posted'] as const satisfies readonly ChargeStatus[]
+
+export const subscriptionStatusLabels: Record<SubscriptionStatus, string> = labelMap('status', ['trial', 'active', 'paused', 'cancelled'])
 
 export const subscriptionStatusOrder: SubscriptionStatus[] = ['active', 'trial', 'paused', 'cancelled']
 
-export const chargeStatusLabels: Record<ChargeStatus, string> = {
-  expected: 'Oczekiwana',
-  matched: 'Dopasowana',
-  missed: 'Przegapiona',
-  skipped: 'Pominięta',
-  posted: 'Zaksięgowana',
-}
+export const chargeStatusLabels: Record<ChargeStatus, string> = labelMap('chargeStatus', chargeStatuses)
 
-export const chargeStatusDescriptions: Record<ChargeStatus, string> = {
-  expected: 'Płatność jeszcze nie znaleziona w rejestrze',
-  matched: 'Powiązana z transakcją z rejestru',
-  missed: 'Termin i okno dopasowania minęły bez płatności',
-  skipped: 'Oznaczona jako nieopłacana w tym terminie',
-  posted: 'Wydatek zapisany z tej płatności',
-}
+export const chargeStatusDescriptions: Record<ChargeStatus, string> = labelMap('chargeStatusDescription', chargeStatuses)
 
-export const cycleUnitLabels: Record<CycleUnit, string> = {
-  day: 'dni',
-  week: 'tygodnie',
-  month: 'miesiące',
-  year: 'lata',
-}
+export const cycleUnitLabels: Record<CycleUnit, string> = labelMap('cycleUnit', cycleUnits)
 
-/** Polska forma liczebnika: 1 → one, 2–4 (bez 12–14) → few, reszta → many. */
+/**
+ * Polska forma liczebnika: 1 → one, 2–4 (bez 12–14) → few, reszta → many.
+ * Interfejs korzysta z liczby mnogiej i18next (`count`); funkcja zostaje dla
+ * zgodności.
+ */
 export function plural(n: number, one: string, few: string, many: string): string {
   if (n === 1) {
     return one
@@ -51,14 +46,12 @@ export function plural(n: number, one: string, few: string, many: string): strin
   return last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14) ? few : many
 }
 
-const unitWords: Record<CycleUnit, { every1: string; one: string; few: string; many: string }> = {
-  day: { every1: 'codziennie', one: 'dzień', few: 'dni', many: 'dni' },
-  week: { every1: 'co tydzień', one: 'tydzień', few: 'tygodnie', many: 'tygodni' },
-  month: { every1: 'co miesiąc', one: 'miesiąc', few: 'miesiące', many: 'miesięcy' },
-  year: { every1: 'co rok', one: 'rok', few: 'lata', many: 'lat' },
+/** Nazwa jednostki cyklu dla liczby (`miesiąc`, `miesiące`, `miesięcy`). */
+export function unitWord(unit: CycleUnit, count: number): string {
+  return tk(`subscriptions:unit.${unit}`, { count })
 }
 
-const weekdayOn = ['w niedzielę', 'w poniedziałek', 'we wtorek', 'w środę', 'w czwartek', 'w piątek', 'w sobotę']
+const weekdays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 const dayMonth = perLocale((locale) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }))
 
 type Day = { y: number; m: number; d: number }
@@ -90,24 +83,25 @@ export function addDaysTo(day: string, days: number): string {
 }
 
 /**
- * Cykl czytelnie: „co miesiąc, 31.”, „co 2 tygodnie, w środę”, „co rok, 14 lutego”,
+ * Cykl czytelnie (tu po polsku): „co miesiąc, 31.”, „co 2 tygodnie, w środę”, „co rok, 14 lutego”,
  * „codziennie”, „co 3 dni”.
  */
 export function cycleLabel(cycle: Pick<Cycle, 'unit' | 'every' | 'anchor'>): string {
-  const words = unitWords[cycle.unit]
   const every = Math.max(1, cycle.every)
-  const head = every === 1 ? words.every1 : `co ${every} ${plural(every, words.one, words.few, words.many)}`
+  const head =
+    every === 1 ? tk(`subscriptions:cycle.every1.${cycle.unit}`) : tk(`subscriptions:cycle.everyN.${cycle.unit}`, { count: every })
   const anchor = parseDay(cycle.anchor)
   if (!anchor) {
     return head
   }
+  const withAnchor = (text: string) => tk('subscriptions:cycle.withAnchor', { cycle: head, anchor: text })
   switch (cycle.unit) {
     case 'week':
-      return `${head}, ${weekdayOn[new Date(utc(anchor)).getUTCDay()]}`
+      return withAnchor(tk(`subscriptions:cycle.weekdayOn.${weekdays[new Date(utc(anchor)).getUTCDay()]}`))
     case 'month':
-      return `${head}, ${anchor.d}.`
+      return withAnchor(tk('subscriptions:cycle.monthDay', { day: anchor.d }))
     case 'year':
-      return `${head}, ${dayMonth().format(new Date(anchor.y, anchor.m - 1, anchor.d))}`
+      return withAnchor(dayMonth().format(new Date(anchor.y, anchor.m - 1, anchor.d)))
     default:
       return head
   }
@@ -120,9 +114,9 @@ export function cycleNote(cycle: Pick<Cycle, 'unit' | 'anchor'>): string | null 
     return null
   }
   if (cycle.unit === 'year') {
-    return anchor.m === 2 && anchor.d === 29 ? 'W latach nieprzestępnych — 28 lutego.' : null
+    return anchor.m === 2 && anchor.d === 29 ? tk('subscriptions:cycle.noteLeapDay') : null
   }
-  return `W krótszych miesiącach — ostatniego dnia miesiąca.`
+  return tk('subscriptions:cycle.noteMonthEnd')
 }
 
 /** k-ty termin cyklu liczony zawsze od anchor (bez dryfu). */
@@ -172,11 +166,11 @@ export function nextDues(cycle: Pick<Cycle, 'unit' | 'every' | 'anchor'>, from: 
 /** „dziś”, „jutro”, „za 3 dni”, „wczoraj”, „3 dni temu”. */
 export function relativeDay(day: string, today: string): string {
   const n = daysBetween(today, day)
-  if (n === 0) return 'dziś'
-  if (n === 1) return 'jutro'
-  if (n === -1) return 'wczoraj'
-  if (n > 0) return `za ${n} ${plural(n, 'dzień', 'dni', 'dni')}`
-  return `${-n} ${plural(-n, 'dzień', 'dni', 'dni')} temu`
+  if (n === 0) return tk('subscriptions:relative.today')
+  if (n === 1) return tk('subscriptions:relative.tomorrow')
+  if (n === -1) return tk('subscriptions:relative.yesterday')
+  if (n > 0) return tk('subscriptions:relative.inDays', { count: n })
+  return tk('subscriptions:relative.daysAgo', { count: -n })
 }
 
 /** Monogram dostawcy lub nazwy: „OpenAI” → „OA”, „HBO Max” → „HM”, „iCloud” → „iC”. */
@@ -225,11 +219,11 @@ export const reminderChoices = [0, 1, 3, 7, 14, 30]
 export const maxReminders = 5
 
 export function reminderLabel(days: number): string {
-  if (days === 0) return 'w dniu płatności'
-  if (days === 7) return 'tydzień przed'
-  if (days === 14) return '2 tygodnie przed'
-  if (days === 30) return 'miesiąc przed'
-  return `${days} ${plural(days, 'dzień', 'dni', 'dni')} przed`
+  if (days === 0) return tk('subscriptions:reminder.dueDay')
+  if (days === 7) return tk('subscriptions:reminder.week')
+  if (days === 14) return tk('subscriptions:reminder.twoWeeks')
+  if (days === 30) return tk('subscriptions:reminder.month')
+  return tk('subscriptions:reminder.daysBefore', { count: days })
 }
 
 /** Czy adres zarządzania jest http(s). */
