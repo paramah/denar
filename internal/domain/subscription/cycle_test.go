@@ -82,7 +82,7 @@ func TestNoDrift(t *testing.T) {
 
 func TestOnOrAfterAndNextDue(t *testing.T) {
 	cases := []struct {
-		cycle          Cycle
+		cycle                 Cycle
 		from, onOrAfter, next string
 	}{
 		{Cycle{Unit: Month, Every: 1, Anchor: day("2026-01-31")}, "2025-12-01", "2026-01-31", "2026-01-31"},
