@@ -62,3 +62,21 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - T-201…T-206 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 218 testów w 22 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
 - `task web:e2e`: 67 testów Playwright zielonych (6 pominiętych — testy telefonu w projektach desktopowych): przepływ budżetu na binarium (wpływ 3000 zł z szybkiego dodawania → grupa i koperty z celem z UI → przydziały z klawiatury Enter/Tab → wydatek 650 zł z kopertą (skrót `n`) → przekroczenie −150 zł w siatce, szczegółach i na pulpicie → następny miesiąc: koperta wyzerowana, RTA 2150 zł z uwagą o przekroczeniu → przeniesienie z RTA → auto-przydział celu 800 zł → bieżący miesiąc widzi 850 zł przydziałów przyszłych), drugi test: kolejność przyciskami z powrotem fokusu, 409 `group-not-empty`, 409 `envelope-in-use` → ukrycie; axe na budżecie, dialogach, szczegółach i trybie układu w motywie jasnym, ciemnym i na telefonie; budżet i pulpit bez poziomego przewijania na 390 px.
 - Lint wymaga ucieczek `\u00a0`/`\u202f` w wyrażeniach regularnych testów (narzędzia edycji potrafią je zamienić na znaki dosłowne — `no-irregular-whitespace`).
+
+## Część C2 — subskrypcje
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+
+- [x] **T-301 Spec części C2** — sekcje C2 w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [x] **T-302 Warstwa API i czyste funkcje** — `api/hooks/subscriptions.ts`, klucze `subscriptions*`/`charges`/`vendors` w `api/keys.ts`, typy, unieważnienie subskrypcji w `useTransactionsChanged`, `lib/subscriptions.ts` (+ testy), `convertAmount` w `lib/money.ts` (+ testy), fabryki i domyślne handlery MSW (subskrypcje, obciążenia, `fx-rates`), stopy `--metal-*` w `tokens.css`. NFR-D01.
+- [x] **T-303 Przegląd i lista** — `SubscriptionsLayout`, `SubscriptionTabs`, `OverviewPage` (`RenewalCalendar`, słupki), `ListPage` (`SubscriptionCard`, filtry), `VendorCoin`, `BaseEstimate`, trasy. Testy. FR-D01…FR-D11.
+- [x] **T-304 Formularz** — `SubscriptionDialog` (cykl z podglądem, trial, portfel, koperta, przypomnienia, zaawansowane, walidacja, PATCH tylko zmian). Testy. FR-D20…FR-D22.
+- [x] **T-305 Szczegóły i obciążenia** — `SubscriptionPage` (statusy, anulowanie, usuwanie, historia cen, zmiana ceny, harmonogram), `charges.tsx` (dopasowanie, zaksięgowanie, pominięcie, cofnięcie). Testy. FR-D30…FR-D33.
+- [x] **T-306 Kolejka i integracja** — `ChargesQueuePage`, `LinkChargeDialog`, plakietka i akcja w `TransactionRow`/`Register`, `SubscriptionsTile` na pulpicie. Testy. FR-D40, FR-D50, FR-D51.
+- [x] **T-307 E2E** — `e2e/subscriptions.spec.ts`, subskrypcje w `a11y.spec.ts` i `mobile.spec.ts`. NFR-D02.
+
+## Wynik części C2
+
+- T-301…T-307 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 259 testów w 24 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
+- `task web:e2e`: 73 testy Playwright zielone (8 pominiętych — testy telefonu w projektach desktopowych): przepływ subskrypcji na binarium (OpenAI 20 USD, dzień 31. → obciążenia od razu po utworzeniu → wydatek 80,40 zł w rejestrze → „Dopasuj” → sugestia → potwierdzenie → plakietka w rejestrze prowadzi do subskrypcji → zmiana ceny na 25 USD → lista „≈ 100,00 zł” → przegląd 100,00 zł / 1200,00 zł rocznie → pulpit), kolejka dopasowań (płatność EUR z wczoraj → zaksięgowanie 42,17 zł z portfela PLN), axe na przeglądzie, liście, kolejce, stronie subskrypcji i dialogach w motywie jasnym, ciemnym i na telefonie; strony subskrypcji bez poziomego przewijania na 390 px.
+- Obciążenia powstają przy tworzeniu subskrypcji (od dnia utworzenia minus okno dopasowania, 004 FR-304), więc e2e nie czeka na job `DENAR_SUBSCRIPTION_INTERVAL`; płatność „w przeszłości” uzyskuje się terminem wczoraj i oknem ≥ 1 dzień.

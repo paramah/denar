@@ -43,5 +43,14 @@ export const handlers: RequestHandler[] = [
   http.get(apiUrl('/households/:hid/budget/months/:month/envelopes/:eid/transactions'), () =>
     HttpResponse.json({ items: [], next_cursor: null }),
   ),
+  http.get(apiUrl('/households/:hid/fx-rates'), ({ request }) => {
+    const currency = new URL(request.url).searchParams.get('currency') ?? 'USD'
+    return HttpResponse.json(f.fxQuote({ currency, rate: '4.00000000' }))
+  }),
+  http.get(apiUrl('/vendors'), () => HttpResponse.json({ items: f.vendors })),
+  http.get(apiUrl('/households/:hid/subscriptions'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/households/:hid/subscriptions/summary'), () => HttpResponse.json(f.subscriptionSummary())),
+  http.get(apiUrl('/households/:hid/subscriptions/upcoming'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/households/:hid/charges'), () => HttpResponse.json({ items: [], next_cursor: null })),
   http.post(apiUrl('/auth/logout'), () => new HttpResponse(null, { status: 204 })),
 ]

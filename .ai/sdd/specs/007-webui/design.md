@@ -401,3 +401,115 @@ Poniżej 48rem: podsumowanie w jednej kolumnie, nagłówek kolumn ukryty, wiersz
 - **Powiadomienia (005):** `envelope.overspent`/`goal_due` mogą linkować do `/h/:id/budget/:month` (szczegóły koperty: stan `{kind:'details', envelopeId}` w `BudgetBody` — do wystawienia przez parametr adresu, np. `?envelope=`).
 - **MCP (006):** scope'y `budget:read|write` już są w `BotsTab`; UI nie potrzebuje zmian poza ewentualnym opisem narzędzi.
 - Pulpit: miejsce na kafelek „Najbliższe odnowienia” obok `BudgetTile` (`DashboardPage`).
+
+---
+
+# Design: część C2 — subskrypcje
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `requirements.md` (część C2), `api/openapi.yaml` (etap 004), `004-subscriptions/design.md`
+> Last Updated: 2026-10-21
+
+Bez zmian backendu i kontraktu. Konwencje z części A/B/C1 obowiązują.
+
+## C2-1. Trasy
+
+```
+h/:householdId
+  subscriptions (SubscriptionsLayout: nagłówek, „Nowa subskrypcja”, zakładki)
+    index            OverviewPage — koszt, kalendarz 30 dni, rozbicie, triale, zmiany cen
+    list             ListPage — filtry status/dostawca/portfel (?status=&vendor=&wallet=)
+    charges          ChargesQueuePage — kolejka dopasowań
+  subscriptions/:subscriptionId   SubscriptionPage — szczegóły, ceny, harmonogram
+```
+
+`SubscriptionsLayout` przekazuje zakładkom `{create, canWrite}` przez `useOutletContext` (pusty stan otwiera ten sam dialog). Pozycja menu „Subskrypcje” już istnieje (`NavLink` bez `end` podświetla też podstrony).
+
+## C2-2. Warstwa API (`api/hooks/subscriptions.ts`)
+
+| Hook | Endpoint | Klucz |
+|---|---|---|
+| `useVendors` | `GET /vendors` | `vendors()` (globalny, `staleTime: Infinity`) |
+| `useSubscriptions(hid, filters)`, `useSubscription`, `useSubscriptionPrices` | `GET subscriptions`, `…/{id}`, `…/{id}/prices` | `subscriptions(hid, filters)`, `subscription`, `subscriptionPrices` |
+| `useSubscriptionSummary` | `GET subscriptions/summary` | `subscriptionSummary` |
+| `useCharges(hid, filters)` (infinite, 50) | `GET charges` (`subscription_id, status[], from, to`) | `charges(hid, filters)` |
+| `useLinkedCharges(hid, from, to)` | `GET charges?status=matched&status=posted&from&to&limit=200` | `charges(…)` |
+| `useChargeSuggestions`, `useTransactionChargeSuggestions` | `GET charges/{id}/suggestions`, `transactions/{id}/charge-suggestions` | `chargeSuggestions`, `transactionChargeSuggestions` |
+| `use{Create,Update,Delete}Subscription`, `useChangeSubscriptionPrice` | CRUD, `POST …/prices` | unieważniają prefiks `subscriptionsAll(hid)` i `audit` (usunięcie — bez strony usuniętej subskrypcji) |
+| `useMatchCharge`, `useUnmatchCharge`, `usePostCharge`, `useSkipCharge` | `POST charges/{id}/match|unmatch|post|skip` | `useTransactionsChanged` (rejestry, salda, budżet, subskrypcje, audyt) |
+
+Wszystkie klucze subskrypcji i obciążeń leżą pod `['household', hid, 'subscriptions']`. `useTransactionsChanged` unieważnia też ten prefiks (usunięcie transakcji zwalnia obciążenie, nowa transakcja zmienia sugestie).
+
+## C2-3. Czyste funkcje (`lib/subscriptions.ts`, `lib/money.ts`)
+
+- `cycleLabel(cycle)` — „codziennie”, „co 3 dni”, „co tydzień, we wtorek”, „co 2 tygodnie, w środę”, „co miesiąc, 31.”, „co 5 miesięcy, 15.”, „co rok, 14 lutego”, „co 2 lata, …” (`plural()` — polskie formy 1 / 2–4 / 5+, z wyjątkiem 12–14); `cycleNote` — uwaga o dniu > 28 i 29.02.
+- `occurrence(cycle, k)`, `nextDues(cycle, from, n)` — terminy zawsze od `anchor` z obcięciem do końca miesiąca (jak `domain/subscription.Cycle`): podgląd w formularzu.
+- `daysBetween`, `addDaysTo`, `relativeDay` („dziś”, „jutro”, „za 5 dni”, „3 dni temu”) na datach kalendarzowych UTC (bez przesunięć strefy).
+- `monogram(name)` („OpenAI” → „OA”, „HBO Max” → „HM”, „iCloud” → „iC”), `vendorMetal(key)` — stały stop 1–6 z hasha klucza.
+- `share(amount, max, decimals)` — szerokość słupka 0–100 % z ilorazu `bigint` (wynik to tylko geometria).
+- `convertAmount(amount, fromDec, rate, toDec)` (`lib/money.ts`) — kwota × kurs na `bigint` z half-even; szacunek „≈ 80,00 zł” przy cenach w obcej walucie (`BaseEstimate` + `useFxQuote(currency, dziś)`).
+
+## C2-4. Projekt wizualny
+
+Kierunek „Mennica” z części A, rozwinięty dla subskrypcji: **każdy dostawca to moneta**. `VendorCoin` — krążek z karbowanym rantem (`repeating-conic-gradient`) i monogramem w Bricolage Grotesque zwężonym, w jednym z sześciu stopów (`--metal-N-bg/ink`: patyna, brąz, srebro, złoto, miedź, łupek; tekst ≥ 4.5:1 w obu motywach). To jedyny „głośny” element; reszta jak księga: cienkie linie, cyfry tabelaryczne, kolor tylko w stanie płatności (przegapiona — `--outflow`, dopasowana — `--inflow`).
+
+- **Kalendarz odnowień** (element charakterystyczny): pasek 31 kolumn-dni (weekendy przyciemnione, dziś — linia patyny, etykiety poniedziałków), monety „wybite” w dniach płatności (kilka w jednym dniu — w stosie). Pasek jest dekoracją (`aria-hidden`); tę samą treść niesie lista `ol` „Odnowienia w 30 dni”. Na telefonie monety maleją do kropek w kolorze stopu.
+- **Koszt**: panel z rantem monety wzdłuż górnej krawędzi (jak „Do przydzielenia” w C1), kwota miesięczna w `--text-3xl`, roczna pod nią; obok kalendarz.
+- **Rozbicie**: słupki poziome (`--share` ustawiane przez CSSOM — CSP, AD-C11), monety przy dostawcach.
+- **Formularz**: cykl w ramce z podglądem na tle patyny („Co miesiąc, 31.” + najbliższe terminy), przypomnienia jako chipy-checkboxy, reguła dopasowania w natywnym `<details>`.
+- **Harmonogram i kolejka**: wiersze z datą i „za N dni”, plakietką statusu, kwotą i akcjami; w kolejce karta z lewą krawędzią w kolorze stanu i sugestiami (`ScoreMeter`: pasek + „Zgodność 90%”).
+
+## C2-5. Komponenty (`features/subscriptions/`)
+
+| Plik | Zawartość |
+|---|---|
+| `parts.tsx` | `VendorCoin`, `coinName`, `useVendorNames`, `SubscriptionStatusBadge`, `ChargeStatusBadge`, `useToday`, `useOpenCharges`, `SubscriptionTabs` (z liczbą płatności do dopasowania), `BaseEstimate` |
+| `SubscriptionsLayout.tsx` | nagłówek, zakładki, dialog tworzenia, kontekst zakładek |
+| `OverviewPage.tsx` | koszt, `RenewalCalendar` (też w kafelku pulpitu, `compact`), `Bars` (dostawca/koperta), triale, zmiany cen |
+| `ListPage.tsx` | filtry w adresie, `SubscriptionCard` |
+| `SubscriptionDialog.tsx` | formularz tworzenia/edycji, `findVendor`, `changedFields` (PATCH tylko zmian) |
+| `SubscriptionPage.tsx` | szczegóły, statusy, `PriceHistory` + `PriceDialog`, `ChargeSchedule`, `CancelDialog`, `DeleteDialog`, `priceDelta` |
+| `charges.tsx` | `ChargeRow`, `ChargeDialogs` (`MatchDialog`, `PostDialog`, `SkipDialog`), `SuggestionList`, `ScoreMeter` |
+| `ChargesQueuePage.tsx` | kolejka dopasowań |
+| `LinkChargeDialog.tsx` | rejestr: „Powiąż z subskrypcją” |
+| `SubscriptionsTile.tsx` | pulpit |
+
+Zaksięgowanie: kwota zawsze wysyłana jawnie w walucie wybranego portfela; gdy waluta portfela = waluta płatności, pole ma kwotę płatności, inaczej jest puste i wymagane (kwota z wyciągu po przewalutowaniu banku).
+
+## C2-6. Integracja z rejestrem
+
+API transakcji nie zwraca obciążenia (`ChargeRepository.ByTransaction` nie jest wystawione przez REST). `Register` pyta więc `GET charges?status=matched&status=posted&from=<najstarsza−31 dni>&to=<najnowsza+31 dni>&limit=200` dla dat wczytanych wierszy i buduje mapę `transaction_id → charge`. `TransactionRow` dostaje `charge` (plakietka „Subskrypcja: <nazwa>” z linkiem — zastępuje plakietkę źródła) i `onLinkCharge` (przycisk przy wydatku z ujemną kwotą bez powiązania).
+
+## C2-7. Strategia testów
+
+- **Vitest**: `lib/subscriptions.test.ts` (cykle po polsku, odmiana, `nextDues` z 31 i 29.02, dni, monogramy, `share`), `convertAmount` w `money.test.ts`, `features/subscriptions/subscriptions.test.tsx`: przegląd (koszt, `incomplete`, odnowienia „za 10 dni”, rozbicie, triale, zmiany cen), pusty stan, formularz (tworzenie USD z cyklem, przypomnieniami i regułą → body; opisy cykli; walidacja bez wywołania API; limit 5 przypomnień; 409 przy nazwie; edycja tylko zmian), strona subskrypcji (historia z różnicą, zmiana ceny; pauza i usunięcie; dopasowanie, zaksięgowanie z kwotą PLN dla płatności USD, pominięcie, cofnięcie; 404), lista (karty i filtry → zapytanie), kolejka (sugestie, szybkie potwierdzenie, licznik w zakładce, pusty stan), rejestr (plakietka z linkiem, „Powiąż z subskrypcją”), pulpit. Data przez `vi.useFakeTimers({toFake: ['Date']})`. Domyślne handlery MSW: `/vendors`, subskrypcje, podsumowanie, obciążenia, `fx-rates` (kurs 4,0).
+- **Playwright** `e2e/subscriptions.spec.ts` (binarium, atrapa NBP 4,0): pusty przegląd → formularz (OpenAI, 20 USD, dzień 31.01.2025, portfel PLN, przypomnienie, zaawansowane) → strona subskrypcji z obciążeniami (powstają od razu przy tworzeniu — 004 FR-304, bez czekania na job `DENAR_SUBSCRIPTION_INTERVAL`) → wydatek 80,40 zł „OPENAI *CHATGPT” w dniu pierwszej płatności → „Dopasuj” → sugestia → potwierdzenie → plakietka w rejestrze prowadzi do subskrypcji → zmiana ceny na 25 USD od dziś → lista „≈ 100,00 zł” → przegląd 100,00 zł / 1200,00 zł rocznie, zmiana ceny 20 → 25 USD → pulpit; drugi test: płatność z wczoraj w EUR w kolejce → zaksięgowanie 42,17 zł → kolejka pusta → wiersz rejestru z plakietką. `a11y.spec.ts`: przegląd, lista, kolejka, strona subskrypcji, edycja, dopasowanie (jasny, ciemny, telefon); `mobile.spec.ts`: strony subskrypcji bez poziomego przewijania.
+
+## Decyzje autonomiczne (część C2)
+
+| ID | Decyzja | Uzasadnienie |
+|----|---------|--------------|
+| AD-D01 | Monogram na „monecie” w stopie z hasha klucza zamiast logo dostawców | CSP `img-src 'self'`, brak praw do znaków towarowych; spójne z „Mennicą” |
+| AD-D02 | Szacunek w walucie bazowej przy pojedynczej subskrypcji liczony w UI (`convertAmount`, kurs `fx-rates` z dziś) | API daje koszt w walucie ceny; sumy w walucie bazowej liczy serwer (summary) — UI nie sumuje walut |
+| AD-D03 | Link z rejestru do subskrypcji przez `GET charges?status=matched,posted` w oknie dat widocznych wierszy (±31 dni, ≤ 200) | REST nie zwraca obciążenia przy transakcji; bez zmiany kontraktu |
+| AD-D04 | Zaksięgowanie zawsze z jawną kwotą w walucie portfela; przy innej walucie pole puste i wymagane | Kwota z wyciągu jest prawdą (przewalutowanie banku), serwerowe przeliczenie kursem z dnia terminu byłoby tylko szacunkiem |
+| AD-D05 | Kolejka = `expected` i `missed` z terminem ≤ dziś; przyszłe oczekiwane są tylko w harmonogramie | Do rozstrzygnięcia jest to, co już powinno się pojawić na wyciągu |
+| AD-D06 | Pominięcie z potwierdzeniem, cofnięcie dopasowania bez | API nie cofa pominięcia; dopasowanie można powtórzyć |
+| AD-D07 | Cena w formularzu tylko przy tworzeniu; zmiana — osobny dialog „Zmień cenę” z datą | Historia cen to jedyne źródło ceny (004 AD-404); edycja nie może jej nadpisać po cichu |
+| AD-D08 | Edycja wysyła tylko zmienione pola (`changedFields`) | Zmiana np. notatki nie przelicza harmonogramu (cykl wysłany tylko przy zmianie) |
+| AD-D09 | Wznowienie ustawia `trial`, gdy okres próbny jeszcze trwa, inaczej `active` | Zgodne z regułą statusu domyślnego z 004 |
+| AD-D10 | Przypomnienia jako chipy {0, 1, 3, 7, 14, 30} + istniejące wartości subskrypcji, najwyżej 5 | Typowe wybory bez wpisywania liczb; zgodne z 004 FR-300 |
+| AD-D11 | Kalendarz jako dekoracyjny pasek + lista `ol` z tą samą treścią | Dostępność bez opisywania wykresu; pasek czytelny na rzut oka |
+
+## Ograniczenia (część C2)
+
+- Plakietka subskrypcji w rejestrze tylko dla powiązań z obciążeniem o terminie w oknie ±31 dni od wczytanych wierszy (do 200 obciążeń); poza nim zostaje plakietka źródła.
+- Szacunek „≈” przy subskrypcji używa dzisiejszego kursu; brak kursu — brak szacunku (sumy przeglądu mają wtedy `incomplete`).
+- Brak edycji `external_ref` i `ends_at` anulowania w UI (domyślne z serwera); brak cofnięcia pominięcia (API).
+- Pasek kalendarza pokazuje maks. kilka monet dziennie w stosie; pełna lista jest pod nim.
+
+## Punkty rozszerzenia dla części C3
+
+- **Powiadomienia (005):** zdarzenia `subscription.renewal_upcoming|trial_ending|price_changed|charge_missed` mają `subscription_id` i `charge_id` — linkuj do `/h/:id/subscriptions/:subscriptionId` (harmonogram na stronie) i do kolejki `/h/:id/subscriptions/charges`. Licznik `SubscriptionTabs` (`useOpenCharges`) można pokazać też przy pozycji menu. `ComingSoonPage section="notifications"` czeka na zastąpienie.
+- **MCP (006):** scope'y `subscriptions:read|write` są w `BotsTab`; instrukcja podłączenia bota (URL MCP, nagłówek `Authorization: Bearer dnr_…`, przykładowe pytania „co odnawia się w tym tygodniu?”) pasuje do dialogu z jednorazowym tokenem (`BotsTab`) i kroku „Podłącz asystenta AI” na pulpicie.
+- **Budżet:** `summary.by_envelope` (miesięczny koszt subskrypcji per koperta, 004 FR-330) może podpowiadać cel `monthly` w `EnvelopeDialog`.

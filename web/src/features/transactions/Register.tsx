@@ -1,10 +1,11 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { usePayees } from '../../api/hooks/payees.ts'
+import { useLinkedCharges } from '../../api/hooks/subscriptions.ts'
 import { useTransactions } from '../../api/hooks/transactions.ts'
 import { useWallets } from '../../api/hooks/wallets.ts'
 import type { TransactionFilters } from '../../api/keys.ts'
-import type { Transaction, Wallet } from '../../api/types.ts'
+import type { Charge, Transaction, Wallet } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
 import { Button } from '../../components/Button/Button.tsx'
 import { DataList } from '../../components/DataList/DataList.tsx'
@@ -13,7 +14,9 @@ import { SelectField, TextField } from '../../components/Field/Field.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
 import { Skeleton } from '../../components/Skeleton/Skeleton.tsx'
 import { kindLabels, statusLabels } from '../../lib/labels.ts'
+import { addDaysTo } from '../../lib/subscriptions.ts'
 import { useDebouncedValue } from '../../lib/useDebouncedValue.ts'
+import { LinkChargeDialog } from '../subscriptions/LinkChargeDialog.tsx'
 import { DeleteTransactionDialog, TransactionRow, transactionTitle } from './TransactionRow.tsx'
 import { TransactionDialog } from './TransactionDialog.tsx'
 import { envelopesEnabled, useEnvelopeNames, useEnvelopeOptions } from './envelopes.ts'
@@ -67,6 +70,8 @@ export function Register({ walletId, onAdd }: Props) {
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState<Transaction | null>(null)
   const envelopeNames = useEnvelopeNames(household.id)
+  const [linking, setLinking] = useState<Transaction | null>(null)
+  const linked = useLinkedChargeMap(transactions.data?.pages.flatMap((page) => page.items) ?? [])
   const filtered = Object.keys(filters).some((key) => key !== 'wallet_id' || !walletId)
 
   return (
@@ -115,12 +120,17 @@ export function Register({ walletId, onAdd }: Props) {
                 onEdit={() => setEditing(t)}
                 onDelete={() => setDeleting(t)}
                 envelopes={envelopeNames}
+                charge={linked.get(t.id)}
+                onLinkCharge={() => setLinking(t)}
               />
             )}
           />
         )}
       </QueryState>
       <TransactionDialog open={!!editing} onClose={() => setEditing(null)} transaction={editing ?? undefined} />
+      {linking && (
+        <LinkChargeDialog transaction={linking} title={transactionTitle(linking, wallets)} onClose={() => setLinking(null)} />
+      )}
       {deleting && (
         <DeleteTransactionDialog
           transaction={deleting}
@@ -129,6 +139,23 @@ export function Register({ walletId, onAdd }: Props) {
         />
       )}
     </section>
+  )
+}
+
+/**
+ * Obciążenia subskrypcji powiązane z widocznymi transakcjami (po id
+ * transakcji). API transakcji nie zwraca obciążenia, więc pytamy o dopasowane
+ * i zaksięgowane z okna dat widocznych wierszy (±31 dni na rozjazd terminu).
+ */
+function useLinkedChargeMap(items: Transaction[]): Map<string, Charge> {
+  const { household } = useHousehold()
+  const dates = items.map((t) => t.date).sort()
+  const from = dates.length ? addDaysTo(dates[0]!, -31) : ''
+  const to = dates.length ? addDaysTo(dates[dates.length - 1]!, 31) : ''
+  const charges = useLinkedCharges(household.id, from, to)
+  return useMemo(
+    () => new Map((charges.data ?? []).flatMap((c) => (c.transaction_id ? [[c.transaction_id, c] as const] : []))),
+    [charges.data],
   )
 }
 

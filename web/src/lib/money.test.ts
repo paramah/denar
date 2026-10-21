@@ -3,6 +3,7 @@ import {
   absDecimal,
   addDecimal,
   amountForInput,
+  convertAmount,
   currencyDecimals,
   decimalsOf,
   formatMoney,
@@ -167,5 +168,24 @@ describe('rates', () => {
     expect(formatRate('4.25120000')).toBe('4,2512')
     expect(formatRate('1')).toBe('1')
     expect(formatRate('2.00000000')).toBe('2')
+  })
+})
+
+describe('convertAmount', () => {
+  it.each([
+    ['20.00', 2, '4.0', 2, '80.00'],
+    ['19.99', 2, '4.0123', 2, '80.21'],
+    ['0.125', 3, '1', 2, '0.12'],
+    ['0.135', 3, '1', 2, '0.14'],
+    ['1000', 0, '0.0271', 2, '27.10'],
+    ['-12.50', 2, '4.3', 2, '-53.75'],
+    ['92233720368547758.07', 2, '4.5', 2, '415051741658464911.32'],
+  ])('%s × %s → %s', (amount, from, rate, to, expected) => {
+    expect(convertAmount(amount, from, rate, to)).toBe(expected)
+  })
+
+  it('rejects bad input', () => {
+    expect(convertAmount('abc', 2, '4', 2)).toBeNull()
+    expect(convertAmount('1.00', 2, '-4', 2)).toBeNull()
   })
 })

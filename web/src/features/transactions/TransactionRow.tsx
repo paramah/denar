@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useDeleteTransaction, useUpdateTransaction } from '../../api/hooks/transactions.ts'
-import type { Transaction, TransactionStatus, Wallet } from '../../api/types.ts'
+import type { Charge, Transaction, TransactionStatus, Wallet } from '../../api/types.ts'
 import { canManage, useHousehold } from '../../app/household.tsx'
 import { householdPath } from '../../app/nav.ts'
 import { Badge } from '../../components/Badge/Badge.tsx'
@@ -44,9 +44,13 @@ type Props = {
   onDelete: () => void
   /** Nazwy kopert po id (część C1); bez nich wiersz nie pokazuje koperty. */
   envelopes?: Map<string, string>
+  /** Obciążenie subskrypcji powiązane z transakcją (część C2) — plakietka z linkiem. */
+  charge?: Charge
+  /** „Powiąż z subskrypcją” dla wydatku bez powiązania (część C2). */
+  onLinkCharge?: () => void
 }
 
-export function TransactionRow({ transaction, wallets, showWallet, canWrite, onEdit, onDelete, envelopes }: Props) {
+export function TransactionRow({ transaction, wallets, showWallet, canWrite, onEdit, onDelete, envelopes, charge, onLinkCharge }: Props) {
   const { household } = useHousehold()
   const title = transactionTitle(transaction, wallets)
   const wallet = wallets.get(transaction.wallet_id)
@@ -75,7 +79,16 @@ export function TransactionRow({ transaction, wallets, showWallet, canWrite, onE
             <Link to={householdPath(household.id, `wallets/${wallet.id}`)}>{wallet.name}</Link>
           )}
           {showNote && <span>{transaction.note}</span>}
-          {transaction.source !== 'manual' && <Badge>{sourceLabels[transaction.source]}</Badge>}
+          {charge ? (
+            <Badge tone="brand" title="Płatność subskrypcji">
+              <Icon name="repeat" size={12} />
+              <Link to={householdPath(household.id, `subscriptions/${charge.subscription_id}`)} className={styles.badgeLink}>
+                Subskrypcja: {charge.subscription_name}
+              </Link>
+            </Badge>
+          ) : (
+            transaction.source !== 'manual' && <Badge>{sourceLabels[transaction.source]}</Badge>
+          )}
           {transaction.envelope_id && envelopes?.has(transaction.envelope_id) && (
             <Badge tone="brand" title="Koperta">
               <Icon name="budget" size={12} />
@@ -106,12 +119,20 @@ export function TransactionRow({ transaction, wallets, showWallet, canWrite, onE
         )}
       </div>
       <div className={styles.actions}>
+        {canWrite && onLinkCharge && !charge && linkable(transaction) && (
+          <IconButton icon="repeat" label={`Powiąż z subskrypcją: ${title}`} onClick={onLinkCharge} />
+        )}
         {canWrite && (
           <IconButton icon="trash" label={`Usuń: ${title}`} onClick={onDelete} />
         )}
       </div>
     </article>
   )
+}
+
+/** Czy transakcję można powiązać z płatnością subskrypcji (wydatek, nie przelew). */
+function linkable(transaction: Transaction): boolean {
+  return transaction.kind === 'expense' && toneOf(transaction.amount.amount) === 'outflow'
 }
 
 /**

@@ -80,3 +80,31 @@ test('the budget grid fits a narrow screen as cards', async ({ page }) => {
   await page.keyboard.press('Enter')
   await expect(assigned).toHaveValue('100,00')
 })
+
+test('subscription pages fit a narrow screen', async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1280) >= 768, 'tylko dla telefonu')
+  await loginViaApi(page.request)
+  const household = await createHousehold(page.request, { name: 'Telefon z subskrypcjami' })
+  const api = `/api/households/${household.id}`
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+  const ids: string[] = []
+  for (const [name, vendor, amount, currency] of [
+    ['Subskrypcja z bardzo długą nazwą na wąski ekran telefonu', 'other', '123456.78', 'PLN'],
+    ['ChatGPT Plus', 'openai', '20.00', 'USD'],
+    ['Disney+', 'disney', '37.99', 'PLN'],
+  ]) {
+    const created = await (
+      await page.request.post(`${api}/subscriptions`, {
+        data: { name, vendor, price: { amount, currency }, cycle: { unit: 'week', anchor: today } },
+      })
+    ).json()
+    ids.push(created.id)
+  }
+  for (const path of ['/subscriptions', '/subscriptions/list', '/subscriptions/charges', `/subscriptions/${ids[0]}`]) {
+    await page.goto(`/h/${household.id}${path}`)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await page.waitForLoadState('networkidle')
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow, path).toBeLessThanOrEqual(0)
+  }
+})

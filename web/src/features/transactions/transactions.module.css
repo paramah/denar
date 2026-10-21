@@ -453,3 +453,10 @@ button.title:hover {
     justify-content: flex-end;
   }
 }
+
+/* Plakietka z linkiem do subskrypcji (część C2). */
+.badgeLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}

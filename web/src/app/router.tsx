@@ -4,6 +4,11 @@ import { InvitePage } from '../features/auth/InvitePage.tsx'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { CreateHouseholdPage } from '../features/households/CreateHouseholdPage.tsx'
 import { ComingSoonPage } from '../features/placeholders/ComingSoonPage.tsx'
+import { ChargesQueuePage } from '../features/subscriptions/ChargesQueuePage.tsx'
+import { ListPage as SubscriptionListPage } from '../features/subscriptions/ListPage.tsx'
+import { OverviewPage as SubscriptionOverviewPage } from '../features/subscriptions/OverviewPage.tsx'
+import { SubscriptionPage } from '../features/subscriptions/SubscriptionPage.tsx'
+import { SubscriptionsLayout } from '../features/subscriptions/SubscriptionsLayout.tsx'
 import { DashboardPage } from '../features/dashboard/DashboardPage.tsx'
 import { AuditTab } from '../features/settings/AuditTab.tsx'
 import { BotsTab } from '../features/settings/BotsTab.tsx'
@@ -44,7 +49,16 @@ export const routes: RouteObject[] = [
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'budget', element: <BudgetPage /> },
           { path: 'budget/:month', element: <BudgetPage /> },
-          { path: 'subscriptions', element: <ComingSoonPage section="subscriptions" /> },
+          {
+            path: 'subscriptions',
+            element: <SubscriptionsLayout />,
+            children: [
+              { index: true, element: <SubscriptionOverviewPage /> },
+              { path: 'list', element: <SubscriptionListPage /> },
+              { path: 'charges', element: <ChargesQueuePage /> },
+            ],
+          },
+          { path: 'subscriptions/:subscriptionId', element: <SubscriptionPage /> },
           { path: 'notifications', element: <ComingSoonPage section="notifications" /> },
           {
             path: 'settings',
