@@ -18,7 +18,7 @@ var allKeys = []string{
 	"DENAR_NBP_URL", "DENAR_FX_INTERVAL", "DENAR_CHARGE_HORIZON", "DENAR_SUBSCRIPTION_INTERVAL",
 	"DENAR_MASTER_KEY", "DENAR_MASTER_KEY_FILE", "DENAR_SMTP_HOST", "DENAR_SMTP_PORT", "DENAR_SMTP_USERNAME",
 	"DENAR_SMTP_PASSWORD", "DENAR_SMTP_PASSWORD_FILE", "DENAR_SMTP_FROM", "DENAR_SMTP_TLS", "DENAR_NOTIFY_INTERVAL",
-	"DENAR_BUDGET_CHECK_INTERVAL", "DENAR_GOAL_DUE_DAYS", "DENAR_TELEGRAM_API_URL",
+	"DENAR_BUDGET_CHECK_INTERVAL", "DENAR_GOAL_DUE_DAYS", "DENAR_TELEGRAM_API_URL", "DENAR_DEV_FAKE_CONNECTOR",
 }
 
 // clean unsets every variable for the test.
@@ -189,7 +189,7 @@ func TestNotificationSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cfg.MasterKey != "" || cfg.SMTPEnabled() || cfg.NotifyInterval != 30*time.Second || cfg.BudgetCheckInterval != 15*time.Minute ||
-		cfg.GoalDueDays != 7 || cfg.TelegramAPIURL != "https://api.telegram.org" {
+		cfg.GoalDueDays != 7 || cfg.TelegramAPIURL != "https://api.telegram.org" || cfg.DevFakeConnector {
 		t.Errorf("defaults = %+v", cfg)
 	}
 
@@ -206,12 +206,13 @@ func TestNotificationSettings(t *testing.T) {
 	t.Setenv("DENAR_SMTP_TLS", "tls")
 	t.Setenv("DENAR_GOAL_DUE_DAYS", "14")
 	t.Setenv("DENAR_TELEGRAM_API_URL", "http://127.0.0.1:9000/")
+	t.Setenv("DENAR_DEV_FAKE_CONNECTOR", "1")
 	cfg, err = FromEnv()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.MasterKey.Reveal() != key || !cfg.SMTPEnabled() || cfg.SMTPPort != 465 || cfg.SMTPTLS != "tls" || cfg.SMTPPassword.Reveal() != "smtp-s3cret" ||
-		cfg.GoalDueDays != 14 || cfg.TelegramAPIURL != "http://127.0.0.1:9000" {
+		cfg.GoalDueDays != 14 || cfg.TelegramAPIURL != "http://127.0.0.1:9000" || !cfg.DevFakeConnector {
 		t.Errorf("values = %+v", cfg)
 	}
 	logged := fmt.Sprint(slog.GroupValue(cfg.LogValue().Group()...))

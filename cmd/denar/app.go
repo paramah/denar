@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"git.eiac.dev/tools/denar/internal/adapter/csvimport"
+	"git.eiac.dev/tools/denar/internal/adapter/fakeconnector"
 	"git.eiac.dev/tools/denar/internal/adapter/mcp"
 	"git.eiac.dev/tools/denar/internal/adapter/nbp"
 	"git.eiac.dev/tools/denar/internal/adapter/notify/matrix"
@@ -120,6 +122,10 @@ func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase
 		Preferences:   sqlite.NewPreferenceRepository(db),
 		Deliveries:    sqlite.NewDeliveryRepository(db),
 
+		ImportBatches: sqlite.NewImportBatchRepository(db),
+		Connections:   sqlite.NewConnectionRepository(db),
+		CSV:           csvimport.New(),
+
 		Rates:  rates,
 		IDs:    id.New(),
 		Tokens: token.Generator{},
@@ -150,6 +156,7 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 	if err := wireNotifications(cfg, log, &d); err != nil {
 		return nil, err
 	}
+	d.Connectors = connectors(cfg, d.Clock)
 	states := sqlite.NewOIDCStateRepository(db)
 	provider := oidc.New(oidc.Config{
 		Issuer:       cfg.OIDCIssuer,
@@ -277,6 +284,15 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		TestChannel:                usecase.NewTestChannel(d),
 		GetNotificationPreferences: usecase.NewGetNotificationPreferences(d),
 		SetNotificationPreferences: usecase.NewSetNotificationPreferences(d),
+
+		ListImportPresets:       usecase.NewListImportPresets(d),
+		PreviewCSVImport:        usecase.NewPreviewCSVImport(d),
+		ImportCSV:               usecase.NewImportCSV(d),
+		ListImports:             usecase.NewListImports(d),
+		GetImport:               usecase.NewGetImport(d),
+		RevertImport:            usecase.NewRevertImport(d),
+		ListConnectionProviders: usecase.NewListConnectionProviders(d),
+		ListConnections:         usecase.NewListConnections(d),
 	})
 
 	assistant := mcp.NewHandler(mcp.Deps{
@@ -464,6 +480,17 @@ func wireNotifications(cfg config.Config, log *slog.Logger, d *usecase.Deps) err
 		log.Info("DENAR_MASTER_KEY is not set: channels with secrets (Telegram, Matrix, signed webhooks, ntfy tokens) are unavailable")
 	}
 	return nil
+}
+
+// connectors is the registry of connection providers (stage 008): none
+// yet but the pretend bank of development. Stages 009-011 add the real
+// ones here.
+func connectors(cfg config.Config, c usecase.Clock) map[string]usecase.ConnectorProvider {
+	out := map[string]usecase.ConnectorProvider{}
+	if cfg.DevFakeConnector {
+		out[fakeconnector.Key] = fakeconnector.Provider(c.Now)
+	}
+	return out
 }
 
 // every runs job now and once per interval, until ctx is done; an error

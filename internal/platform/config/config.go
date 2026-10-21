@@ -101,6 +101,9 @@ type Config struct {
 	GoalDueDays int
 	// TelegramAPIURL is the Bot API origin (DENAR_TELEGRAM_API_URL).
 	TelegramAPIURL string
+	// DevFakeConnector adds the pretend bank "fake" to the connection
+	// providers, for development (DENAR_DEV_FAKE_CONNECTOR).
+	DevFakeConnector bool
 }
 
 // SMTPEnabled reports whether e-mail can be sent.
@@ -188,6 +191,9 @@ func FromEnv() (Config, error) {
 	if cfg.TelegramAPIURL, err = originURL("DENAR_TELEGRAM_API_URL", "https://api.telegram.org"); err != nil {
 		errs = append(errs, err)
 	}
+	if cfg.DevFakeConnector, err = envBool("DENAR_DEV_FAKE_CONNECTOR", false); err != nil {
+		errs = append(errs, err)
+	}
 
 	if len(errs) > 0 {
 		return Config{}, errors.Join(errs...)
@@ -242,6 +248,7 @@ func (c Config) LogValue() slog.Value {
 		slog.Duration("budget_check_interval", c.BudgetCheckInterval),
 		slog.Int("goal_due_days", c.GoalDueDays),
 		slog.String("telegram_api_url", c.TelegramAPIURL),
+		slog.Bool("dev_fake_connector", c.DevFakeConnector),
 	)
 }
 
