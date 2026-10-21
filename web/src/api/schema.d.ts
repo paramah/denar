@@ -374,6 +374,188 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/households/{householdId}/wallets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Portfele widoczne dla wywołującego, z saldami (wallets:read) */
+        get: operations["listWallets"];
+        put?: never;
+        /** Tworzy portfel (wallets:write); saldo otwarcia staje się pierwszą transakcją */
+        post: operations["createWallet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/wallets/{walletId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                walletId: components["parameters"]["WalletId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getWallet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Zmienia portfel; widoczność i członków zmienia tylko człowiek (twórca, a dla shared także owner/admin) */
+        patch: operations["updateWallet"];
+        trace?: never;
+    };
+    "/households/{householdId}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Transakcje widocznych portfeli od najnowszych (transactions:read) */
+        get: operations["searchTransactions"];
+        put?: never;
+        /** Zapisuje wydatek lub przychód (transactions:write); bez kursu — rate_pending */
+        post: operations["createTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/transactions/{transactionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                transactionId: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getTransaction"];
+        put?: never;
+        post?: never;
+        /** Usuwa transakcję; przelew — obie nogi */
+        delete: operations["deleteTransaction"];
+        options?: never;
+        head?: never;
+        /** Zmienia transakcję; noga przelewu — tylko data (obu nóg), status, notatka, tagi */
+        patch: operations["updateTransaction"];
+        trace?: never;
+    };
+    "/households/{householdId}/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Przelew między portfelami — dwie transakcje kind=transfer z jednym transfer_pair_id */
+        post: operations["createTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/payees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Kontrahenci według nazwy (transactions:read) */
+        get: operations["listPayees"];
+        put?: never;
+        /** Tworzy kontrahenta (transactions:write) */
+        post: operations["createPayee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/payees/{payeeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                payeeId: components["parameters"]["PayeeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Usuwa kontrahenta; jego transakcje zostają bez kontrahenta */
+        delete: operations["deletePayee"];
+        options?: never;
+        head?: never;
+        patch: operations["updatePayee"];
+        trace?: never;
+    };
+    "/households/{householdId}/fx-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
+         * @description Brak kursu (np. brak sieci) to source=unavailable i rate=null, nie błąd.
+         */
+        get: operations["quoteFxRate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/fx-rates/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Kursy ustawione ręcznie (transactions:read) */
+        get: operations["listFxOverrides"];
+        /** Ustawia kurs waluty na dzień (owner, admin; nie bot) i uzupełnia nim oczekujące transakcje */
+        put: operations["setFxOverride"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -586,7 +768,7 @@ export interface components {
             actor: components["schemas"]["Actor"];
             /** @description np. bot.created, membership.role_changed */
             action: string;
-            /** @description household, membership, invitation, bot (kolejne etapy dodają własne) */
+            /** @description household, membership, invitation, bot, wallet, transaction, payee, fx_rate (kolejne etapy dodają własne) */
             resource_type: string;
             resource_id: string;
             /** @description Zmienione pola; wartości bez sekretów */
@@ -600,6 +782,245 @@ export interface components {
         AuditPage: {
             items: components["schemas"]["AuditEntry"][];
             next_cursor: string | null;
+        };
+        /** @description Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne */
+        Money: {
+            /** @example -12.34 */
+            amount: string;
+            /** @description Kod ISO 4217 */
+            currency: string;
+            /** Format: int64 */
+            minor: number;
+        };
+        /** @description Kwota na wejściu; waluta musi być walutą portfela (inaczej 422) */
+        MoneyInput: {
+            /** @example 12.34 */
+            amount: string;
+            currency: string;
+        };
+        /** @enum {string} */
+        WalletType: "cash" | "checking" | "card" | "savings" | "investment" | "loan";
+        /** @enum {string} */
+        Visibility: "shared" | "private";
+        Wallet: {
+            id: string;
+            name: string;
+            type: components["schemas"]["WalletType"];
+            /** @description Niezmienna */
+            currency: string;
+            /** @description Czy portfel wchodzi do budżetu kopertowego */
+            on_budget: boolean;
+            visibility: components["schemas"]["Visibility"];
+            /** @description Kto widzi portfel prywatny (twórca zawsze); pusta dla shared */
+            member_ids: string[];
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            archived_at: string | null;
+            balance: components["schemas"]["Money"];
+            /** @description Suma transakcji cleared i reconciled */
+            cleared_balance: components["schemas"]["Money"];
+            /** @description Suma kwot bazowych (waluta gospodarstwa); częściowa, gdy rate_pending */
+            base_balance: components["schemas"]["Money"];
+            /** @description Część transakcji czeka na kurs */
+            rate_pending: boolean;
+        };
+        WalletList: {
+            items: components["schemas"]["Wallet"][];
+        };
+        WalletCreate: {
+            name: string;
+            type: string;
+            currency: string;
+            /** @description Domyślnie true */
+            on_budget?: boolean;
+            /** @description shared (domyślnie) lub private */
+            visibility?: string;
+            member_ids?: string[];
+            opening_balance?: components["schemas"]["MoneyInput"];
+            /**
+             * Format: date
+             * @description Data transakcji otwarcia; domyślnie dziś
+             */
+            opened_on?: string;
+        };
+        WalletUpdate: {
+            name?: string;
+            type?: string;
+            on_budget?: boolean;
+            visibility?: string;
+            member_ids?: string[];
+            archived?: boolean;
+        };
+        /** @enum {string} */
+        TransactionKind: "expense" | "income" | "transfer";
+        /** @enum {string} */
+        TransactionStatus: "pending" | "cleared" | "reconciled";
+        /** @enum {string} */
+        TransactionSource: "manual" | "import" | "subscription" | "bot";
+        Split: {
+            envelope_id: string | null;
+            amount: components["schemas"]["Money"];
+            base_amount: components["schemas"]["Money"] | null;
+            note: string;
+        };
+        Transaction: {
+            id: string;
+            wallet_id: string;
+            /** Format: date */
+            date: string;
+            /** @description W walucie portfela; ujemna — wypływ */
+            amount: components["schemas"]["Money"];
+            /** @description W walucie bazowej po kursie z dnia transakcji; null, gdy rate_pending */
+            base_amount: components["schemas"]["Money"] | null;
+            /** @description Użyty kurs (1 waluta portfela = fx_rate waluty bazowej) */
+            fx_rate: string | null;
+            rate_pending: boolean;
+            payee_id: string | null;
+            payee_name: string | null;
+            envelope_id: string | null;
+            kind: components["schemas"]["TransactionKind"];
+            status: components["schemas"]["TransactionStatus"];
+            source: components["schemas"]["TransactionSource"];
+            tags: string[];
+            note: string;
+            external_id: string | null;
+            transfer_pair_id: string | null;
+            /** @description Portfel drugiej nogi; null */
+            transfer_wallet_id: string | null;
+            splits: components["schemas"]["Split"][];
+            created_by: components["schemas"]["Actor"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        TransactionPage: {
+            items: components["schemas"]["Transaction"][];
+            next_cursor: string | null;
+        };
+        SplitInput: {
+            envelope_id?: string;
+            amount: components["schemas"]["MoneyInput"];
+            note?: string;
+        };
+        TransactionCreate: {
+            wallet_id: string;
+            /**
+             * Format: date
+             * @description Domyślnie dziś w strefie gospodarstwa
+             */
+            date?: string;
+            amount: components["schemas"]["MoneyInput"];
+            payee_id?: string;
+            /** @description Kontrahent po nazwie lub wzorcu; tworzony */
+            payee_name?: string;
+            envelope_id?: string;
+            /** @description expense (domyślnie) lub income */
+            kind?: string;
+            /** @description pending, cleared (domyślnie), reconciled */
+            status?: string;
+            tags?: string[];
+            note?: string;
+            /** @description Unikalny w portfelu */
+            external_id?: string;
+            splits?: components["schemas"]["SplitInput"][];
+        };
+        TransactionUpdate: {
+            /** Format: date */
+            date?: string;
+            amount?: components["schemas"]["MoneyInput"];
+            /** @description null usuwa kontrahenta */
+            payee_id?: string | null;
+            payee_name?: string;
+            envelope_id?: string | null;
+            kind?: string;
+            status?: string;
+            tags?: string[];
+            note?: string;
+            external_id?: string | null;
+            /** @description Pusta lista usuwa split */
+            splits?: components["schemas"]["SplitInput"][];
+        };
+        TransferCreate: {
+            from_wallet_id: string;
+            to_wallet_id: string;
+            /** Format: date */
+            date?: string;
+            /** @description Dodatnia kwota w walucie portfela źródłowego */
+            amount: components["schemas"]["MoneyInput"];
+            /** @description Kwota w walucie portfela docelowego; wymagana przy różnych walutach */
+            to_amount?: components["schemas"]["MoneyInput"];
+            /** @description Tylko między portfelem on-budget a off-budget; trafia na nogę on-budget */
+            envelope_id?: string;
+            status?: string;
+            tags?: string[];
+            note?: string;
+        };
+        Transfer: {
+            from: components["schemas"]["Transaction"];
+            to: components["schemas"]["Transaction"];
+        };
+        Payee: {
+            id: string;
+            name: string;
+            /** @description Podciągi (bez wielkości liter) rozpoznające kontrahenta w tekście */
+            patterns: string[];
+            default_envelope_id: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PayeeList: {
+            items: components["schemas"]["Payee"][];
+        };
+        PayeeCreate: {
+            name: string;
+            patterns?: string[];
+            default_envelope_id?: string;
+        };
+        PayeeUpdate: {
+            name?: string;
+            patterns?: string[];
+            default_envelope_id?: string | null;
+        };
+        /** @enum {string} */
+        FxSource: "identity" | "manual" | "nbp" | "unavailable";
+        FxQuote: {
+            currency: string;
+            base_currency: string;
+            /** Format: date */
+            date: string;
+            /** @description 1 currency = rate base_currency */
+            rate: string | null;
+            /**
+             * Format: date
+             * @description Dzień notowania (ostatni roboczy ≤ date)
+             */
+            rate_date: string | null;
+            source: components["schemas"]["FxSource"];
+        };
+        FxOverride: {
+            currency: string;
+            /** Format: date */
+            date: string;
+            /** @description 1 currency = rate waluty bazowej */
+            rate: string;
+            created_by: components["schemas"]["Actor"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        FxOverrideList: {
+            items: components["schemas"]["FxOverride"][];
+        };
+        FxOverrideSet: {
+            currency: string;
+            /** Format: date */
+            date: string;
+            /** @example 4.2512 */
+            rate: string;
         };
     };
     responses: {
@@ -626,6 +1047,9 @@ export interface components {
     parameters: {
         HouseholdId: string;
         BotId: string;
+        WalletId: string;
+        TransactionId: string;
+        PayeeId: string;
     };
     requestBodies: never;
     headers: never;
@@ -1349,6 +1773,504 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listWallets: {
+        parameters: {
+            query?: {
+                include_archived?: boolean;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Portfele według nazwy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletCreate"];
+            };
+        };
+        responses: {
+            /** @description Portfel */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wallet"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                walletId: components["parameters"]["WalletId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Portfel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wallet"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                walletId: components["parameters"]["WalletId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zmieniony portfel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wallet"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    searchTransactions: {
+        parameters: {
+            query?: {
+                wallet_id?: string;
+                from?: string;
+                to?: string;
+                payee_id?: string;
+                /** @description Koperta transakcji lub jednej z linii splitu */
+                envelope_id?: string;
+                /** @description Tekst w notatce lub nazwie kontrahenta */
+                q?: string;
+                kind?: string;
+                status?: string;
+                tag?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Strona transakcji */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    createTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionCreate"];
+            };
+        };
+        responses: {
+            /** @description Transakcja */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                transactionId: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Transakcja */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deleteTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                transactionId: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usunięta */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                transactionId: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zmieniona transakcja */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    createTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferCreate"];
+            };
+        };
+        responses: {
+            /** @description Obie nogi przelewu */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transfer"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listPayees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kontrahenci */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayeeList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createPayee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayeeCreate"];
+            };
+        };
+        responses: {
+            /** @description Kontrahent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payee"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deletePayee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                payeeId: components["parameters"]["PayeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usunięty */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updatePayee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                payeeId: components["parameters"]["PayeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayeeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zmieniony kontrahent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payee"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    quoteFxRate: {
+        parameters: {
+            query: {
+                currency: string;
+                /** @description Domyślnie dziś w strefie gospodarstwa */
+                date?: string;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kurs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxQuote"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listFxOverrides: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kursy od najnowszego dnia */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxOverrideList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    setFxOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxOverrideSet"];
+            };
+        };
+        responses: {
+            /** @description Kurs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxOverride"];
                 };
             };
             401: components["responses"]["Problem"];
