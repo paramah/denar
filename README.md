@@ -2,7 +2,7 @@
 
 Self-hosted budżet domowy: gospodarstwa, portfele, transakcje, koperty (YNAB), subskrypcje. Jedno binarium Go (Clean Architecture, SQLite), REST + (od etapu 006) MCP, Web UI osadzone w binarium (od etapu 007).
 
-Stan: **etapy 001-core i 002-wallets-transactions** — konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda. Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
+Stan: **etapy 001-core, 002-wallets-transactions i 003-envelope-budget** — konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda; budżet kopertowy (grupy, koperty z celami, przydziały, przeniesienia, auto-przydział, Ready-to-Assign z regułą overspendingu YNAB). Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
 
 ## Szybki start (lokalnie)
 
@@ -47,6 +47,23 @@ curl -s -b jar localhost:8080/api/households/<ID>/wallets
 ```
 
 Transakcja w walucie innej niż bazowa dostaje kwotę bazową po kursie NBP z dnia transakcji. Bez sieci zapisuje się z `rate_pending: true`, a job (co `DENAR_FX_INTERVAL`) uzupełnia ją później; owner/admin może też ustawić kurs ręcznie: `PUT /api/households/<ID>/fx-rates/overrides`.
+
+### Budżet kopertowy
+
+Koperty i przydziały są w walucie bazowej gospodarstwa; miesiąc budżetowy to `YYYY-MM` (od `month_start_day`). Aktywność koperty liczy się z transakcji portfeli on-budget z jej `envelope_id` (także linii splitu); przychody i wydatki bez koperty trafiają prosto do Ready-to-Assign. Przekroczenie (ujemne `available`) zeruje się w kolejnym miesiącu i pomniejsza jego Ready-to-Assign.
+
+```sh
+B=localhost:8080/api/households/<ID>/budget
+curl -s -b jar -H 'Content-Type: application/json' -d '{"name":"Codzienne"}' $B/envelope-groups
+curl -s -b jar -H 'Content-Type: application/json' \
+  -d '{"group_id":"<GROUP>","name":"Jedzenie","goal":{"type":"monthly","amount":{"amount":"800.00","currency":"PLN"}}}' $B/envelopes
+curl -s -b jar -X PUT -H 'Content-Type: application/json' -d '{"amount":{"amount":"500.00","currency":"PLN"}}' \
+  $B/months/2026-10/assignments/<ENVELOPE>
+curl -s -b jar -X POST $B/months/2026-10/auto-assign          # uzupełnia cele z Ready-to-Assign
+curl -s -b jar $B/months/2026-10                              # grupy → koperty, ready_to_assign, incomplete
+```
+
+Przeniesienie: `POST $B/months/<M>/moves` (`from_envelope_id`, `to_envelope_id`, `amount`); transakcje koperty: `GET $B/months/<M>/envelopes/<ENVELOPE>/transactions`. Koperty z transakcjami nie da się usunąć — ukryj ją (`PATCH … {"hidden":true}`). Boty potrzebują `budget:read`/`budget:write`.
 
 Token bota z CLI (bez UI): `./denar token create --household <ID> --name cron --scopes reports:read [--as email] [--expires 2027-01-01T00:00:00Z]` — token trafia na stdout.
 
