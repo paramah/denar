@@ -119,4 +119,18 @@ type Deps struct {
 	UnmatchCharge           *usecase.UnmatchCharge
 	PostCharge              *usecase.PostCharge
 	SkipCharge              *usecase.SkipCharge
+
+	ListNotifications          *usecase.ListNotifications
+	CountUnreadNotifications   *usecase.CountUnreadNotifications
+	MarkNotificationRead       *usecase.MarkNotificationRead
+	MarkAllNotificationsRead   *usecase.MarkAllNotificationsRead
+	ListChannelTypes           *usecase.ListChannelTypes
+	ListChannels               *usecase.ListChannels
+	CreateChannel              *usecase.CreateChannel
+	GetChannel                 *usecase.GetChannel
+	UpdateChannel              *usecase.UpdateChannel
+	DeleteChannel              *usecase.DeleteChannel
+	TestChannel                *usecase.TestChannel
+	GetNotificationPreferences *usecase.GetNotificationPreferences
+	SetNotificationPreferences *usecase.SetNotificationPreferences
 }

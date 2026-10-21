@@ -41,6 +41,54 @@ func (e ActorKind) Valid() bool {
 	}
 }
 
+// Defines values for ChannelType.
+const (
+	Email    ChannelType = "email"
+	Matrix   ChannelType = "matrix"
+	Ntfy     ChannelType = "ntfy"
+	Telegram ChannelType = "telegram"
+	Webhook  ChannelType = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the ChannelType enum.
+func (e ChannelType) Valid() bool {
+	switch e {
+	case Email:
+		return true
+	case Matrix:
+		return true
+	case Ntfy:
+		return true
+	case Telegram:
+		return true
+	case Webhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChannelTypeInfoUnavailableReason.
+const (
+	LessThannil        ChannelTypeInfoUnavailableReason = "<nil>"
+	SecretsUnavailable ChannelTypeInfoUnavailableReason = "secrets_unavailable"
+	SmtpNotConfigured  ChannelTypeInfoUnavailableReason = "smtp_not_configured"
+)
+
+// Valid indicates whether the value is a known member of the ChannelTypeInfoUnavailableReason enum.
+func (e ChannelTypeInfoUnavailableReason) Valid() bool {
+	switch e {
+	case LessThannil:
+		return true
+	case SecretsUnavailable:
+		return true
+	case SmtpNotConfigured:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChargeStatus.
 const (
 	Expected ChargeStatus = "expected"
@@ -86,6 +134,36 @@ func (e CycleUnit) Valid() bool {
 	case CycleUnitWeek:
 		return true
 	case CycleUnitYear:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventType.
+const (
+	EnvelopeGoalDue             EventType = "envelope.goal_due"
+	EnvelopeOverspent           EventType = "envelope.overspent"
+	SubscriptionChargeMissed    EventType = "subscription.charge_missed"
+	SubscriptionPriceChanged    EventType = "subscription.price_changed"
+	SubscriptionRenewalUpcoming EventType = "subscription.renewal_upcoming"
+	SubscriptionTrialEnding     EventType = "subscription.trial_ending"
+)
+
+// Valid indicates whether the value is a known member of the EventType enum.
+func (e EventType) Valid() bool {
+	switch e {
+	case EnvelopeGoalDue:
+		return true
+	case EnvelopeOverspent:
+		return true
+	case SubscriptionChargeMissed:
+		return true
+	case SubscriptionPriceChanged:
+		return true
+	case SubscriptionRenewalUpcoming:
+		return true
+	case SubscriptionTrialEnding:
 		return true
 	default:
 		return false
@@ -625,6 +703,103 @@ type BudgetMove struct {
 	ToEnvelopeId   string     `json:"to_envelope_id"`
 }
 
+// Channel defines model for Channel.
+type Channel struct {
+	// Config Pola jawne kanału (string → string). email: address (domyślnie e-mail użytkownika); webhook: url;
+	// ntfy: server (domyślnie https://ntfy.sh), topic; telegram: chat_id; matrix: homeserver, room_id (!id:serwer).
+	Config    ChannelConfig `json:"config"`
+	CreatedAt time.Time     `json:"created_at"`
+	Enabled   bool          `json:"enabled"`
+	HasSecret bool          `json:"has_secret"`
+	Id        string        `json:"id"`
+
+	// LastError Powód ostatniej nieudanej dostawy lub testu
+	LastError   nullable.Nullable[string]    `json:"last_error"`
+	LastErrorAt nullable.Nullable[time.Time] `json:"last_error_at"`
+	Name        string                       `json:"name"`
+	Type        ChannelType                  `json:"type"`
+	UpdatedAt   time.Time                    `json:"updated_at"`
+
+	// VerifiedAt Ostatnia udana wiadomość
+	VerifiedAt nullable.Nullable[time.Time] `json:"verified_at"`
+}
+
+// ChannelConfig Pola jawne kanału (string → string). email: address (domyślnie e-mail użytkownika); webhook: url;
+// ntfy: server (domyślnie https://ntfy.sh), topic; telegram: chat_id; matrix: homeserver, room_id (!id:serwer).
+type ChannelConfig map[string]string
+
+// ChannelCreate defines model for ChannelCreate.
+type ChannelCreate struct {
+	// Config Pola jawne kanału (string → string). email: address (domyślnie e-mail użytkownika); webhook: url;
+	// ntfy: server (domyślnie https://ntfy.sh), topic; telegram: chat_id; matrix: homeserver, room_id (!id:serwer).
+	Config *ChannelConfig `json:"config,omitempty"`
+
+	// Enabled Domyślnie true
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Name 1–100 znaków, unikalna wśród własnych kanałów
+	Name string `json:"name"`
+
+	// Secrets Sekrety kanału (string → string), tylko na wejściu: webhook: secret (opcjonalny klucz HMAC); ntfy: token
+	// (opcjonalny); telegram: bot_token; matrix: access_token. Szyfrowane kluczem DENAR_MASTER_KEY.
+	Secrets *ChannelSecrets `json:"secrets,omitempty"`
+	Type    ChannelType     `json:"type"`
+}
+
+// ChannelField defines model for ChannelField.
+type ChannelField struct {
+	Name     string `json:"name"`
+	Required bool   `json:"required"`
+}
+
+// ChannelList defines model for ChannelList.
+type ChannelList struct {
+	Items []Channel `json:"items"`
+}
+
+// ChannelSecrets Sekrety kanału (string → string), tylko na wejściu: webhook: secret (opcjonalny klucz HMAC); ntfy: token
+// (opcjonalny); telegram: bot_token; matrix: access_token. Szyfrowane kluczem DENAR_MASTER_KEY.
+type ChannelSecrets map[string]string
+
+// ChannelTestResult defines model for ChannelTestResult.
+type ChannelTestResult struct {
+	Error    nullable.Nullable[string] `json:"error"`
+	Ok       bool                      `json:"ok"`
+	TestedAt time.Time                 `json:"tested_at"`
+}
+
+// ChannelType defines model for ChannelType.
+type ChannelType string
+
+// ChannelTypeInfo defines model for ChannelTypeInfo.
+type ChannelTypeInfo struct {
+	Available         bool                                                `json:"available"`
+	ConfigFields      []ChannelField                                      `json:"config_fields"`
+	SecretFields      []ChannelField                                      `json:"secret_fields"`
+	Type              ChannelType                                         `json:"type"`
+	UnavailableReason nullable.Nullable[ChannelTypeInfoUnavailableReason] `json:"unavailable_reason"`
+}
+
+// ChannelTypeInfoUnavailableReason defines model for ChannelTypeInfo.UnavailableReason.
+type ChannelTypeInfoUnavailableReason string
+
+// ChannelTypeList defines model for ChannelTypeList.
+type ChannelTypeList struct {
+	Items []ChannelTypeInfo `json:"items"`
+}
+
+// ChannelUpdate defines model for ChannelUpdate.
+type ChannelUpdate struct {
+	// Config Pola jawne kanału (string → string). email: address (domyślnie e-mail użytkownika); webhook: url;
+	// ntfy: server (domyślnie https://ntfy.sh), topic; telegram: chat_id; matrix: homeserver, room_id (!id:serwer).
+	Config  *ChannelConfig `json:"config,omitempty"`
+	Enabled *bool          `json:"enabled,omitempty"`
+	Name    *string        `json:"name,omitempty"`
+
+	// Secrets Zastępuje wszystkie sekrety; null je usuwa; brak pola — bez zmian
+	Secrets nullable.Nullable[map[string]string] `json:"secrets,omitempty"`
+}
+
 // Charge defines model for Charge.
 type Charge struct {
 	// Amount W walucie ceny z dnia terminu
@@ -793,6 +968,9 @@ type EnvelopeUpdate struct {
 	Position *int                         `json:"position,omitempty"`
 }
 
+// EventType defines model for EventType.
+type EventType string
+
 // FxOverride defines model for FxOverride.
 type FxOverride struct {
 	CreatedAt time.Time          `json:"created_at"`
@@ -923,10 +1101,18 @@ type Invitation struct {
 type InvitationCreate struct {
 	Email string `json:"email"`
 	Role  string `json:"role"`
+
+	// SendEmail Wyślij link e-mailem (wymaga SMTP; bez — 409 smtp-not-configured)
+	SendEmail *bool `json:"send_email,omitempty"`
 }
 
 // InvitationCreated defines model for InvitationCreated.
 type InvitationCreated struct {
+	// EmailError Powód, gdy wysłanie e-maila się nie udało (zaproszenie i tak powstało)
+	EmailError nullable.Nullable[string] `json:"email_error,omitempty"`
+
+	// EmailSent Link wysłany e-mailem
+	EmailSent  bool       `json:"email_sent"`
 	Invitation Invitation `json:"invitation"`
 
 	// Token Jednorazowy token; tylko w tej odpowiedzi
@@ -1042,6 +1228,42 @@ type MoneyInput struct {
 	Currency string `json:"currency"`
 }
 
+// Notification defines model for Notification.
+type Notification struct {
+	Body        string    `json:"body"`
+	CreatedAt   time.Time `json:"created_at"`
+	HouseholdId string    `json:"household_id"`
+	Id          string    `json:"id"`
+
+	// Link Ścieżka Web UI, np. /h/{hid}/subscriptions/{sid}, /h/{hid}/subscriptions/charges, /h/{hid}/budget/2026-10
+	Link       string                       `json:"link"`
+	ReadAt     nullable.Nullable[time.Time] `json:"read_at"`
+	ResourceId string                       `json:"resource_id"`
+
+	// ResourceType subscription albo envelope
+	ResourceType string    `json:"resource_type"`
+	Title        string    `json:"title"`
+	Type         EventType `json:"type"`
+}
+
+// NotificationPage defines model for NotificationPage.
+type NotificationPage struct {
+	Items      []Notification            `json:"items"`
+	NextCursor nullable.Nullable[string] `json:"next_cursor"`
+}
+
+// NotificationPreference defines model for NotificationPreference.
+type NotificationPreference struct {
+	ChannelIds []string  `json:"channel_ids"`
+	InApp      bool      `json:"in_app"`
+	Type       EventType `json:"type"`
+}
+
+// NotificationPreferences defines model for NotificationPreferences.
+type NotificationPreferences struct {
+	Items []NotificationPreference `json:"items"`
+}
+
 // Payee defines model for Payee.
 type Payee struct {
 	CreatedAt         time.Time                 `json:"created_at"`
@@ -1135,6 +1357,17 @@ type Problem struct {
 
 // ProblemCode defines model for Problem.Code.
 type ProblemCode string
+
+// ReadAllInput defines model for ReadAllInput.
+type ReadAllInput struct {
+	// HouseholdId Tylko z tego gospodarstwa; brak — wszystkie
+	HouseholdId *string `json:"household_id,omitempty"`
+}
+
+// ReadAllResult defines model for ReadAllResult.
+type ReadAllResult struct {
+	Updated int `json:"updated"`
+}
 
 // Registered defines model for Registered.
 type Registered struct {
@@ -1437,6 +1670,11 @@ type TrialEnding struct {
 	Vendor         string             `json:"vendor"`
 }
 
+// UnreadCount defines model for UnreadCount.
+type UnreadCount struct {
+	Count int `json:"count"`
+}
+
 // UpcomingRenewal defines model for UpcomingRenewal.
 type UpcomingRenewal struct {
 	// BaseAmount Szacunek w walucie bazowej po dzisiejszym kursie; null bez kursu
@@ -1562,6 +1800,9 @@ type WalletUpdate struct {
 
 // BotId defines model for BotId.
 type BotId = string
+
+// ChannelId defines model for ChannelId.
+type ChannelId = string
 
 // ChargeId defines model for ChargeId.
 type ChargeId = string
@@ -1690,6 +1931,22 @@ type ListWalletsParams struct {
 	IncludeArchived *bool `form:"include_archived,omitempty" json:"include_archived,omitempty"`
 }
 
+// ListNotificationsParams defines parameters for ListNotifications.
+type ListNotificationsParams struct {
+	// HouseholdId Tylko z tego gospodarstwa
+	HouseholdId *string `form:"household_id,omitempty" json:"household_id,omitempty"`
+
+	// Unread Tylko nieprzeczytane
+	Unread *bool   `form:"unread,omitempty" json:"unread,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CountUnreadNotificationsParams defines parameters for CountUnreadNotifications.
+type CountUnreadNotificationsParams struct {
+	HouseholdId *string `form:"household_id,omitempty" json:"household_id,omitempty"`
+}
+
 // LoginLocalJSONRequestBody defines body for LoginLocal for application/json ContentType.
 type LoginLocalJSONRequestBody = LocalLogin
 
@@ -1776,6 +2033,18 @@ type PreviewInvitationJSONRequestBody = InvitationToken
 
 // RegisterWithInvitationJSONRequestBody defines body for RegisterWithInvitation for application/json ContentType.
 type RegisterWithInvitationJSONRequestBody = InvitationRegister
+
+// CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
+type CreateChannelJSONRequestBody = ChannelCreate
+
+// UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
+type UpdateChannelJSONRequestBody = ChannelUpdate
+
+// SetNotificationPreferencesJSONRequestBody defines body for SetNotificationPreferences for application/json ContentType.
+type SetNotificationPreferencesJSONRequestBody = NotificationPreferences
+
+// MarkAllNotificationsReadJSONRequestBody defines body for MarkAllNotificationsRead for application/json ContentType.
+type MarkAllNotificationsReadJSONRequestBody = ReadAllInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -2007,6 +2276,45 @@ type ServerInterface interface {
 	// GetMe Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// ListChannelTypes Typy kanałów, ich pola i dostępność na tym serwerze (SMTP, klucz główny)
+	// (GET /me/channel-types)
+	ListChannelTypes(w http.ResponseWriter, r *http.Request)
+	// ListChannels Własne kanały powiadomień wg nazwy; tylko ludzie
+	// (GET /me/channels)
+	ListChannels(w http.ResponseWriter, r *http.Request)
+	// CreateChannel Dodaje kanał (maks. 20); sekrety są szyfrowane i nigdy nie wracają
+	// (POST /me/channels)
+	CreateChannel(w http.ResponseWriter, r *http.Request)
+	// DeleteChannel Usuwa kanał z oczekującymi dostawami
+	// (DELETE /me/channels/{channelId})
+	DeleteChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId)
+	// GetChannel Kanał
+	// (GET /me/channels/{channelId})
+	GetChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId)
+	// UpdateChannel Zmienia kanał; nowa konfiguracja lub sekrety czyszczą verified_at i last_error
+	// (PATCH /me/channels/{channelId})
+	UpdateChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId)
+	// TestChannel Wysyła wiadomość testową teraz i zwraca wynik (zapisuje verified_at albo last_error)
+	// (POST /me/channels/{channelId}/test)
+	TestChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId)
+	// GetNotificationPreferences Preferencje powiadomień w gospodarstwie dla każdego typu zdarzenia (domyślnie in-app, bez kanałów)
+	// (GET /me/households/{householdId}/notification-preferences)
+	GetNotificationPreferences(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// SetNotificationPreferences Zastępuje preferencje; typy pominięte wracają do domyślnych; kanały muszą być własne
+	// (PUT /me/households/{householdId}/notification-preferences)
+	SetNotificationPreferences(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// ListNotifications Powiadomienia w aplikacji od najnowszych (bot — powiadomienia twórcy w swoim gospodarstwie, notifications:read)
+	// (GET /me/notifications)
+	ListNotifications(w http.ResponseWriter, r *http.Request, params ListNotificationsParams)
+	// MarkAllNotificationsRead Oznacza wszystkie (albo z gospodarstwa) jako przeczytane; tylko ludzie
+	// (POST /me/notifications/read-all)
+	MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request)
+	// CountUnreadNotifications Liczba nieprzeczytanych powiadomień (wszystkich albo gospodarstwa)
+	// (GET /me/notifications/unread-count)
+	CountUnreadNotifications(w http.ResponseWriter, r *http.Request, params CountUnreadNotificationsParams)
+	// MarkNotificationRead Oznacza powiadomienie jako przeczytane (ponownie — bez zmiany); tylko ludzie
+	// (POST /me/notifications/{notificationId}/read)
+	MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId string)
 	// ListVendors Słownik dostawców subskrypcji (klucz i nazwa wyświetlana)
 	// (GET /vendors)
 	ListVendors(w http.ResponseWriter, r *http.Request)
@@ -4731,6 +5039,349 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 	handler.ServeHTTP(w, r)
 }
 
+// ListChannelTypes operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelTypes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelTypes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChannels operation middleware
+func (siw *ServerInterfaceWrapper) ListChannels(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannels(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateChannel operation middleware
+func (siw *ServerInterfaceWrapper) CreateChannel(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateChannel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteChannel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetChannel operation middleware
+func (siw *ServerInterfaceWrapper) GetChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateChannel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestChannel operation middleware
+func (siw *ServerInterfaceWrapper) TestChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNotificationPreferences operation middleware
+func (siw *ServerInterfaceWrapper) GetNotificationPreferences(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotificationPreferences(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetNotificationPreferences operation middleware
+func (siw *ServerInterfaceWrapper) SetNotificationPreferences(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetNotificationPreferences(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListNotifications operation middleware
+func (siw *ServerInterfaceWrapper) ListNotifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListNotificationsParams
+
+	// ------------- Optional query parameter "household_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "household_id", r.URL.Query(), &params.HouseholdId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "household_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "household_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unread" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unread", r.URL.Query(), &params.Unread, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unread"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unread", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNotifications(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkAllNotificationsRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkAllNotificationsRead(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CountUnreadNotifications operation middleware
+func (siw *ServerInterfaceWrapper) CountUnreadNotifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CountUnreadNotificationsParams
+
+	// ------------- Optional query parameter "household_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "household_id", r.URL.Query(), &params.HouseholdId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "household_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "household_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CountUnreadNotifications(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkNotificationRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "notificationId" -------------
+	var notificationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "notificationId", r.PathValue("notificationId"), &notificationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "notificationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkNotificationRead(w, r, notificationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListVendors operation middleware
 func (siw *ServerInterfaceWrapper) ListVendors(w http.ResponseWriter, r *http.Request) {
 
@@ -4942,6 +5593,19 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/post", wrapper.PostCharge)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/charges/{chargeId}/skip", wrapper.SkipCharge)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/transactions/{transactionId}/charge-suggestions", wrapper.SuggestChargesForTransaction)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/notifications", wrapper.ListNotifications)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/notifications/unread-count", wrapper.CountUnreadNotifications)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/notifications/read-all", wrapper.MarkAllNotificationsRead)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/notifications/{notificationId}/read", wrapper.MarkNotificationRead)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/channel-types", wrapper.ListChannelTypes)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/channels", wrapper.ListChannels)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/channels", wrapper.CreateChannel)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/me/channels/{channelId}", wrapper.DeleteChannel)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/channels/{channelId}", wrapper.GetChannel)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/me/channels/{channelId}", wrapper.UpdateChannel)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/channels/{channelId}/test", wrapper.TestChannel)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/households/{householdId}/notification-preferences", wrapper.GetNotificationPreferences)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/me/households/{householdId}/notification-preferences", wrapper.SetNotificationPreferences)
 
 	return m
 }
@@ -8130,6 +8794,20 @@ func (response CreateInvitation404ApplicationProblemPlusJSONResponse) VisitCreat
 	return err
 }
 
+type CreateInvitation409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateInvitation409ApplicationProblemPlusJSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateInvitation422ApplicationProblemPlusJSONResponse Problem
 
 func (response CreateInvitation422ApplicationProblemPlusJSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
@@ -10644,6 +11322,900 @@ func (response GetMe401ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w 
 	return err
 }
 
+type ListChannelTypesRequestObject struct {
+}
+
+type ListChannelTypesResponseObject interface {
+	VisitListChannelTypesResponse(w http.ResponseWriter) error
+}
+
+type ListChannelTypes200JSONResponse ChannelTypeList
+
+func (response ListChannelTypes200JSONResponse) VisitListChannelTypesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelTypes401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListChannelTypes401ApplicationProblemPlusJSONResponse) VisitListChannelTypesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelTypes403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListChannelTypes403ApplicationProblemPlusJSONResponse) VisitListChannelTypesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelsRequestObject struct {
+}
+
+type ListChannelsResponseObject interface {
+	VisitListChannelsResponse(w http.ResponseWriter) error
+}
+
+type ListChannels200JSONResponse ChannelList
+
+func (response ListChannels200JSONResponse) VisitListChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannels401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListChannels401ApplicationProblemPlusJSONResponse) VisitListChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannels403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListChannels403ApplicationProblemPlusJSONResponse) VisitListChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannelRequestObject struct {
+	Body *CreateChannelJSONRequestBody
+}
+
+type CreateChannelResponseObject interface {
+	VisitCreateChannelResponse(w http.ResponseWriter) error
+}
+
+type CreateChannel201JSONResponse Channel
+
+func (response CreateChannel201JSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateChannel401ApplicationProblemPlusJSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateChannel403ApplicationProblemPlusJSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateChannel409ApplicationProblemPlusJSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateChannel422ApplicationProblemPlusJSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+}
+
+type DeleteChannelResponseObject interface {
+	VisitDeleteChannelResponse(w http.ResponseWriter) error
+}
+
+type DeleteChannel204Response struct {
+}
+
+func (response DeleteChannel204Response) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteChannel401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteChannel401ApplicationProblemPlusJSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannel403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteChannel403ApplicationProblemPlusJSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannel404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteChannel404ApplicationProblemPlusJSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+}
+
+type GetChannelResponseObject interface {
+	VisitGetChannelResponse(w http.ResponseWriter) error
+}
+
+type GetChannel200JSONResponse Channel
+
+func (response GetChannel200JSONResponse) VisitGetChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChannel401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetChannel401ApplicationProblemPlusJSONResponse) VisitGetChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChannel403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetChannel403ApplicationProblemPlusJSONResponse) VisitGetChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChannel404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetChannel404ApplicationProblemPlusJSONResponse) VisitGetChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+	Body      *UpdateChannelJSONRequestBody
+}
+
+type UpdateChannelResponseObject interface {
+	VisitUpdateChannelResponse(w http.ResponseWriter) error
+}
+
+type UpdateChannel200JSONResponse Channel
+
+func (response UpdateChannel200JSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateChannel401ApplicationProblemPlusJSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateChannel403ApplicationProblemPlusJSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateChannel404ApplicationProblemPlusJSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateChannel409ApplicationProblemPlusJSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateChannel422ApplicationProblemPlusJSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+}
+
+type TestChannelResponseObject interface {
+	VisitTestChannelResponse(w http.ResponseWriter) error
+}
+
+type TestChannel200JSONResponse ChannelTestResult
+
+func (response TestChannel200JSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannel401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response TestChannel401ApplicationProblemPlusJSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannel403ApplicationProblemPlusJSONResponse Problem
+
+func (response TestChannel403ApplicationProblemPlusJSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannel404ApplicationProblemPlusJSONResponse Problem
+
+func (response TestChannel404ApplicationProblemPlusJSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNotificationPreferencesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+}
+
+type GetNotificationPreferencesResponseObject interface {
+	VisitGetNotificationPreferencesResponse(w http.ResponseWriter) error
+}
+
+type GetNotificationPreferences200JSONResponse NotificationPreferences
+
+func (response GetNotificationPreferences200JSONResponse) VisitGetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNotificationPreferences401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetNotificationPreferences401ApplicationProblemPlusJSONResponse) VisitGetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNotificationPreferences403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetNotificationPreferences403ApplicationProblemPlusJSONResponse) VisitGetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNotificationPreferences404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetNotificationPreferences404ApplicationProblemPlusJSONResponse) VisitGetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetNotificationPreferencesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *SetNotificationPreferencesJSONRequestBody
+}
+
+type SetNotificationPreferencesResponseObject interface {
+	VisitSetNotificationPreferencesResponse(w http.ResponseWriter) error
+}
+
+type SetNotificationPreferences200JSONResponse NotificationPreferences
+
+func (response SetNotificationPreferences200JSONResponse) VisitSetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetNotificationPreferences401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetNotificationPreferences401ApplicationProblemPlusJSONResponse) VisitSetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetNotificationPreferences403ApplicationProblemPlusJSONResponse Problem
+
+func (response SetNotificationPreferences403ApplicationProblemPlusJSONResponse) VisitSetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetNotificationPreferences404ApplicationProblemPlusJSONResponse Problem
+
+func (response SetNotificationPreferences404ApplicationProblemPlusJSONResponse) VisitSetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetNotificationPreferences422ApplicationProblemPlusJSONResponse Problem
+
+func (response SetNotificationPreferences422ApplicationProblemPlusJSONResponse) VisitSetNotificationPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationsRequestObject struct {
+	Params ListNotificationsParams
+}
+
+type ListNotificationsResponseObject interface {
+	VisitListNotificationsResponse(w http.ResponseWriter) error
+}
+
+type ListNotifications200JSONResponse NotificationPage
+
+func (response ListNotifications200JSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListNotifications401ApplicationProblemPlusJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListNotifications403ApplicationProblemPlusJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListNotifications404ApplicationProblemPlusJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotifications422ApplicationProblemPlusJSONResponse Problem
+
+func (response ListNotifications422ApplicationProblemPlusJSONResponse) VisitListNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkAllNotificationsReadRequestObject struct {
+	Body *MarkAllNotificationsReadJSONRequestBody
+}
+
+type MarkAllNotificationsReadResponseObject interface {
+	VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error
+}
+
+type MarkAllNotificationsRead200JSONResponse ReadAllResult
+
+func (response MarkAllNotificationsRead200JSONResponse) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkAllNotificationsRead401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response MarkAllNotificationsRead401ApplicationProblemPlusJSONResponse) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkAllNotificationsRead403ApplicationProblemPlusJSONResponse Problem
+
+func (response MarkAllNotificationsRead403ApplicationProblemPlusJSONResponse) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkAllNotificationsRead404ApplicationProblemPlusJSONResponse Problem
+
+func (response MarkAllNotificationsRead404ApplicationProblemPlusJSONResponse) VisitMarkAllNotificationsReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CountUnreadNotificationsRequestObject struct {
+	Params CountUnreadNotificationsParams
+}
+
+type CountUnreadNotificationsResponseObject interface {
+	VisitCountUnreadNotificationsResponse(w http.ResponseWriter) error
+}
+
+type CountUnreadNotifications200JSONResponse UnreadCount
+
+func (response CountUnreadNotifications200JSONResponse) VisitCountUnreadNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CountUnreadNotifications401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CountUnreadNotifications401ApplicationProblemPlusJSONResponse) VisitCountUnreadNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CountUnreadNotifications403ApplicationProblemPlusJSONResponse Problem
+
+func (response CountUnreadNotifications403ApplicationProblemPlusJSONResponse) VisitCountUnreadNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CountUnreadNotifications404ApplicationProblemPlusJSONResponse Problem
+
+func (response CountUnreadNotifications404ApplicationProblemPlusJSONResponse) VisitCountUnreadNotificationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationReadRequestObject struct {
+	NotificationId string `json:"notificationId"`
+}
+
+type MarkNotificationReadResponseObject interface {
+	VisitMarkNotificationReadResponse(w http.ResponseWriter) error
+}
+
+type MarkNotificationRead200JSONResponse Notification
+
+func (response MarkNotificationRead200JSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response MarkNotificationRead401ApplicationProblemPlusJSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead403ApplicationProblemPlusJSONResponse Problem
+
+func (response MarkNotificationRead403ApplicationProblemPlusJSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MarkNotificationRead404ApplicationProblemPlusJSONResponse Problem
+
+func (response MarkNotificationRead404ApplicationProblemPlusJSONResponse) VisitMarkNotificationReadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListVendorsRequestObject struct {
 }
 
@@ -10911,6 +12483,45 @@ type StrictServerInterface interface {
 	// GetMe Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
 	// (GET /me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// ListChannelTypes Typy kanałów, ich pola i dostępność na tym serwerze (SMTP, klucz główny)
+	// (GET /me/channel-types)
+	ListChannelTypes(ctx context.Context, request ListChannelTypesRequestObject) (ListChannelTypesResponseObject, error)
+	// ListChannels Własne kanały powiadomień wg nazwy; tylko ludzie
+	// (GET /me/channels)
+	ListChannels(ctx context.Context, request ListChannelsRequestObject) (ListChannelsResponseObject, error)
+	// CreateChannel Dodaje kanał (maks. 20); sekrety są szyfrowane i nigdy nie wracają
+	// (POST /me/channels)
+	CreateChannel(ctx context.Context, request CreateChannelRequestObject) (CreateChannelResponseObject, error)
+	// DeleteChannel Usuwa kanał z oczekującymi dostawami
+	// (DELETE /me/channels/{channelId})
+	DeleteChannel(ctx context.Context, request DeleteChannelRequestObject) (DeleteChannelResponseObject, error)
+	// GetChannel Kanał
+	// (GET /me/channels/{channelId})
+	GetChannel(ctx context.Context, request GetChannelRequestObject) (GetChannelResponseObject, error)
+	// UpdateChannel Zmienia kanał; nowa konfiguracja lub sekrety czyszczą verified_at i last_error
+	// (PATCH /me/channels/{channelId})
+	UpdateChannel(ctx context.Context, request UpdateChannelRequestObject) (UpdateChannelResponseObject, error)
+	// TestChannel Wysyła wiadomość testową teraz i zwraca wynik (zapisuje verified_at albo last_error)
+	// (POST /me/channels/{channelId}/test)
+	TestChannel(ctx context.Context, request TestChannelRequestObject) (TestChannelResponseObject, error)
+	// GetNotificationPreferences Preferencje powiadomień w gospodarstwie dla każdego typu zdarzenia (domyślnie in-app, bez kanałów)
+	// (GET /me/households/{householdId}/notification-preferences)
+	GetNotificationPreferences(ctx context.Context, request GetNotificationPreferencesRequestObject) (GetNotificationPreferencesResponseObject, error)
+	// SetNotificationPreferences Zastępuje preferencje; typy pominięte wracają do domyślnych; kanały muszą być własne
+	// (PUT /me/households/{householdId}/notification-preferences)
+	SetNotificationPreferences(ctx context.Context, request SetNotificationPreferencesRequestObject) (SetNotificationPreferencesResponseObject, error)
+	// ListNotifications Powiadomienia w aplikacji od najnowszych (bot — powiadomienia twórcy w swoim gospodarstwie, notifications:read)
+	// (GET /me/notifications)
+	ListNotifications(ctx context.Context, request ListNotificationsRequestObject) (ListNotificationsResponseObject, error)
+	// MarkAllNotificationsRead Oznacza wszystkie (albo z gospodarstwa) jako przeczytane; tylko ludzie
+	// (POST /me/notifications/read-all)
+	MarkAllNotificationsRead(ctx context.Context, request MarkAllNotificationsReadRequestObject) (MarkAllNotificationsReadResponseObject, error)
+	// CountUnreadNotifications Liczba nieprzeczytanych powiadomień (wszystkich albo gospodarstwa)
+	// (GET /me/notifications/unread-count)
+	CountUnreadNotifications(ctx context.Context, request CountUnreadNotificationsRequestObject) (CountUnreadNotificationsResponseObject, error)
+	// MarkNotificationRead Oznacza powiadomienie jako przeczytane (ponownie — bez zmiany); tylko ludzie
+	// (POST /me/notifications/{notificationId}/read)
+	MarkNotificationRead(ctx context.Context, request MarkNotificationReadRequestObject) (MarkNotificationReadResponseObject, error)
 	// ListVendors Słownik dostawców subskrypcji (klucz i nazwa wyświetlana)
 	// (GET /vendors)
 	ListVendors(ctx context.Context, request ListVendorsRequestObject) (ListVendorsResponseObject, error)
@@ -13158,6 +14769,367 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChannelTypes operation middleware
+func (sh *strictHandler) ListChannelTypes(w http.ResponseWriter, r *http.Request) {
+	var request ListChannelTypesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChannelTypes(ctx, request.(ListChannelTypesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChannelTypes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChannelTypesResponseObject); ok {
+		if err := validResponse.VisitListChannelTypesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChannels operation middleware
+func (sh *strictHandler) ListChannels(w http.ResponseWriter, r *http.Request) {
+	var request ListChannelsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChannels(ctx, request.(ListChannelsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChannels")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChannelsResponseObject); ok {
+		if err := validResponse.VisitListChannelsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateChannel operation middleware
+func (sh *strictHandler) CreateChannel(w http.ResponseWriter, r *http.Request) {
+	var request CreateChannelRequestObject
+
+	var body CreateChannelJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateChannel(ctx, request.(CreateChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateChannelResponseObject); ok {
+		if err := validResponse.VisitCreateChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteChannel operation middleware
+func (sh *strictHandler) DeleteChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId) {
+	var request DeleteChannelRequestObject
+
+	request.ChannelId = channelId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteChannel(ctx, request.(DeleteChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteChannelResponseObject); ok {
+		if err := validResponse.VisitDeleteChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetChannel operation middleware
+func (sh *strictHandler) GetChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId) {
+	var request GetChannelRequestObject
+
+	request.ChannelId = channelId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetChannel(ctx, request.(GetChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetChannelResponseObject); ok {
+		if err := validResponse.VisitGetChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateChannel operation middleware
+func (sh *strictHandler) UpdateChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId) {
+	var request UpdateChannelRequestObject
+
+	request.ChannelId = channelId
+
+	var body UpdateChannelJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateChannel(ctx, request.(UpdateChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateChannelResponseObject); ok {
+		if err := validResponse.VisitUpdateChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TestChannel operation middleware
+func (sh *strictHandler) TestChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId) {
+	var request TestChannelRequestObject
+
+	request.ChannelId = channelId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TestChannel(ctx, request.(TestChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TestChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TestChannelResponseObject); ok {
+		if err := validResponse.VisitTestChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetNotificationPreferences operation middleware
+func (sh *strictHandler) GetNotificationPreferences(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request GetNotificationPreferencesRequestObject
+
+	request.HouseholdId = householdId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNotificationPreferences(ctx, request.(GetNotificationPreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNotificationPreferences")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetNotificationPreferencesResponseObject); ok {
+		if err := validResponse.VisitGetNotificationPreferencesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetNotificationPreferences operation middleware
+func (sh *strictHandler) SetNotificationPreferences(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request SetNotificationPreferencesRequestObject
+
+	request.HouseholdId = householdId
+
+	var body SetNotificationPreferencesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetNotificationPreferences(ctx, request.(SetNotificationPreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetNotificationPreferences")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetNotificationPreferencesResponseObject); ok {
+		if err := validResponse.VisitSetNotificationPreferencesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListNotifications operation middleware
+func (sh *strictHandler) ListNotifications(w http.ResponseWriter, r *http.Request, params ListNotificationsParams) {
+	var request ListNotificationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListNotifications(ctx, request.(ListNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListNotificationsResponseObject); ok {
+		if err := validResponse.VisitListNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkAllNotificationsRead operation middleware
+func (sh *strictHandler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+	var request MarkAllNotificationsReadRequestObject
+
+	var body MarkAllNotificationsReadJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkAllNotificationsRead(ctx, request.(MarkAllNotificationsReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkAllNotificationsRead")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkAllNotificationsReadResponseObject); ok {
+		if err := validResponse.VisitMarkAllNotificationsReadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CountUnreadNotifications operation middleware
+func (sh *strictHandler) CountUnreadNotifications(w http.ResponseWriter, r *http.Request, params CountUnreadNotificationsParams) {
+	var request CountUnreadNotificationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CountUnreadNotifications(ctx, request.(CountUnreadNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CountUnreadNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CountUnreadNotificationsResponseObject); ok {
+		if err := validResponse.VisitCountUnreadNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkNotificationRead operation middleware
+func (sh *strictHandler) MarkNotificationRead(w http.ResponseWriter, r *http.Request, notificationId string) {
+	var request MarkNotificationReadRequestObject
+
+	request.NotificationId = notificationId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkNotificationRead(ctx, request.(MarkNotificationReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkNotificationRead")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkNotificationReadResponseObject); ok {
+		if err := validResponse.VisitMarkNotificationReadResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

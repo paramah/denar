@@ -1019,6 +1019,171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Powiadomienia w aplikacji od najnowszych (bot — powiadomienia twórcy w swoim gospodarstwie, notifications:read) */
+        get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liczba nieprzeczytanych powiadomień (wszystkich albo gospodarstwa) */
+        get: operations["countUnreadNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oznacza wszystkie (albo z gospodarstwa) jako przeczytane; tylko ludzie */
+        post: operations["markAllNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oznacza powiadomienie jako przeczytane (ponownie — bez zmiany); tylko ludzie */
+        post: operations["markNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/channel-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Typy kanałów, ich pola i dostępność na tym serwerze (SMTP, klucz główny) */
+        get: operations["listChannelTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Własne kanały powiadomień wg nazwy; tylko ludzie */
+        get: operations["listChannels"];
+        put?: never;
+        /** Dodaje kanał (maks. 20); sekrety są szyfrowane i nigdy nie wracają */
+        post: operations["createChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/channels/{channelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        /** Kanał */
+        get: operations["getChannel"];
+        put?: never;
+        post?: never;
+        /** Usuwa kanał z oczekującymi dostawami */
+        delete: operations["deleteChannel"];
+        options?: never;
+        head?: never;
+        /** Zmienia kanał; nowa konfiguracja lub sekrety czyszczą verified_at i last_error */
+        patch: operations["updateChannel"];
+        trace?: never;
+    };
+    "/me/channels/{channelId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wysyła wiadomość testową teraz i zwraca wynik (zapisuje verified_at albo last_error) */
+        post: operations["testChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/households/{householdId}/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Preferencje powiadomień w gospodarstwie dla każdego typu zdarzenia (domyślnie in-app, bez kanałów) */
+        get: operations["getNotificationPreferences"];
+        /** Zastępuje preferencje; typy pominięte wracają do domyślnych; kanały muszą być własne */
+        put: operations["setNotificationPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1139,6 +1304,8 @@ export interface components {
         InvitationCreate: {
             email: string;
             role: string;
+            /** @description Wyślij link e-mailem (wymaga SMTP; bez — 409 smtp-not-configured) */
+            send_email?: boolean;
         };
         InvitationCreated: {
             invitation: components["schemas"]["Invitation"];
@@ -1146,6 +1313,10 @@ export interface components {
             token: string;
             /** @description Link do przekazania: <DENAR_BASE_URL>/invite#<token> */
             url: string;
+            /** @description Link wysłany e-mailem */
+            email_sent: boolean;
+            /** @description Powód, gdy wysłanie e-maila się nie udało (zaproszenie i tak powstało) */
+            email_error?: string | null;
         };
         InvitationToken: {
             token: string;
@@ -1909,6 +2080,125 @@ export interface components {
             old_price: components["schemas"]["Money"];
             new_price: components["schemas"]["Money"];
         };
+        /** @enum {string} */
+        EventType: "subscription.renewal_upcoming" | "subscription.trial_ending" | "subscription.price_changed" | "subscription.charge_missed" | "envelope.overspent" | "envelope.goal_due";
+        Notification: {
+            id: string;
+            household_id: string;
+            type: components["schemas"]["EventType"];
+            title: string;
+            body: string;
+            /** @description Ścieżka Web UI, np. /h/{hid}/subscriptions/{sid}, /h/{hid}/subscriptions/charges, /h/{hid}/budget/2026-10 */
+            link: string;
+            /** @description subscription albo envelope */
+            resource_type: string;
+            resource_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            read_at: string | null;
+        };
+        NotificationPage: {
+            items: components["schemas"]["Notification"][];
+            next_cursor: string | null;
+        };
+        UnreadCount: {
+            count: number;
+        };
+        ReadAllInput: {
+            /** @description Tylko z tego gospodarstwa; brak — wszystkie */
+            household_id?: string;
+        };
+        ReadAllResult: {
+            updated: number;
+        };
+        /** @enum {string} */
+        ChannelType: "email" | "webhook" | "ntfy" | "telegram" | "matrix";
+        ChannelField: {
+            name: string;
+            required: boolean;
+        };
+        ChannelTypeInfo: {
+            type: components["schemas"]["ChannelType"];
+            available: boolean;
+            /** @enum {string|null} */
+            unavailable_reason: "smtp_not_configured" | "secrets_unavailable" | null;
+            config_fields: components["schemas"]["ChannelField"][];
+            secret_fields: components["schemas"]["ChannelField"][];
+        };
+        ChannelTypeList: {
+            items: components["schemas"]["ChannelTypeInfo"][];
+        };
+        /**
+         * @description Pola jawne kanału (string → string). email: address (domyślnie e-mail użytkownika); webhook: url;
+         *     ntfy: server (domyślnie https://ntfy.sh), topic; telegram: chat_id; matrix: homeserver, room_id (!id:serwer).
+         */
+        ChannelConfig: {
+            [key: string]: string;
+        };
+        /**
+         * @description Sekrety kanału (string → string), tylko na wejściu: webhook: secret (opcjonalny klucz HMAC); ntfy: token
+         *     (opcjonalny); telegram: bot_token; matrix: access_token. Szyfrowane kluczem DENAR_MASTER_KEY.
+         */
+        ChannelSecrets: {
+            [key: string]: string;
+        };
+        Channel: {
+            id: string;
+            type: components["schemas"]["ChannelType"];
+            name: string;
+            config: components["schemas"]["ChannelConfig"];
+            has_secret: boolean;
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description Ostatnia udana wiadomość
+             */
+            verified_at: string | null;
+            /** @description Powód ostatniej nieudanej dostawy lub testu */
+            last_error: string | null;
+            /** Format: date-time */
+            last_error_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ChannelList: {
+            items: components["schemas"]["Channel"][];
+        };
+        ChannelCreate: {
+            type: components["schemas"]["ChannelType"];
+            /** @description 1–100 znaków, unikalna wśród własnych kanałów */
+            name: string;
+            config?: components["schemas"]["ChannelConfig"];
+            secrets?: components["schemas"]["ChannelSecrets"];
+            /** @description Domyślnie true */
+            enabled?: boolean;
+        };
+        ChannelUpdate: {
+            name?: string;
+            config?: components["schemas"]["ChannelConfig"];
+            /** @description Zastępuje wszystkie sekrety; null je usuwa; brak pola — bez zmian */
+            secrets?: {
+                [key: string]: string;
+            } | null;
+            enabled?: boolean;
+        };
+        ChannelTestResult: {
+            ok: boolean;
+            error: string | null;
+            /** Format: date-time */
+            tested_at: string;
+        };
+        NotificationPreference: {
+            type: components["schemas"]["EventType"];
+            in_app: boolean;
+            channel_ids: string[];
+        };
+        NotificationPreferences: {
+            items: components["schemas"]["NotificationPreference"][];
+        };
     };
     responses: {
         /** @description Błąd w formacie RFC 7807 */
@@ -1940,6 +2230,7 @@ export interface components {
         GroupId: string;
         EnvelopeId: string;
         SubscriptionId: string;
+        ChannelId: string;
         ChargeId: string;
         /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
         Month: string;
@@ -2365,6 +2656,7 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
         };
     };
@@ -4084,6 +4376,345 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: {
+                /** @description Tylko z tego gospodarstwa */
+                household_id?: string;
+                /** @description Tylko nieprzeczytane */
+                unread?: boolean;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Strona powiadomień */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    countUnreadNotifications: {
+        parameters: {
+            query?: {
+                household_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Licznik */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    markAllNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReadAllInput"];
+            };
+        };
+        responses: {
+            /** @description Liczba oznaczonych */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadAllResult"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Powiadomienie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notification"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    listChannelTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Typy kanałów */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelTypeList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    listChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kanały */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    createChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelCreate"];
+            };
+        };
+        responses: {
+            /** @description Kanał */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kanał */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deleteChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usunięty */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Kanał */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    testChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Wynik testu */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelTestResult"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    getNotificationPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preferencje */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferences"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    setNotificationPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreferences"];
+            };
+        };
+        responses: {
+            /** @description Preferencje po zmianie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferences"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
         };
     };
 }

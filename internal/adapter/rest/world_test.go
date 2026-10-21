@@ -18,8 +18,10 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/budget"
+	"git.eiac.dev/tools/denar/internal/domain/event"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
 	"git.eiac.dev/tools/denar/internal/domain/subscription"
 	"git.eiac.dev/tools/denar/internal/domain/transaction"
@@ -44,6 +46,8 @@ type world struct {
 	oidc *fakes.OIDCProvider
 	logs *bytes.Buffer
 	deps Deps
+	// notifier sends over every channel type of the world.
+	notifier *fakes.Notifier
 	vars map[string]string
 }
 
@@ -53,6 +57,12 @@ func newWorld(t *testing.T) *world {
 	d := r.Deps()
 	log := slog.New(slog.NewJSONHandler(w.logs, nil))
 	d.Log = log
+	// Notifications: every channel type but e-mail (no SMTP), with secrets.
+	w.notifier = &fakes.Notifier{}
+	d.Notifiers = map[notification.ChannelType]usecase.Notifier{notification.Webhook: w.notifier, notification.Ntfy: w.notifier,
+		notification.Telegram: w.notifier, notification.Matrix: w.notifier}
+	d.Secrets = fakes.SecretBox{}
+	d.BaseURL = baseURL
 	inv := usecase.InvitationConfig{TTL: inviteTTL, SessionTTL: sessionTTL}
 	w.deps = Deps{
 		BaseURL:         baseURL,
@@ -150,6 +160,20 @@ func newWorld(t *testing.T) *world {
 		UnmatchCharge:           usecase.NewUnmatchCharge(d),
 		PostCharge:              usecase.NewPostCharge(d),
 		SkipCharge:              usecase.NewSkipCharge(d),
+
+		ListNotifications:          usecase.NewListNotifications(d),
+		CountUnreadNotifications:   usecase.NewCountUnreadNotifications(d),
+		MarkNotificationRead:       usecase.NewMarkNotificationRead(d),
+		MarkAllNotificationsRead:   usecase.NewMarkAllNotificationsRead(d),
+		ListChannelTypes:           usecase.NewListChannelTypes(d),
+		ListChannels:               usecase.NewListChannels(d),
+		CreateChannel:              usecase.NewCreateChannel(d),
+		GetChannel:                 usecase.NewGetChannel(d),
+		UpdateChannel:              usecase.NewUpdateChannel(d),
+		DeleteChannel:              usecase.NewDeleteChannel(d),
+		TestChannel:                usecase.NewTestChannel(d),
+		GetNotificationPreferences: usecase.NewGetNotificationPreferences(d),
+		SetNotificationPreferences: usecase.NewSetNotificationPreferences(d),
 	}
 	owner := w.addUser("owner")
 	w.addHousehold("h1", owner)
@@ -163,7 +187,29 @@ func newWorld(t *testing.T) *world {
 	w.addBot("b1", "h1", "member", bot.ScopeWalletsRead)
 	w.addFinances()
 	w.addSubscriptions()
+	w.addNotifications()
 	return w
+}
+
+// addNotifications gives member a webhook channel ch1 "Hook" (with a
+// secret) and notifications n1 (of s3, no wallet) and n2 (of s2, the
+// owner's private w2 — member's only for the test of the bot list) in h1.
+func (w *world) addNotifications() {
+	w.t.Helper()
+	ctx := context.Background()
+	now := w.Clock.Now()
+	sealed, _ := fakes.SecretBox{}.Seal([]byte(`{"secret":"s3cret"}`), []byte("ch1"))
+	w.must(w.Channels.Create(ctx, notification.Channel{ID: "ch1", UserID: "member", Type: notification.Webhook, Name: "Hook",
+		Config: map[string]string{"url": "https://hooks.example.com/x"}, SealedSecrets: sealed, Enabled: true, CreatedAt: now, UpdatedAt: now}))
+	for _, n := range []notification.Notification{
+		{ID: "n1", EventID: "ev1", ResourceID: "s3"},
+		{ID: "n2", EventID: "ev2", ResourceID: "s2", WalletID: "w2"},
+	} {
+		n.UserID, n.HouseholdID, n.Type, n.Title, n.Body = "member", "h1", event.SubscriptionRenewalUpcoming, "Odnowienie", "Treść"
+		n.Link, n.ResourceType, n.CreatedAt = "/h/h1/subscriptions/"+string(n.ResourceID), "subscription", now
+		_, err := w.Notifications.Create(ctx, n)
+		w.must(err)
+	}
 }
 
 // addSubscriptions gives h1 the subscriptions s1 "ChatGPT Plus" (20.00 USD

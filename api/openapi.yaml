@@ -3,7 +3,8 @@ info:
   title: denar REST API
   version: 0.1.0
   description: |
-    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions, 003-envelope-budget, 004-subscriptions). Źródło typów Go (oapi-codegen) i TS
+    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions, 003-envelope-budget, 004-subscriptions,
+    005-notifications). Źródło typów Go (oapi-codegen) i TS
     (openapi-typescript, etap 007).
 
     Uwierzytelnianie: sesja w cookie `denar_session` (logowanie hasłem lub
@@ -61,6 +62,16 @@ info:
     Obciążenia (charges) mają statusy expected, matched, missed, skipped,
     posted. Dodatkowe powody 409: charge-state, transaction-linked,
     envelope-in-use (koperta subskrypcji).
+
+    Powiadomienia (etap 005) leżą pod /me: powiadomienia w aplikacji,
+    kanały (email, webhook, ntfy, telegram, matrix) i preferencje per
+    gospodarstwo. Kanały i preferencje są tylko dla ludzi (bot: 403
+    human-only); bot z notifications:read czyta i liczy powiadomienia
+    swojego twórcy w swoim gospodarstwie (bez tych z portfeli spoza swojej
+    listy), ale nie oznacza ich jako przeczytanych. Sekrety kanałów nigdy
+    nie wracają (has_secret). Dodatkowe powody 409: secrets-unavailable
+    (serwer bez DENAR_MASTER_KEY), smtp-not-configured (serwer bez SMTP),
+    too-many-channels (maks. 20), duplicate-name.
 servers:
   - url: /api
 security:
@@ -80,6 +91,7 @@ tags:
   - name: fx
   - name: budget
   - name: subscriptions
+  - name: notifications
 
 paths:
   /auth/config:
@@ -345,6 +357,7 @@ paths:
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
   /households/{householdId}/invitations/{invitationId}:
     parameters:
@@ -1470,6 +1483,218 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /me/notifications:
+    get:
+      tags: [notifications]
+      operationId: listNotifications
+      summary: Powiadomienia w aplikacji od najnowszych (bot — powiadomienia twórcy w swoim gospodarstwie, notifications:read)
+      parameters:
+        - { name: household_id, in: query, description: Tylko z tego gospodarstwa, schema: { type: string } }
+        - { name: unread, in: query, description: Tylko nieprzeczytane, schema: { type: boolean } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        "200":
+          description: Strona powiadomień
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /me/notifications/unread-count:
+    get:
+      tags: [notifications]
+      operationId: countUnreadNotifications
+      summary: Liczba nieprzeczytanych powiadomień (wszystkich albo gospodarstwa)
+      parameters:
+        - { name: household_id, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Licznik
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UnreadCount" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /me/notifications/read-all:
+    post:
+      tags: [notifications]
+      operationId: markAllNotificationsRead
+      summary: Oznacza wszystkie (albo z gospodarstwa) jako przeczytane; tylko ludzie
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReadAllInput" }
+      responses:
+        "200":
+          description: Liczba oznaczonych
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReadAllResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /me/notifications/{notificationId}/read:
+    parameters:
+      - { name: notificationId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [notifications]
+      operationId: markNotificationRead
+      summary: Oznacza powiadomienie jako przeczytane (ponownie — bez zmiany); tylko ludzie
+      responses:
+        "200":
+          description: Powiadomienie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Notification" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /me/channel-types:
+    get:
+      tags: [notifications]
+      operationId: listChannelTypes
+      summary: Typy kanałów, ich pola i dostępność na tym serwerze (SMTP, klucz główny)
+      responses:
+        "200":
+          description: Typy kanałów
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChannelTypeList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /me/channels:
+    get:
+      tags: [notifications]
+      operationId: listChannels
+      summary: Własne kanały powiadomień wg nazwy; tylko ludzie
+      responses:
+        "200":
+          description: Kanały
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChannelList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [notifications]
+      operationId: createChannel
+      summary: Dodaje kanał (maks. 20); sekrety są szyfrowane i nigdy nie wracają
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChannelCreate" }
+      responses:
+        "201":
+          description: Kanał
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Channel" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /me/channels/{channelId}:
+    parameters:
+      - $ref: "#/components/parameters/ChannelId"
+    get:
+      tags: [notifications]
+      operationId: getChannel
+      summary: Kanał
+      responses:
+        "200":
+          description: Kanał
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Channel" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [notifications]
+      operationId: updateChannel
+      summary: Zmienia kanał; nowa konfiguracja lub sekrety czyszczą verified_at i last_error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChannelUpdate" }
+      responses:
+        "200":
+          description: Kanał
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Channel" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [notifications]
+      operationId: deleteChannel
+      summary: Usuwa kanał z oczekującymi dostawami
+      responses:
+        "204": { description: Usunięty }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /me/channels/{channelId}/test:
+    parameters:
+      - $ref: "#/components/parameters/ChannelId"
+    post:
+      tags: [notifications]
+      operationId: testChannel
+      summary: Wysyła wiadomość testową teraz i zwraca wynik (zapisuje verified_at albo last_error)
+      responses:
+        "200":
+          description: Wynik testu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChannelTestResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /me/households/{householdId}/notification-preferences:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [notifications]
+      operationId: getNotificationPreferences
+      summary: Preferencje powiadomień w gospodarstwie dla każdego typu zdarzenia (domyślnie in-app, bez kanałów)
+      responses:
+        "200":
+          description: Preferencje
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPreferences" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [notifications]
+      operationId: setNotificationPreferences
+      summary: Zastępuje preferencje; typy pominięte wracają do domyślnych; kanały muszą być własne
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationPreferences" }
+      responses:
+        "200":
+          description: Preferencje po zmianie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPreferences" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     session:
@@ -1518,6 +1743,11 @@ components:
       schema: { type: string }
     SubscriptionId:
       name: subscriptionId
+      in: path
+      required: true
+      schema: { type: string }
+    ChannelId:
+      name: channelId
       in: path
       required: true
       schema: { type: string }
@@ -1703,13 +1933,16 @@ components:
       properties:
         email: { type: string }
         role: { type: string }
+        send_email: { type: boolean, description: "Wyślij link e-mailem (wymaga SMTP; bez — 409 smtp-not-configured)" }
     InvitationCreated:
       type: object
-      required: [invitation, token, url]
+      required: [invitation, token, url, email_sent]
       properties:
         invitation: { $ref: "#/components/schemas/Invitation" }
         token: { type: string, description: Jednorazowy token; tylko w tej odpowiedzi }
         url: { type: string, description: "Link do przekazania: <DENAR_BASE_URL>/invite#<token>" }
+        email_sent: { type: boolean, description: Link wysłany e-mailem }
+        email_error: { type: [string, "null"], description: "Powód, gdy wysłanie e-maila się nie udało (zaproszenie i tak powstało)" }
     InvitationToken:
       type: object
       required: [token]
@@ -2656,3 +2889,150 @@ components:
         effective_from: { type: string, format: date }
         old_price: { $ref: "#/components/schemas/Money" }
         new_price: { $ref: "#/components/schemas/Money" }
+    EventType:
+      type: string
+      enum: [subscription.renewal_upcoming, subscription.trial_ending, subscription.price_changed, subscription.charge_missed,
+        envelope.overspent, envelope.goal_due]
+    Notification:
+      type: object
+      required: [id, household_id, type, title, body, link, resource_type, resource_id, created_at, read_at]
+      properties:
+        id: { type: string }
+        household_id: { type: string }
+        type: { $ref: "#/components/schemas/EventType" }
+        title: { type: string }
+        body: { type: string }
+        link: { type: string, description: "Ścieżka Web UI, np. /h/{hid}/subscriptions/{sid}, /h/{hid}/subscriptions/charges, /h/{hid}/budget/2026-10" }
+        resource_type: { type: string, description: subscription albo envelope }
+        resource_id: { type: string }
+        created_at: { type: string, format: date-time }
+        read_at: { type: [string, "null"], format: date-time }
+    NotificationPage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
+        next_cursor: { type: [string, "null"] }
+    UnreadCount:
+      type: object
+      required: [count]
+      properties:
+        count: { type: integer }
+    ReadAllInput:
+      type: object
+      properties:
+        household_id: { type: string, description: Tylko z tego gospodarstwa; brak — wszystkie }
+    ReadAllResult:
+      type: object
+      required: [updated]
+      properties:
+        updated: { type: integer }
+    ChannelType:
+      type: string
+      enum: [email, webhook, ntfy, telegram, matrix]
+    ChannelField:
+      type: object
+      required: [name, required]
+      properties:
+        name: { type: string }
+        required: { type: boolean }
+    ChannelTypeInfo:
+      type: object
+      required: [type, available, unavailable_reason, config_fields, secret_fields]
+      properties:
+        type: { $ref: "#/components/schemas/ChannelType" }
+        available: { type: boolean }
+        unavailable_reason:
+          type: [string, "null"]
+          enum: [smtp_not_configured, secrets_unavailable, null]
+        config_fields:
+          type: array
+          items: { $ref: "#/components/schemas/ChannelField" }
+        secret_fields:
+          type: array
+          items: { $ref: "#/components/schemas/ChannelField" }
+    ChannelTypeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ChannelTypeInfo" }
+    ChannelConfig:
+      type: object
+      description: |
+        Pola jawne kanału (string → string). email: address (domyślnie e-mail użytkownika); webhook: url;
+        ntfy: server (domyślnie https://ntfy.sh), topic; telegram: chat_id; matrix: homeserver, room_id (!id:serwer).
+      additionalProperties: { type: string }
+    ChannelSecrets:
+      type: object
+      description: |
+        Sekrety kanału (string → string), tylko na wejściu: webhook: secret (opcjonalny klucz HMAC); ntfy: token
+        (opcjonalny); telegram: bot_token; matrix: access_token. Szyfrowane kluczem DENAR_MASTER_KEY.
+      additionalProperties: { type: string }
+    Channel:
+      type: object
+      required: [id, type, name, config, has_secret, enabled, verified_at, last_error, last_error_at, created_at, updated_at]
+      properties:
+        id: { type: string }
+        type: { $ref: "#/components/schemas/ChannelType" }
+        name: { type: string }
+        config: { $ref: "#/components/schemas/ChannelConfig" }
+        has_secret: { type: boolean }
+        enabled: { type: boolean }
+        verified_at: { type: [string, "null"], format: date-time, description: Ostatnia udana wiadomość }
+        last_error: { type: [string, "null"], description: Powód ostatniej nieudanej dostawy lub testu }
+        last_error_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ChannelList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Channel" }
+    ChannelCreate:
+      type: object
+      required: [type, name]
+      properties:
+        type: { $ref: "#/components/schemas/ChannelType" }
+        name: { type: string, description: "1–100 znaków, unikalna wśród własnych kanałów" }
+        config: { $ref: "#/components/schemas/ChannelConfig" }
+        secrets: { $ref: "#/components/schemas/ChannelSecrets" }
+        enabled: { type: boolean, description: Domyślnie true }
+    ChannelUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        config: { $ref: "#/components/schemas/ChannelConfig" }
+        secrets:
+          type: [object, "null"]
+          description: Zastępuje wszystkie sekrety; null je usuwa; brak pola — bez zmian
+          additionalProperties: { type: string }
+        enabled: { type: boolean }
+    ChannelTestResult:
+      type: object
+      required: [ok, error, tested_at]
+      properties:
+        ok: { type: boolean }
+        error: { type: [string, "null"] }
+        tested_at: { type: string, format: date-time }
+    NotificationPreference:
+      type: object
+      required: [type, in_app, channel_ids]
+      properties:
+        type: { $ref: "#/components/schemas/EventType" }
+        in_app: { type: boolean }
+        channel_ids:
+          type: array
+          items: { type: string }
+    NotificationPreferences:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/NotificationPreference" }

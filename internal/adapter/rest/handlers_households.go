@@ -97,15 +97,19 @@ var noStore = "no-store"
 
 func (s *Server) CreateInvitation(ctx context.Context, request api.CreateInvitationRequestObject) (api.CreateInvitationResponseObject, error) {
 	inv, err := s.deps.CreateInvitation.Do(ctx, principalFrom(ctx), domain.ID(request.HouseholdId), usecase.CreateInvitationInput{
-		Email: request.Body.Email, Role: membership.Role(request.Body.Role)})
+		Email: request.Body.Email, Role: membership.Role(request.Body.Role), SendEmail: deref(request.Body.SendEmail)})
 	if err != nil {
 		return nil, err
 	}
+	body := api.InvitationCreated{
+		Invitation: apiInvitation(inv.InvitationView), Token: inv.Token,
+		Url: s.deps.BaseURL + "/invite#" + inv.Token, EmailSent: inv.EmailSent,
+	}
+	if inv.EmailError != "" {
+		body.EmailError = nullableString(inv.EmailError)
+	}
 	return api.CreateInvitation201JSONResponse{
-		Body: api.InvitationCreated{
-			Invitation: apiInvitation(inv.InvitationView), Token: inv.Token,
-			Url: s.deps.BaseURL + "/invite#" + inv.Token,
-		},
+		Body:    body,
 		Headers: api.CreateInvitation201ResponseHeaders{CacheControl: &noStore},
 	}, nil
 }

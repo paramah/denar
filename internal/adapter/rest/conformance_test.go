@@ -95,6 +95,16 @@ func oidcStarted(t *testing.T, w *world, h http.Handler, c *client) {
 
 func ptr[T any](v T) *T { return &v }
 
+// secondChannel gives member a second channel "Telefon".
+func secondChannel(t *testing.T, w *world, _ http.Handler, _ *client) {
+	t.Helper()
+	_, err := w.deps.CreateChannel.Do(context.Background(), usecase.Principal{User: mustUser(t, w, "member")},
+		usecase.CreateChannelInput{Type: "ntfy", Name: "Telefon", Config: map[string]string{"topic": "t"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // income records 1000 PLN of income in w1, so that auto-assign has money
 // to give.
 func income(t *testing.T, w *world, _ http.Handler, _ *client) {
@@ -203,6 +213,77 @@ const badLogin = `{"email":"owner@example.com","password":"not the password"}`
 // contract declares. The 401 of an operation that needs credentials is
 // added by the test itself.
 var conformanceCases = map[string][]conformanceCase{
+	"listNotifications": {
+		{status: 200, as: "member", target: "/api/me/notifications?household_id=h1&unread=true&limit=1"},
+		{status: 200, as: "bot", target: "/api/me/notifications", setup: botScopes(bot.ScopeNotificationsRead)},
+		{status: 403, as: "bot", target: "/api/me/notifications"},
+		{status: 404, as: "outsider", target: "/api/me/notifications?household_id=h1"},
+		{status: 422, as: "member", target: "/api/me/notifications?limit=0"},
+	},
+	"countUnreadNotifications": {
+		{status: 200, as: "member", target: "/api/me/notifications/unread-count?household_id=h1"},
+		{status: 403, as: "bot", target: "/api/me/notifications/unread-count"},
+		{status: 404, as: "bot", target: "/api/me/notifications/unread-count?household_id=h2", setup: botScopes(bot.ScopeNotificationsRead)},
+	},
+	"markAllNotificationsRead": {
+		{status: 200, as: "member", target: "/api/me/notifications/read-all", body: `{"household_id":"h1"}`},
+		{status: 403, as: "bot", target: "/api/me/notifications/read-all", body: `{}`},
+		{status: 404, as: "outsider", target: "/api/me/notifications/read-all", body: `{"household_id":"h1"}`},
+	},
+	"markNotificationRead": {
+		{status: 200, as: "member", target: "/api/me/notifications/n1/read"},
+		{status: 403, as: "bot", target: "/api/me/notifications/n1/read"},
+		{status: 404, as: "owner", target: "/api/me/notifications/n1/read"},
+	},
+	"listChannelTypes": {
+		{status: 200, as: "viewer", target: "/api/me/channel-types"},
+		{status: 403, as: "bot", target: "/api/me/channel-types"},
+	},
+	"listChannels": {
+		{status: 200, as: "member", target: "/api/me/channels"},
+		{status: 403, as: "bot", target: "/api/me/channels"},
+	},
+	"createChannel": {
+		{status: 201, as: "member", target: "/api/me/channels", body: `{"type":"ntfy","name":"Telefon","config":{"topic":"denar-dom"},"secrets":{"token":"tk_x"}}`},
+		{status: 403, as: "bot", target: "/api/me/channels", body: `{"type":"ntfy","name":"Telefon","config":{"topic":"denar-dom"}}`},
+		{status: 409, as: "member", target: "/api/me/channels", body: `{"type":"email","name":"Poczta"}`},
+		{status: 422, as: "member", target: "/api/me/channels", body: `{"type":"webhook","name":"X","config":{"url":"ftp://x"}}`},
+	},
+	"getChannel": {
+		{status: 200, as: "member", target: "/api/me/channels/ch1"},
+		{status: 403, as: "bot", target: "/api/me/channels/ch1"},
+		{status: 404, as: "owner", target: "/api/me/channels/ch1"},
+	},
+	"updateChannel": {
+		{status: 200, as: "member", target: "/api/me/channels/ch1", body: `{"name":"Nowy","secrets":null,"enabled":false,"config":{"url":"https://x.example.com"}}`},
+		{status: 403, as: "bot", target: "/api/me/channels/ch1", body: `{"name":"X"}`},
+		{status: 404, as: "owner", target: "/api/me/channels/ch1", body: `{"name":"X"}`},
+		{status: 409, as: "member", target: "/api/me/channels/ch1", body: `{"name":"Telefon"}`, setup: secondChannel},
+		{status: 422, as: "member", target: "/api/me/channels/ch1", body: `{"name":""}`},
+	},
+	"deleteChannel": {
+		{status: 204, as: "member", target: "/api/me/channels/ch1"},
+		{status: 403, as: "bot", target: "/api/me/channels/ch1"},
+		{status: 404, as: "owner", target: "/api/me/channels/ch1"},
+	},
+	"testChannel": {
+		{status: 200, as: "member", target: "/api/me/channels/ch1/test"},
+		{status: 403, as: "bot", target: "/api/me/channels/ch1/test"},
+		{status: 404, as: "owner", target: "/api/me/channels/ch1/test"},
+	},
+	"getNotificationPreferences": {
+		{status: 200, as: "viewer", target: "/api/me/households/h1/notification-preferences"},
+		{status: 403, as: "bot", target: "/api/me/households/h1/notification-preferences"},
+		{status: 404, as: "outsider", target: "/api/me/households/h1/notification-preferences"},
+	},
+	"setNotificationPreferences": {
+		{status: 200, as: "member", target: "/api/me/households/h1/notification-preferences",
+			body: `{"items":[{"type":"envelope.overspent","in_app":false,"channel_ids":["ch1"]}]}`},
+		{status: 403, as: "bot", target: "/api/me/households/h1/notification-preferences", body: `{"items":[]}`},
+		{status: 404, as: "outsider", target: "/api/me/households/h1/notification-preferences", body: `{"items":[]}`},
+		{status: 422, as: "owner", target: "/api/me/households/h1/notification-preferences",
+			body: `{"items":[{"type":"envelope.overspent","in_app":true,"channel_ids":["ch1"]}]}`},
+	},
 	"getAuthConfig": {{status: 200, target: "/api/auth/config"}},
 	"loginStart": {
 		{status: 302, target: "/api/auth/login?return_to=/x", setup: oidcOn},
@@ -279,6 +360,7 @@ var conformanceCases = map[string][]conformanceCase{
 		{status: 201, as: "admin", target: "/api/households/h1/invitations", body: `{"email":"grace@example.com","role":"member"}`},
 		{status: 403, as: "admin", target: "/api/households/h1/invitations", body: `{"email":"grace@example.com","role":"owner"}`},
 		{status: 404, as: "outsider", target: "/api/households/h1/invitations", body: `{"email":"grace@example.com","role":"member"}`},
+		{status: 409, as: "owner", target: "/api/households/h1/invitations", body: `{"email":"grace@example.com","role":"member","send_email":true}`},
 		{status: 422, as: "owner", target: "/api/households/h1/invitations", body: `{"email":"nope","role":"member"}`},
 	},
 	"revokeInvitation": {
