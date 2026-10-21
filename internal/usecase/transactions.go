@@ -275,8 +275,18 @@ func (uc *RecordTransaction) Do(ctx context.Context, p Principal, householdID do
 			return err
 		}
 		t.PayeeID = pe.ID
-		if t.Kind == transaction.Expense && t.EnvelopeID == "" && len(t.Splits) == 0 {
-			t.EnvelopeID = pe.DefaultEnvelopeID
+		if t.Kind == transaction.Expense && t.EnvelopeID == "" && len(t.Splits) == 0 && pe.DefaultEnvelopeID != "" {
+			// The payee's default envelope, while it exists (FR-221).
+			ok, err := uc.d.envelopeExists(ctx, householdID, pe.DefaultEnvelopeID)
+			if err != nil {
+				return err
+			}
+			if ok {
+				t.EnvelopeID = pe.DefaultEnvelopeID
+			}
+		}
+		if err := uc.d.checkTxEnvelopes(ctx, t); err != nil {
+			return err
 		}
 		if err := insertTransaction(ctx, uc.d, s.Household.BaseCurrency, t, p.Actor()); err != nil {
 			return err
@@ -516,6 +526,18 @@ func (uc *UpdateTransaction) Do(ctx context.Context, p Principal, householdID, i
 				return err
 			}
 			t.PayeeID = pe.ID
+		}
+		// Only envelopes the update names are checked, so that a
+		// transaction of an envelope from before stage 003 stays editable.
+		changed := transaction.Transaction{HouseholdID: t.HouseholdID}
+		if in.EnvelopeID.Set {
+			changed.EnvelopeID = t.EnvelopeID
+		}
+		if in.Splits.Set {
+			changed.Splits = t.Splits
+		}
+		if err := uc.d.checkTxEnvelopes(ctx, changed); err != nil {
+			return err
 		}
 		if err := uc.d.Transactions.Update(ctx, t); err != nil {
 			return err

@@ -315,6 +315,7 @@ func TestTransferEnvelopeAndHiddenLegs(t *testing.T) {
 func TestPayees(t *testing.T) {
 	f := newFamily(t)
 	f.addWallet("w1", "h1", f.owner, wallet.Shared)
+	f.addEnvelopes("h1", "groceries")
 	create := usecase.NewCreatePayee(f.deps)
 	p, err := create.Do(ctx, human(f.member), "h1", usecase.CreatePayeeInput{Name: " Lidl ", Patterns: []string{"LIDL SP", " "}, DefaultEnvelopeID: "groceries"})
 	noErr(t, err)

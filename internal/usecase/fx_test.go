@@ -22,6 +22,7 @@ func fxFamily(t *testing.T) *family {
 	f.addWalletIn("USD", "w2", "h1", f.owner, wallet.Shared)
 	f.Rates.Set("USD", "2026-10-16", "3.9000")
 	f.Rates.Set("USD", "2026-10-20", "4.0000")
+	f.addEnvelopes("h1", "e1", "e2", "e9", "groceries", "savings")
 	return f
 }
 
