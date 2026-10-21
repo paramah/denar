@@ -24,3 +24,18 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - T-001…T-010 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 100 testów w 13 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
 - `task web:e2e`: 43 testy Playwright zielone (chromium ciemny — pełny przepływ login → gospodarstwo → zaproszenie i rejestracja z linku → bot, token i wywołanie Bearer → dziennik; axe na każdym ekranie w motywie jasnym, ciemnym i na telefonie 390 px; nawigacja mobilna bez poziomego przewijania).
 - Poprawka znaleziona przez e2e: po rejestracji z zaproszenia formularz odmontowywał się (zmiana `/me`) przed callbackiem `mutate`; rejestracja ustawia teraz `/me` z odpowiedzi i używa `mutateAsync`. Zasada dla B/C: nawigację po mutacji, która zmienia `/me`, robić przez `mutateAsync` albo w komponencie, który się nie odmontuje.
+
+## Część B
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+
+- [ ] **T-101 Spec części B** — sekcje części B w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [ ] **T-102 Kwoty i typy** — `lib/money.ts` (`parseAmountInput`, `negateDecimal`, `absDecimal`, `parseRateInput`, `formatRate`, `decimalsOf`), `lib/format.ts` (`todayIn`, `formatDay`), `lib/labels.ts` (typy portfeli, rodzaje, statusy, źródła, akcje audytu 002), `lib/features.ts`, `api/types.ts`, `api/keys.ts`. Testy tabelaryczne. FR-B16.
+- [ ] **T-103 Hooki API** — `api/hooks/{wallets,transactions,payees,fx}.ts`; fabryki MSW. FR-B01…FR-B41.
+- [ ] **T-104 Portfele** — `WalletsPage`, `WalletCard`, `WalletDialog`, `WalletPage`, trasy, menu. Testy. FR-B01…FR-B05.
+- [ ] **T-105 Transakcje** — `TransactionDialog`, `PayeeInput`, `EnvelopeField`, `SplitEditor`, `Register`, `TransactionRow`, `StatusToggle`, `RatePendingBadge`, `TransactionsPage`, skrót `n`. Testy (walidacja, 422/409, splity z flagą). FR-B10…FR-B19.
+- [ ] **T-106 Przelewy** — `TransferDialog`. Testy (wielowalutowy). FR-B20.
+- [ ] **T-107 Kontrahenci i kursy** — `PayeesTab`, `RatesTab`, zakładki ustawień. Testy. FR-B30, FR-B40, FR-B41.
+- [ ] **T-108 Boty — portfele** — `WalletScopePicker` w tworzeniu i dialog „Portfele”. Testy. FR-B50.
+- [ ] **T-109 Pulpit** — `features/dashboard/DashboardPage`. Testy. FR-B60.
+- [ ] **T-110 E2E** — stub NBP, `e2e/wallets.spec.ts`, nowe ekrany w `a11y.spec.ts`/`mobile.spec.ts`. NFR-B01, NFR-B02.

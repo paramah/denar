@@ -60,3 +60,68 @@ Pierwsza część SPA Denara (`web/`, React 19 + Vite + TS), osadzonej w binariu
 - **NFR-A01** Każdy widok obsługiwalny klawiaturą, widoczny focus, link „Przejdź do treści”, semantyczne nagłówki i landmarki; e2e sprawdza axe (bez naruszeń serious/critical).
 - **NFR-A02** Zgodność z CSP serwera (`script-src 'self'`, `style-src 'self'`, `font-src 'self'`): bez skryptów i elementów `<style>` inline, fonty z pakietów npm.
 - **NFR-A03** Testy: Vitest (komponenty, hooki; MSW z walidacją odpowiedzi względem `api/openapi.yaml`), Playwright e2e na zbudowanym binarium.
+
+---
+
+# Część B — portfele, transakcje, przelewy, kontrahenci, kursy (F07B)
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `api/openapi.yaml` etapu 002, `.ai/sdd/specs/002-wallets-transactions/`
+> Last Updated: 2026-10-21
+
+Część B wypełnia sekcję „Portfele”, dodaje rejestr transakcji, kontrahentów i kursy walut oraz pulpit z saldami. Stoi na kontrakcie etapu 002; budżet kopertowy (003) przychodzi w części C — tu pola kopert i splity są przygotowane, ale ukryte za flagą.
+
+## Non-Goals (część B)
+
+- Widoki kopert, „do przydzielenia”, subskrypcji i powiadomień (część C).
+- Zmiany backendu i `api/openapi.yaml`.
+- Import CSV (008), wirtualizacja długich list (wystarcza „Pokaż więcej”).
+
+## Requirements (EARS)
+
+### Portfele
+
+- **FR-B01** Strona „Portfele” SHALL pokazywać portfele widoczne dla użytkownika z: nazwą, typem, walutą, saldem w walucie portfela, saldem uzgodnionym, saldem w walucie bazowej (gdy waluta ≠ bazowa), oznaczeniem „poza budżetem”, „prywatny” i „czeka na kurs”; nad listą — sumę sald portfeli budżetowych i wszystkich portfeli w walucie bazowej.
+- **FR-B02** WHEN użytkownik zaznaczy „Pokaż zarchiwizowane” THE SYSTEM SHALL dociągnąć portfele zarchiwizowane (`include_archived=true`) i oznaczyć je; zarchiwizowane nie wchodzą do sum.
+- **FR-B03** Member+ SHALL móc utworzyć portfel: nazwa, typ, waluta (lista z `/currencies`), saldo otwarcia (może być ujemne, np. kredyt) i jego data, „w budżecie”, widoczność współdzielony/prywatny z wyborem członków gospodarstwa (twórca zawsze zaznaczony i zablokowany).
+- **FR-B04** Member+ SHALL móc zmienić nazwę, typ i „w budżecie” oraz zarchiwizować/przywrócić portfel; widoczność i członków SHALL móc zmienić tylko twórca, a dla portfela współdzielonego także owner/admin (pola ukryte dla pozostałych). Waluta jest tylko do odczytu.
+- **FR-B05** Strona portfela (`/h/:id/wallets/:walletId`) SHALL pokazywać salda portfela i jego rejestr transakcji; portfel niewidoczny/nieistniejący — komunikat „Nie znaleziono portfela”.
+
+### Rejestr transakcji
+
+- **FR-B10** Rejestr (portfela i globalny `/h/:id/transactions`) SHALL listować transakcje od najnowszych ze stronicowaniem kursorem („Pokaż więcej”).
+- **FR-B11** Rejestr SHALL mieć filtry: portfel (globalny), zakres dat, kontrahent, tekst, rodzaj, status, tag; filtry SHALL być w adresie strony (link odtwarza widok).
+- **FR-B12** Wiersz SHALL pokazywać datę, kontrahenta lub opis przelewu („Przelew do/z <portfel>”), notatkę, tagi, portfel (globalny), kwotę ze znakiem i kolorem, kwotę bazową (gdy inna waluta), źródło inne niż ręczne (bot, import, subskrypcja) i status.
+- **FR-B13** WHEN transakcja ma `rate_pending` THE SYSTEM SHALL pokazać oznaczenie „Czeka na kurs” z podpowiedzią, że kwota bazowa uzupełni się sama, a owner/admin może ustawić kurs ręcznie (link do ustawień dla owner/admin).
+- **FR-B14** Member+ SHALL móc przełączyć status jednym kliknięciem (oczekująca ⇄ rozliczona); `reconciled` zmienia się w formularzu edycji.
+- **FR-B15** Szybkie dodawanie (przycisk i skrót klawisza `n` poza polami tekstowymi) SHALL otwierać formularz z fokusem na kwocie; pola: rodzaj (wydatek / wpływ / zwrot), kwota, kontrahent z podpowiedziami z listy i autotworzeniem po nazwie, data (domyślnie dziś w strefie gospodarstwa), portfel (w rejestrze globalnym; domyślnie ostatnio używany), status, tagi, notatka; Enter zapisuje; opcja „dodaj kolejną” zostawia formularz otwarty.
+- **FR-B16** Kwoty w formularzach SHALL być wpisywane jako liczba dodatnia (przecinek lub kropka, spacje ignorowane), z walidacją liczby miejsc waluty; znak wynika z rodzaju. Obliczenia (sumy, salda, kontrola splitów) SHALL odbywać się na `bigint` jednostek minimalnych.
+- **FR-B17** Member+ SHALL móc edytować i usuwać transakcje (z potwierdzeniem); dla nogi przelewu formularz SHALL pozwalać zmienić tylko datę, status, tagi i notatkę, a usunięcie SHALL uprzedzać, że zniknie cały przelew.
+- **FR-B18** Formularz SHALL mieć pole koperty i edytor splitów (linie: koperta, kwota, notatka; suma kontrolna „pozostało do rozdzielenia”, zapis zablokowany, dopóki suma ≠ kwocie) — widoczne tylko, gdy włączona jest flaga `envelopes` (część C, po API kopert z etapu 003).
+- **FR-B19** Błędy problem+json SHALL trafiać do pól (`amount`, `date`, `payee_name`, `splits[i].amount`, …), 409 `wallet-archived` — komunikat nad formularzem.
+
+### Przelewy
+
+- **FR-B20** Member+ SHALL móc wykonać przelew między dwoma różnymi niezarchiwizowanymi portfelami: z, do, data, kwota; WHEN waluty portfeli się różnią THE SYSTEM SHALL wymagać kwoty docelowej w walucie portfela docelowego i pokazać obie waluty przy polach.
+
+### Kontrahenci
+
+- **FR-B30** Ustawienia → „Kontrahenci” SHALL listować kontrahentów z wzorcami; member+ SHALL móc dodać, zmienić nazwę i wzorce (lista podciągów) oraz usunąć (z uprzedzeniem, że transakcje zostaną bez kontrahenta).
+
+### Kursy walut
+
+- **FR-B40** Ustawienia → „Kursy walut” SHALL pozwalać sprawdzić kurs waluty do waluty bazowej na dzień (źródło: tożsamość, ręczny, NBP, brak) i listować kursy ustawione ręcznie.
+- **FR-B41** Owner/admin SHALL móc ustawić kurs ręcznie (waluta ≠ bazowa, dzień, kurs dodatni do 12 miejsc); interfejs SHALL wyjaśnić, że uzupełni on transakcje czekające na kurs z tego dnia.
+
+### Boty
+
+- **FR-B50** Tworzenie bota SHALL pozwalać ograniczyć go do wybranych portfeli (domyślnie „wszystkie, które widzisz”); lista botów SHALL pokazywać ograniczenie, a przycisk „Portfele” SHALL je zmieniać (`PATCH wallet_ids`).
+
+### Pulpit
+
+- **FR-B60** Pulpit SHALL pokazywać sumę sald portfeli budżetowych w walucie bazowej (z oznaczeniem, gdy część kwot czeka na kurs), listę portfeli z saldami (link do portfela) i ostatnie transakcje (link do rejestru); bez portfeli — zachętę do dodania pierwszego.
+
+### Jakość
+
+- **NFR-B01** Każdy nowy ekran i dialog bez naruszeń axe serious/critical w motywie jasnym, ciemnym i na telefonie 390 px; rejestr na telefonie jako lista kart, bez poziomego przewijania.
+- **NFR-B02** Testy: Vitest + MSW (walidacja formularzy, błędy problem+json, splity, przelew wielowalutowy, lib kwot), Playwright e2e na binarium (portfele PLN i USD → wydatek → przelew → salda) bez dostępu do sieci — NBP zastępuje lokalny stub.
