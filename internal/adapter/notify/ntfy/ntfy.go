@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/paramah/denar/internal/adapter/notify/notifyhttp"
+	"github.com/paramah/denar/internal/domain/notification"
 	"github.com/paramah/denar/internal/usecase"
 )
 
@@ -23,7 +24,7 @@ type Notifier struct {
 func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg usecase.OutgoingMessage) error {
 	text := msg.Body
 	if msg.HouseholdName != "" {
-		text += "\nGospodarstwo: " + msg.HouseholdName
+		text += "\n" + notification.HouseholdLine(msg.Locale, msg.HouseholdName)
 	}
 	server := strings.TrimRight(target.Config["server"], "/")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, server+"/"+target.Config["topic"], strings.NewReader(text))

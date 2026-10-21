@@ -11,7 +11,8 @@ import (
 
 // ErrTargetForbidden is the error of a notification target in a network
 // the server does not send to without the administrator's consent (009).
-var ErrTargetForbidden = errors.New("adres docelowy niedozwolony (sieć prywatna) — zobacz DENAR_NOTIFY_ALLOW_PRIVATE")
+// The text is stable English; the Web UI translates it (013).
+var ErrTargetForbidden = errors.New("target not allowed (private network): see DENAR_NOTIFY_ALLOW_PRIVATE")
 
 // TargetPolicy says which addresses notifications may be sent to. The zero
 // value sends to public addresses only. AllowPrivate opens the private,

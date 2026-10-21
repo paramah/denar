@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/paramah/denar/internal/domain"
 	"github.com/paramah/denar/internal/domain/household"
 	"github.com/paramah/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // deliveryBatch bounds how many deliveries one run sends.
@@ -32,6 +34,7 @@ func (uc *DeliverNotifications) Do(ctx context.Context) (DeliveryResult, error) 
 		return r, err
 	}
 	hs := uc.d.householdCache()
+	locales := map[domain.ID]user.Locale{}
 	for _, dl := range due {
 		if ctx.Err() != nil {
 			return r, ctx.Err()
@@ -46,11 +49,20 @@ func (uc *DeliverNotifications) Do(ctx context.Context) (DeliveryResult, error) 
 		if err != nil {
 			return r, err
 		}
+		locale, ok := locales[dl.UserID]
+		if !ok {
+			if locale, err = uc.d.localeOf(ctx, dl.UserID); err != nil {
+				return r, err
+			}
+			locales[dl.UserID] = locale
+		}
 		var sendErr error
 		if !c.Enabled {
-			sendErr = errPermanent{errors.New("kanał jest wyłączony")}
+			sendErr = errPermanent{errChannelDisabled}
 		} else {
-			sendErr = uc.d.send(ctx, c, outgoing(dl, h))
+			msg := outgoing(dl, h)
+			msg.Locale = locale
+			sendErr = uc.d.send(ctx, c, msg)
 		}
 		now := uc.d.Clock.Now()
 		var permanent errPermanent
@@ -89,6 +101,20 @@ func (uc *DeliverNotifications) Do(ctx context.Context) (DeliveryResult, error) 
 		}
 	}
 	return r, nil
+}
+
+// errChannelDisabled is stable English; the Web UI translates it (013).
+var errChannelDisabled = errors.New("channel is disabled")
+
+// localeOf is the language of a person; one who is gone gets the default.
+func (d Deps) localeOf(ctx context.Context, id domain.ID) (user.Locale, error) {
+	u, err := d.Users.ByID(ctx, id)
+	if found, err := ignoreNotFound(err); err != nil {
+		return "", err
+	} else if !found {
+		return user.DefaultLocale, nil
+	}
+	return u.EffectiveLocale(), nil
 }
 
 func outgoing(dl notification.Delivery, h *household.Household) OutgoingMessage {

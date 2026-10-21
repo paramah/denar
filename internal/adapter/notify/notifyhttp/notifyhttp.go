@@ -81,7 +81,7 @@ func Text(msg usecase.OutgoingMessage) string {
 		b.WriteString("\n\n" + msg.URL)
 	}
 	if msg.HouseholdName != "" {
-		b.WriteString("\nGospodarstwo: " + msg.HouseholdName)
+		b.WriteString("\n" + notification.HouseholdLine(msg.Locale, msg.HouseholdName))
 	}
 	return b.String()
 }
@@ -106,11 +106,11 @@ func Do(client *http.Client, log *slog.Logger, req *http.Request) ([]byte, error
 		var uerr *url.Error
 		if errors.As(err, &uerr) {
 			if uerr.Timeout() {
-				return nil, errors.New("przekroczony czas połączenia")
+				return nil, errors.New("connection timed out")
 			}
-			return nil, fmt.Errorf("błąd połączenia: %v", uerr.Err)
+			return nil, fmt.Errorf("connection failed: %v", uerr.Err)
 		}
-		return nil, errors.New("błąd połączenia")
+		return nil, errors.New("connection failed")
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))

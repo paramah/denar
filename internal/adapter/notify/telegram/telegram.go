@@ -51,7 +51,7 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 	// The token is part of the path; notifyhttp keeps URLs out of errors.
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/bot"+target.Secrets["bot_token"]+"/sendMessage", bytes.NewReader(body))
 	if err != nil {
-		return errors.New("niepoprawny adres Bot API")
+		return errors.New("invalid Bot API URL")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	raw, err := notifyhttp.Do(n.Client, n.Log, req)
@@ -63,7 +63,7 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 		return err
 	}
 	if !a.OK {
-		return errors.New("Telegram: odpowiedź bez ok")
+		return errors.New("Telegram: response without ok")
 	}
 	return nil
 }

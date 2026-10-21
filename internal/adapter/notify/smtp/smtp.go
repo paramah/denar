@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/paramah/denar/internal/domain/notification"
 	"github.com/paramah/denar/internal/usecase"
 )
 
@@ -95,9 +96,9 @@ func (m *Mailer) Send(ctx context.Context, target usecase.ChannelTarget, msg use
 		body += "\n\n" + msg.URL
 	}
 	if msg.HouseholdName != "" {
-		body += "\n\nGospodarstwo: " + msg.HouseholdName
+		body += "\n\n" + notification.HouseholdLine(msg.Locale, msg.HouseholdName)
 	}
-	body += "\n\n-- \nDenar · ustawienia powiadomień zmienisz w aplikacji.\n"
+	body += "\n\n-- \n" + notification.EmailFooter(msg.Locale) + "\n"
 	return m.SendMail(ctx, target.Config["address"], msg.Title, body)
 }
 
@@ -105,7 +106,7 @@ func (m *Mailer) Send(ctx context.Context, target usecase.ChannelTarget, msg use
 func (m *Mailer) SendMail(ctx context.Context, to, subject, body string) error {
 	rcpt, err := mail.ParseAddress(to)
 	if err != nil {
-		return errors.New("niepoprawny adres odbiorcy")
+		return errors.New("invalid recipient address")
 	}
 	raw, err := m.message(rcpt, subject, body)
 	if err != nil {
@@ -115,7 +116,7 @@ func (m *Mailer) SendMail(ctx context.Context, to, subject, body string) error {
 	defer cancel()
 	conn, err := m.dial(ctx)
 	if err != nil {
-		return fmt.Errorf("SMTP: połączenie nieudane: %w", unwrapNet(err))
+		return fmt.Errorf("SMTP: connection failed: %w", unwrapNet(err))
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
@@ -128,7 +129,7 @@ func (m *Mailer) SendMail(ctx context.Context, to, subject, body string) error {
 	defer c.Close()
 	if m.cfg.TLS == StartTLS {
 		if ok, _ := c.Extension("STARTTLS"); !ok {
-			return errors.New("SMTP: serwer nie obsługuje STARTTLS")
+			return errors.New("SMTP: server does not support STARTTLS")
 		}
 		if err := c.StartTLS(m.tlsConfig()); err != nil {
 			return fmt.Errorf("SMTP: STARTTLS: %w", err)
@@ -136,10 +137,10 @@ func (m *Mailer) SendMail(ctx context.Context, to, subject, body string) error {
 	}
 	if m.cfg.Username != "" {
 		if ok, _ := c.Extension("AUTH"); !ok {
-			return errors.New("SMTP: serwer nie obsługuje AUTH")
+			return errors.New("SMTP: server does not support AUTH")
 		}
 		if err := c.Auth(smtp.PlainAuth("", m.cfg.Username, m.cfg.Password, m.cfg.Host)); err != nil {
-			return fmt.Errorf("SMTP: logowanie nieudane: %w", err)
+			return fmt.Errorf("SMTP: authentication failed: %w", err)
 		}
 	}
 	if err := c.Mail(m.from.Address); err != nil {
