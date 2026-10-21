@@ -7,7 +7,7 @@ English | [Polski](README.pl.md)
 
 Self-hosted household budget app with multi-currency wallets, YNAB-style envelopes and subscription tracking, available through a web UI, REST and an MCP server for AI assistants, with separate access rights for household members and bots.
 
-Denar is a single Go binary (Clean Architecture, SQLite) that serves the REST API, the MCP server and the web UI embedded into the binary.
+Denar is a single Go binary (Clean Architecture, SQLite or PostgreSQL) that serves the REST API, the MCP server and the web UI embedded into the binary.
 
 ## Screenshots
 
@@ -110,6 +110,45 @@ export DENAR_DB=./denar.db DENAR_ADMIN_EMAIL=admin@example.com DENAR_ADMIN_PASSW
 
 A plain `go build` embeds the web UI only if `web/dist` has been built before (`task web:build`); release binaries and the Docker image always contain it.
 
+### PostgreSQL
+
+SQLite is the default and needs nothing else. To use PostgreSQL (16 or newer) instead, point `DENAR_DB` at it with a URL:
+
+```sh
+export DENAR_DB='postgres://denar@db.example.com:5432/denar?sslmode=verify-full'
+export PGPASSWORD='…'   # or the password in the URL; PG* variables and ~/.pgpass work too
+./denar migrate
+./denar serve
+```
+
+With Docker Compose, add a database service and point denar at it:
+
+```yaml
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: denar
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: denar
+    volumes: [denar-pg:/var/lib/postgresql/data]
+  denar:
+    environment:
+      DENAR_DB: postgres://denar:change-me@db:5432/denar?sslmode=disable
+    depends_on: [db]
+volumes:
+  denar-pg:
+```
+
+**Moving from SQLite:** stop the server, then copy the data into an empty PostgreSQL database. The command migrates the target, copies every table in one transaction and prints the row counts of both sides:
+
+```sh
+./denar migrate   # the SQLite file must be at the current schema version
+./denar db copy --from ./denar.db --to 'postgres://denar@db.example.com/denar'
+```
+
+Run one denar server per database: the background jobs (rates, charges, notifications) are not coordinated between instances.
+
 ### Commands
 
 | Command | Description |
@@ -118,6 +157,7 @@ A plain `go build` embeds the web UI only if `web/dist` has been built before (`
 | `denar migrate` | updates the database schema; without `DENAR_AUTO_MIGRATE`, `serve` refuses to start on an old schema |
 | `denar token create …` | creates a bot and prints its token |
 | `denar demo [--reset] [--password …]` | migrates the database and creates the demo household with the `demo@denar.local` account (local use only) |
+| `denar db copy --from … [--to …]` | copies all data into another, empty database, for example from SQLite to PostgreSQL (`--to` defaults to `DENAR_DB`) |
 | `denar version` | version |
 
 ## Using the REST API
@@ -195,7 +235,7 @@ Denar is configured with `DENAR_*` environment variables. [`.env.example`](.env.
 | Variable | Default | Description |
 |---|---|---|
 | `DENAR_ADDR` | `:8080` | listen address |
-| `DENAR_DB` | `denar.db` | SQLite file |
+| `DENAR_DB` | `denar.db` | SQLite file, or a `postgres://` URL for [PostgreSQL](#postgresql) |
 | `DENAR_ADMIN_EMAIL`, `DENAR_ADMIN_PASSWORD` / `DENAR_ADMIN_PASSWORD_FILE` | — | bootstrap account (created once, password at least 12 characters) |
 | `DENAR_ADMIN_NAME` | `Admin` | name of the bootstrap account |
 | `DENAR_LOCAL_LOGIN` | `true` | password login |
@@ -343,16 +383,17 @@ task verify     # gofmt, go vet, web build + tests, go test -race, go build
 task generate   # regenerate code from api/openapi.yaml
 task web:types  # regenerate web/src/api/schema.d.ts from api/openapi.yaml (task web:types:check verifies it)
 task web:e2e    # build the binary with the web UI and run the Playwright tests
+task test:postgres  # the Go tests on PostgreSQL too, in a postgres:17 container (CONTAINER=podman for Podman)
 ```
 
-Before the first `task web:e2e`, install the browser once: `task web:e2e:install`. CI (GitHub Actions) runs `task web:types:check`, `task verify` and `task web:e2e` on every push to `main` and on pull requests.
+Before the first `task web:e2e`, install the browser once: `task web:e2e:install`. CI (GitHub Actions) runs `task web:types:check`, `task verify` (with the repository and end-to-end tests also on a PostgreSQL service) and `task web:e2e` on every push to `main` and on pull requests.
 
 ## Architecture
 
-- **One binary:** `cmd/denar` (commands `serve`, `migrate`, `token`, `demo`, `version`); the React SPA from `web/` is built by Vite into `web/dist` and embedded with `go:embed` (`web/embed.go`).
+- **One binary:** `cmd/denar` (commands `serve`, `migrate`, `token`, `demo`, `db copy`, `version`); the React SPA from `web/` is built by Vite into `web/dist` and embedded with `go:embed` (`web/embed.go`).
 - **Clean Architecture:** dependencies point inwards only, `adapter → usecase → domain` (enforced by `internal/arch_test.go`). Business rules (balances, envelopes, subscription cycles, permissions) live in `internal/domain` and `internal/usecase`, not in the adapters.
 - **Money** is always an `int64` in minor units plus a currency; never `float64`.
-- **Storage:** SQLite (pure Go driver, no CGO) with migrations.
+- **Storage:** SQLite or PostgreSQL (pure Go drivers, no CGO) in `internal/adapter/sqldb`: one set of repositories for both, migrations per database with the same versions, and the repository contract tests run on both.
 - **Interfaces:** REST ([`api/openapi.yaml`](api/openapi.yaml), with code generated by oapi-codegen), MCP ([`api/mcp-tools.md`](api/mcp-tools.md)) and the web UI on top of REST.
 - **Access control:** every use case filters by the wallets the principal can see; hidden resources return "not found". Bots never get more than their creator.
 

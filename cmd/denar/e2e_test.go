@@ -13,7 +13,6 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -55,7 +54,7 @@ func (b *syncBuffer) String() string {
 // admin; extra pairs override.
 func setEnv(t *testing.T, extra ...string) string {
 	t.Helper()
-	db := filepath.Join(t.TempDir(), "denar.db")
+	db := testDatabase(t)
 	vars := map[string]string{
 		"DENAR_DB": db, "DENAR_ADDR": "127.0.0.1:0", "DENAR_ADMIN_EMAIL": adminEmail, "DENAR_ADMIN_PASSWORD": adminPassword,
 		"DENAR_AUTO_MIGRATE": "", "DENAR_BASE_URL": "", "DENAR_OIDC_ISSUER": "", "DENAR_OIDC_CLIENT_ID": "",

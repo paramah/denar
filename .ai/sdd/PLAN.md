@@ -44,7 +44,7 @@ Kopiujemy wzorce 1:1 (źródła w `/Users/paramah/Projects/eiac.dev/tools/para-b
 - `internal/usecase/ports.go` + `usecase/fakes/` (in-memory, `tx.go`, `store.go`) + `usecase/portstest/` (wspólne suity kontraktowe repozytoriów).
 - Interaktor = struct z `New…` i `Do(ctx, Principal, Input)`; autoryzacja w use case'ach (`access.go`), ukryte zasoby → `ErrNotFound`.
 - `internal/adapter/rest` — oapi-codegen (`std-http-server`, `strict-server`, `go:generate` przez `go run …@v2.8.0`, `TestGeneratedCodeIsCurrent`), błędy mapowane wyłącznie w `problem.go` (RFC 7807), middleware z `middleware.go`/`auth_middleware.go`, libopenapi-validator w testach konformancji.
-- `internal/adapter/sqlite` — pule writer/reader na WAL, `WithinTx` w kontekście, migracje goose osadzone (`migrations/NNNNN_*.sql`), `CheckSchemaCurrent`, czasy jako INTEGER µs.
+- `internal/adapter/sqlite` (od 014: `internal/adapter/sqldb`, SQLite i PostgreSQL) — pule writer/reader na WAL, `WithinTx` w kontekście, migracje goose osadzone (`migrations/NNNNN_*.sql`), `CheckSchemaCurrent`, czasy jako INTEGER µs.
 - `internal/adapter/mcp` — `NewStreamableHTTPHandler` (Stateless, JSONResponse), `/mcp` POST, Bearer, rate-limit, helper `addTool[In]`, kontrakt w `api/mcp-tools.md`.
 - `internal/adapter/oidc` (PKCE + nonce), `internal/adapter/spa` (fallback, CSP), `web/embed.go`.
 - `internal/platform/{config,clock,id(ULID),password(argon2id),token}`; `config.Secret`.
@@ -210,3 +210,4 @@ Zatwierdzone przez użytkownika planem „wiele języków, GitHub, MIT, pipeline
 - Moduł Go przemianowany na `github.com/paramah/denar`; remote `git@github.com:paramah/denar.git`.
 - `LICENSE` (MIT), `README.md` (EN) i `README.pl.md` (PL), `Dockerfile` budujący Web UI, `.github/workflows/{ci,release}.yml`, Dependabot.
 - Etap 013-i18n: Web UI i powiadomienia po polsku i angielsku (spec w `.ai/sdd/specs/013-i18n/`).
+- Etap 014-postgres: PostgreSQL obok SQLite przez `DENAR_DB`, `denar db copy` z SQLite (spec w `.ai/sdd/specs/014-postgres/`; zatwierdzony planem 2026-10-21).

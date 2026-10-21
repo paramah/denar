@@ -20,6 +20,24 @@ jobs:
     name: Verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The repository contract suites and the end-to-end tests of cmd/denar
+    # run on PostgreSQL as well (014-postgres).
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        env:
+          POSTGRES_USER: denar
+          POSTGRES_PASSWORD: denar
+          POSTGRES_DB: denar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U denar"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DENAR_TEST_POSTGRES: postgres://denar:denar@localhost:5432/denar?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -44,9 +62,13 @@ jobs:
       - name: Check generated API types
         run: task web:types:check
 
-      # gofmt, go vet, web build + tests, go test -race, go build
+      # gofmt, go vet, web build + tests, go test -race (contract suites on
+      # SQLite and PostgreSQL), go build
       - name: Verify
         run: task verify
+
+      - name: End-to-end tests on PostgreSQL
+        run: task test:e2e:postgres
 
   e2e:
     name: E2E (Playwright)

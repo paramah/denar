@@ -22,7 +22,7 @@ import (
 	"github.com/paramah/denar/internal/adapter/oidc"
 	"github.com/paramah/denar/internal/adapter/rest"
 	"github.com/paramah/denar/internal/adapter/spa"
-	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/adapter/sqldb"
 	"github.com/paramah/denar/internal/domain/notification"
 	"github.com/paramah/denar/internal/platform/clock"
 	"github.com/paramah/denar/internal/platform/config"
@@ -51,7 +51,7 @@ type app struct {
 	runNotifications func(ctx context.Context) (usecase.NotificationJobResult, error)
 	checkBudgets     func(ctx context.Context) (int, error)
 
-	db             *sqlite.DB
+	db             *sqldb.DB
 	stopBackground context.CancelFunc
 	backgroundDone chan struct{}
 	closeOnce      sync.Once
@@ -77,7 +77,7 @@ func newApp(ctx context.Context, cfg config.Config, log *slog.Logger, panel fs.F
 }
 
 func newAppWith(ctx context.Context, cfg config.Config, log *slog.Logger, panel fs.FS, opts appOptions) (*app, error) {
-	db, err := sqlite.Open(cfg.DatabasePath)
+	db, err := sqldb.Open(cfg.Database)
 	if err != nil {
 		return nil, err
 	}
@@ -92,39 +92,39 @@ func newAppWith(ctx context.Context, cfg config.Config, log *slog.Logger, panel 
 // useCaseDeps builds the dependencies of the use cases over the database.
 // Without a rate provider only the base currency, rates set by hand and
 // cached rates are known (the command line needs none).
-func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase.RateProvider) usecase.Deps {
+func useCaseDeps(db *sqldb.DB, log *slog.Logger, c usecase.Clock, rates usecase.RateProvider) usecase.Deps {
 	if c == nil {
 		c = clock.System{}
 	}
 	return usecase.Deps{
-		Users:        sqlite.NewUserRepository(db),
-		Households:   sqlite.NewHouseholdRepository(db),
-		Memberships:  sqlite.NewMembershipRepository(db),
-		Invitations:  sqlite.NewInvitationRepository(db),
-		Bots:         sqlite.NewBotRepository(db),
-		Audit:        sqlite.NewAuditRepository(db),
-		Sessions:     sqlite.NewSessionRepository(db),
-		Wallets:      sqlite.NewWalletRepository(db),
-		Transactions: sqlite.NewTransactionRepository(db),
-		Payees:       sqlite.NewPayeeRepository(db),
-		FxRates:      sqlite.NewFxRateRepository(db),
-		FxOverrides:  sqlite.NewFxOverrideRepository(db),
+		Users:        sqldb.NewUserRepository(db),
+		Households:   sqldb.NewHouseholdRepository(db),
+		Memberships:  sqldb.NewMembershipRepository(db),
+		Invitations:  sqldb.NewInvitationRepository(db),
+		Bots:         sqldb.NewBotRepository(db),
+		Audit:        sqldb.NewAuditRepository(db),
+		Sessions:     sqldb.NewSessionRepository(db),
+		Wallets:      sqldb.NewWalletRepository(db),
+		Transactions: sqldb.NewTransactionRepository(db),
+		Payees:       sqldb.NewPayeeRepository(db),
+		FxRates:      sqldb.NewFxRateRepository(db),
+		FxOverrides:  sqldb.NewFxOverrideRepository(db),
 
-		EnvelopeGroups: sqlite.NewEnvelopeGroupRepository(db),
-		Envelopes:      sqlite.NewEnvelopeRepository(db),
-		Assignments:    sqlite.NewAssignmentRepository(db),
+		EnvelopeGroups: sqldb.NewEnvelopeGroupRepository(db),
+		Envelopes:      sqldb.NewEnvelopeRepository(db),
+		Assignments:    sqldb.NewAssignmentRepository(db),
 
-		Subscriptions: sqlite.NewSubscriptionRepository(db),
-		Charges:       sqlite.NewChargeRepository(db),
-		Events:        sqlite.NewEventOutbox(db),
+		Subscriptions: sqldb.NewSubscriptionRepository(db),
+		Charges:       sqldb.NewChargeRepository(db),
+		Events:        sqldb.NewEventOutbox(db),
 
-		Notifications: sqlite.NewNotificationRepository(db),
-		Channels:      sqlite.NewChannelRepository(db),
-		Preferences:   sqlite.NewPreferenceRepository(db),
-		Deliveries:    sqlite.NewDeliveryRepository(db),
+		Notifications: sqldb.NewNotificationRepository(db),
+		Channels:      sqldb.NewChannelRepository(db),
+		Preferences:   sqldb.NewPreferenceRepository(db),
+		Deliveries:    sqldb.NewDeliveryRepository(db),
 
-		ImportBatches: sqlite.NewImportBatchRepository(db),
-		Connections:   sqlite.NewConnectionRepository(db),
+		ImportBatches: sqldb.NewImportBatchRepository(db),
+		Connections:   sqldb.NewConnectionRepository(db),
 		CSV:           csvimport.New(),
 
 		Rates:  rates,
@@ -137,12 +137,12 @@ func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase
 	}
 }
 
-func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.DB, panel fs.FS, opts appOptions) (*app, error) {
+func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqldb.DB, panel fs.FS, opts appOptions) (*app, error) {
 	if cfg.AutoMigrate {
-		if err := sqlite.Migrate(ctx, db, sqlite.Migrations()); err != nil {
+		if err := sqldb.Migrate(ctx, db, db.Migrations()); err != nil {
 			return nil, err
 		}
-	} else if err := sqlite.CheckSchemaCurrent(ctx, db, sqlite.Migrations()); err != nil {
+	} else if err := sqldb.CheckSchemaCurrent(ctx, db, db.Migrations()); err != nil {
 		return nil, err
 	}
 
@@ -158,7 +158,7 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		return nil, err
 	}
 	d.Connectors = connectors(cfg, d.Clock)
-	states := sqlite.NewOIDCStateRepository(db)
+	states := sqldb.NewOIDCStateRepository(db)
 	provider := oidc.New(oidc.Config{
 		Issuer:       cfg.OIDCIssuer,
 		ClientID:     cfg.OIDCClientID,

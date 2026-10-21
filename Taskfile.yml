@@ -25,6 +25,38 @@ tasks:
     cmds:
       - go test -race ./...
 
+  test:postgres:
+    desc: "Testy Go także na PostgreSQL: kontener postgres:17-alpine na losowym porcie (CONTAINER=podman dla Podmana)"
+    vars:
+      CONTAINER: '{{.CONTAINER | default "docker"}}'
+    cmds:
+      - cmd: |
+          set -eu
+          name="denar-test-pg-$$"
+          {{.CONTAINER}} run --detach --rm --name "$name" \
+            -e POSTGRES_USER=denar -e POSTGRES_PASSWORD=denar -e POSTGRES_DB=denar \
+            -p 127.0.0.1::5432 docker.io/library/postgres:17-alpine >/dev/null
+          trap '{{.CONTAINER}} stop "$name" >/dev/null' EXIT
+          for _ in $(seq 60); do
+            {{.CONTAINER}} exec "$name" pg_isready -U denar -h 127.0.0.1 >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+          port="$({{.CONTAINER}} port "$name" 5432/tcp | head -n1 | sed 's/.*://')"
+          export DENAR_TEST_POSTGRES="postgres://denar:denar@127.0.0.1:${port}/denar?sslmode=disable"
+          go test -race ./...
+          DENAR_TEST_E2E_POSTGRES=1 go test -race ./cmd/...
+        silent: true
+
+  test:e2e:postgres:
+    desc: Testy end-to-end cmd/denar na serwerze z DENAR_TEST_POSTGRES (CI)
+    preconditions:
+      - sh: test -n "${DENAR_TEST_POSTGRES:-}"
+        msg: "Ustaw DENAR_TEST_POSTGRES albo uruchom task test:postgres"
+    env:
+      DENAR_TEST_E2E_POSTGRES: "1"
+    cmds:
+      - go test -race ./cmd/...
+
   vet:
     desc: Uruchamia go vet
     cmds:

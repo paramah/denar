@@ -32,8 +32,8 @@ const (
 
 // Config is the server's runtime configuration.
 type Config struct {
-	Addr         string // DENAR_ADDR, listen address
-	DatabasePath string // DENAR_DB, SQLite file
+	Addr     string // DENAR_ADDR, listen address
+	Database string // DENAR_DB: a SQLite file or a postgres:// URL
 
 	// Bootstrap admin account; email and password are set together or not
 	// at all.
@@ -122,8 +122,8 @@ func (c Config) SMTPEnabled() bool { return c.SMTPHost != "" }
 func FromEnv() (Config, error) {
 	var errs []error
 	cfg := Config{
-		Addr:         env("DENAR_ADDR", ":8080"),
-		DatabasePath: env("DENAR_DB", "denar.db"),
+		Addr:     env("DENAR_ADDR", ":8080"),
+		Database: env("DENAR_DB", "denar.db"),
 	}
 	cfg.AdminEmail = os.Getenv("DENAR_ADMIN_EMAIL")
 	cfg.AdminName = env("DENAR_ADMIN_NAME", "Admin")
@@ -225,12 +225,27 @@ func (c Config) OIDCEnabled() bool {
 	return c.OIDCIssuer != "" && c.OIDCClientID != "" && c.OIDCClientSecret != ""
 }
 
+// DatabaseForLog is DENAR_DB with the password of a database URL hidden.
+func (c Config) DatabaseForLog() string {
+	return RedactURL(c.Database)
+}
+
+// RedactURL hides the password of a URL; anything that is not one with a
+// password comes back as it is.
+func RedactURL(s string) string {
+	u, err := url.Parse(s)
+	if err != nil || u.User == nil {
+		return s
+	}
+	return u.Redacted()
+}
+
 // LogValue lets the configuration be logged; Secret fields redact
 // themselves.
 func (c Config) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("addr", c.Addr),
-		slog.String("database_path", c.DatabasePath),
+		slog.String("database", c.DatabaseForLog()),
 		slog.String("admin_email", c.AdminEmail),
 		slog.Any("admin_password", c.AdminPassword),
 		slog.String("admin_name", c.AdminName),
