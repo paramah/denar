@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useSubscriptionSummary } from '../../api/hooks/subscriptions.ts'
 import type { SubscriptionSummary, UpcomingRenewal } from '../../api/types.ts'
@@ -10,7 +11,7 @@ import { Money } from '../../components/Money/Money.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
 import { Skeleton } from '../../components/Skeleton/Skeleton.tsx'
 import { formatDay } from '../../lib/format.ts'
-import { addDaysTo, daysBetween, plural, relativeDay, share } from '../../lib/subscriptions.ts'
+import { addDaysTo, daysBetween, relativeDay, share } from '../../lib/subscriptions.ts'
 import { useEnvelopeNames } from '../transactions/envelopes.ts'
 import { useDecimals } from '../transactions/money.ts'
 import { coinName, useToday, useVendorNames, VendorCoin } from './parts.tsx'
@@ -19,31 +20,30 @@ import styles from './subscriptions.module.css'
 
 export const calendarDays = 30
 
-const countLabels = { active: 'Aktywne', trial: 'Próbne', paused: 'Wstrzymane', cancelled: 'Anulowane' } as const
-
 /** Przegląd: koszt w walucie bazowej, kalendarz odnowień, rozbicie, triale, zmiany cen. */
 export function OverviewPage() {
   const { household } = useHousehold()
   const summary = useSubscriptionSummary(household.id)
   const { create, canWrite } = useSubscriptionsLayout()
+  const { t } = useTranslation('subscriptions')
   return (
-    <QueryState query={summary} errorTitle="Nie udało się wczytać podsumowania" loading={<Skeleton lines={6} />}>
+    <QueryState query={summary} errorTitle={t('overview.loadError')} loading={<Skeleton lines={6} />}>
       {(data) => {
         const total = data.counts.active + data.counts.trial + data.counts.paused + data.counts.cancelled
         if (total === 0) {
           return (
             <EmptyState
               icon="repeat"
-              title="Nie śledzisz jeszcze subskrypcji"
+              title={t('overview.emptyTitle')}
               action={
                 canWrite && (
                   <Button variant="primary" icon="plus" onClick={create}>
-                    Dodaj pierwszą subskrypcję
+                    {t('overview.emptyAction')}
                   </Button>
                 )
               }
             >
-              <p>Zapisz usługi, za które płacisz cyklicznie — policzymy ich miesięczny koszt i przypomnimy o odnowieniach.</p>
+              <p>{t('overview.emptyBody')}</p>
             </EmptyState>
           )
         }
@@ -55,32 +55,36 @@ export function OverviewPage() {
 
 function Overview({ summary }: { summary: SubscriptionSummary }) {
   const { household, role } = useHousehold()
+  const { t } = useTranslation('subscriptions')
   const counts = summary.counts
   const countParts = (['active', 'trial', 'paused', 'cancelled'] as const)
     .filter((status) => counts[status] > 0)
-    .map((status, i) => `${i === 0 ? countLabels[status] : countLabels[status].toLowerCase()}: ${counts[status]}`)
+    .map((status, i) => {
+      const label = t(`overview.counts.${status}`)
+      return t('overview.count', { label: i === 0 ? label : label.toLocaleLowerCase(), value: counts[status] })
+    })
   return (
     <>
       <section className={styles.hero} aria-labelledby="cost-heading">
         <div className={styles.heroCost}>
           <h2 id="cost-heading" className={styles.heroLabel}>
-            Subskrypcje kosztują miesięcznie
+            {t('overview.costHeading')}
           </h2>
           <p className={styles.heroAmount}>
             <Money amount={summary.monthly.amount} currency={summary.currency} size="xl" />
-            {summary.incomplete && <span className={styles.heroMark}> (bez części walut)</span>}
+            {summary.incomplete && <span className={styles.heroMark}>{t('overview.partial')}</span>}
           </p>
           <p className={styles.heroYear}>
-            Rocznie <Money amount={summary.yearly.amount} currency={summary.currency} />
+            {t('overview.yearly')} <Money amount={summary.yearly.amount} currency={summary.currency} />
           </p>
-          <p className={styles.muted}>{countParts.join(', ')}. Liczone z aktywnych i próbnych, po dzisiejszym kursie.</p>
+          <p className={styles.muted}>{t('overview.countsNote', { counts: countParts.join(', ') })}</p>
           {summary.incomplete && (
-            <Callout tone="warn" title="Część kosztów pominięto">
+            <Callout tone="warn" title={t('overview.incompleteTitle')}>
               <p>
-                Brak dzisiejszego kursu {summary.missing_currencies.join(', ')} → {summary.currency}; te subskrypcje nie weszły do sum.{' '}
+                {t('overview.incompleteBody', { currencies: summary.missing_currencies.join(', '), base: summary.currency })}{' '}
                 {canManage(role) && (
                   <Link to={`${householdPath(household.id, 'settings/rates')}?currency=${summary.missing_currencies[0] ?? ''}`}>
-                    Ustaw kurs ręcznie
+                    {t('overview.setRate')}
                   </Link>
                 )}
               </p>
@@ -111,6 +115,7 @@ export function RenewalCalendar({ upcoming, compact }: { upcoming: UpcomingRenew
   const { household } = useHousehold()
   const today = useToday()
   const vendors = useVendorNames()
+  const { t } = useTranslation('subscriptions')
   const items = upcoming.filter((u) => {
     const offset = daysBetween(today, u.charge.due_date)
     return offset >= 0 && offset <= calendarDays
@@ -126,10 +131,10 @@ export function RenewalCalendar({ upcoming, compact }: { upcoming: UpcomingRenew
   const shown = compact ? items.slice(0, 4) : items
 
   return (
-    <section className={styles.calendar} aria-labelledby={compact ? undefined : 'renewals-heading'} aria-label={compact ? 'Najbliższe odnowienia' : undefined}>
+    <section className={styles.calendar} aria-labelledby={compact ? undefined : 'renewals-heading'} aria-label={compact ? t('calendar.label') : undefined}>
       {!compact && (
         <div className={styles.sectionHead}>
-          <h2 id="renewals-heading">Najbliższe odnowienia</h2>
+          <h2 id="renewals-heading">{t('calendar.label')}</h2>
           <span className={styles.muted}>
             {formatDay(today)} – {formatDay(days[days.length - 1]!)}
           </span>
@@ -147,7 +152,7 @@ export function RenewalCalendar({ upcoming, compact }: { upcoming: UpcomingRenew
               data-today={i === 0 || undefined}
               ref={(el) => el?.style.setProperty('grid-column', String(i + 1))}
             >
-              {(i === 0 || weekday === 1) && <span className={styles.stripLabel}>{i === 0 ? 'dziś' : date.getDate()}</span>}
+              {(i === 0 || weekday === 1) && <span className={styles.stripLabel}>{i === 0 ? t('relative.today') : date.getDate()}</span>}
             </span>
           )
         })}
@@ -165,9 +170,9 @@ export function RenewalCalendar({ upcoming, compact }: { upcoming: UpcomingRenew
         ))}
       </div>
       {items.length === 0 ? (
-        <p className={styles.muted}>W ciągu {calendarDays} dni nic się nie odnawia.</p>
+        <p className={styles.muted}>{t('calendar.nothing', { days: calendarDays })}</p>
       ) : (
-        <ol className={styles.renewals} aria-label={`Odnowienia w ${calendarDays} dni`}>
+        <ol className={styles.renewals} aria-label={t('calendar.list', { days: calendarDays })}>
           {shown.map((u) => (
             <li key={u.charge.id} className={styles.renewal}>
               <span className={styles.renewalWhen}>
@@ -192,7 +197,7 @@ export function RenewalCalendar({ upcoming, compact }: { upcoming: UpcomingRenew
       )}
       {compact && items.length > shown.length && (
         <p className={styles.muted}>
-          I jeszcze {items.length - shown.length} {plural(items.length - shown.length, 'płatność', 'płatności', 'płatności')}.
+          {t('calendar.more', { count: items.length - shown.length })}
         </p>
       )}
     </section>
@@ -203,6 +208,7 @@ type Bar = { key: string; label: string; vendor?: string; count: number; monthly
 
 function Bars({ title, bars, currency, empty }: { title: string; bars: Bar[]; currency: string; empty: string }) {
   const decimalsFor = useDecimals()
+  const { t } = useTranslation('subscriptions')
   const decimals = decimalsFor(currency)
   const max = bars[0]?.monthly ?? '0'
   const id = `bars-${title.replace(/\s+/g, '-')}`
@@ -219,7 +225,7 @@ function Bars({ title, bars, currency, empty }: { title: string; bars: Bar[]; cu
                 {bar.vendor && <VendorCoin vendor={bar.vendor} name={bar.label} size="sm" />}
                 {bar.label}
                 <span className={styles.muted}>
-                  {bar.count} {plural(bar.count, 'subskrypcja', 'subskrypcje', 'subskrypcji')}
+                  {t('bars.count', { count: bar.count })}
                 </span>
               </span>
               <Money amount={bar.monthly} currency={currency} />
@@ -239,6 +245,7 @@ function Bars({ title, bars, currency, empty }: { title: string; bars: Bar[]; cu
 }
 
 function VendorBreakdown({ summary }: { summary: SubscriptionSummary }) {
+  const { t } = useTranslation('subscriptions')
   const bars: Bar[] = summary.by_vendor.map((v) => ({
     key: v.vendor,
     label: v.vendor_name,
@@ -246,36 +253,38 @@ function VendorBreakdown({ summary }: { summary: SubscriptionSummary }) {
     count: v.count,
     monthly: v.monthly.amount,
   }))
-  return <Bars title="Miesięcznie wg dostawcy" bars={bars} currency={summary.currency} empty="Brak aktywnych subskrypcji." />
+  return <Bars title={t('bars.byVendor')} bars={bars} currency={summary.currency} empty={t('bars.byVendorEmpty')} />
 }
 
 function EnvelopeBreakdown({ summary }: { summary: SubscriptionSummary }) {
   const { household } = useHousehold()
   const names = useEnvelopeNames(household.id)
+  const { t } = useTranslation('subscriptions')
   const bars: Bar[] = summary.by_envelope.map((e) => ({
     key: e.envelope_id ?? 'none',
-    label: e.envelope_id ? (names.get(e.envelope_id) ?? 'Koperta') : 'Bez koperty',
+    label: e.envelope_id ? (names.get(e.envelope_id) ?? t('bars.envelope')) : t('bars.noEnvelope'),
     count: e.count,
     monthly: e.monthly.amount,
   }))
   return (
     <Bars
-      title="Miesięcznie wg koperty"
+      title={t('bars.byEnvelope')}
       bars={bars}
       currency={summary.currency}
-      empty="Przypisz subskrypcjom koperty, żeby zobaczyć, z której płacisz."
+      empty={t('bars.byEnvelopeEmpty')}
     />
   )
 }
 
 function TrialsEnding({ summary }: { summary: SubscriptionSummary }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('subscriptions')
   const today = useToday()
   return (
     <section className={styles.panel} aria-labelledby="trials-heading">
-      <h2 id="trials-heading">Kończące się okresy próbne</h2>
+      <h2 id="trials-heading">{t('trials.heading')}</h2>
       {summary.trials_ending.length === 0 ? (
-        <p className={styles.muted}>W ciągu 14 dni żaden okres próbny się nie kończy.</p>
+        <p className={styles.muted}>{t('trials.empty')}</p>
       ) : (
         <ul className={styles.plainList}>
           {summary.trials_ending.map((trial) => (
@@ -285,7 +294,7 @@ function TrialsEnding({ summary }: { summary: SubscriptionSummary }) {
                 {formatDay(trial.trial_ends_at)} <span className={styles.muted}>({relativeDay(trial.trial_ends_at, today)})</span>
               </span>
               <span className={styles.muted}>
-                potem <Money amount={trial.price.amount} currency={trial.price.currency} size="sm" />
+                {t('trials.then')} <Money amount={trial.price.amount} currency={trial.price.currency} size="sm" />
               </span>
             </li>
           ))}
@@ -297,11 +306,12 @@ function TrialsEnding({ summary }: { summary: SubscriptionSummary }) {
 
 function PriceChanges({ summary }: { summary: SubscriptionSummary }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('subscriptions')
   return (
     <section className={styles.panel} aria-labelledby="prices-heading">
-      <h2 id="prices-heading">Ostatnie zmiany cen</h2>
+      <h2 id="prices-heading">{t('priceChanges.heading')}</h2>
       {summary.price_changes.length === 0 ? (
-        <p className={styles.muted}>Od 90 dni żadna cena się nie zmieniła.</p>
+        <p className={styles.muted}>{t('priceChanges.empty')}</p>
       ) : (
         <ul className={styles.plainList}>
           {summary.price_changes.map((change) => (
@@ -310,10 +320,10 @@ function PriceChanges({ summary }: { summary: SubscriptionSummary }) {
               <span className={styles.priceShift}>
                 <Money amount={change.old_price.amount} currency={change.old_price.currency} size="sm" />
                 <span aria-hidden="true">→</span>
-                <span className="visually-hidden">zmiana na</span>
+                <span className="visually-hidden">{t('priceChanges.changedTo')}</span>
                 <Money amount={change.new_price.amount} currency={change.new_price.currency} size="sm" />
               </span>
-              <span className={styles.muted}>od {formatDay(change.effective_from)}</span>
+              <span className={styles.muted}>{t('priceChanges.from', { date: formatDay(change.effective_from) })}</span>
             </li>
           ))}
         </ul>

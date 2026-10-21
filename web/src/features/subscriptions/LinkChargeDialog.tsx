@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useMatchCharge, useTransactionChargeSuggestions } from '../../api/hooks/subscriptions.ts'
 import type { Transaction } from '../../api/types.ts'
@@ -21,22 +22,23 @@ export function LinkChargeDialog({ transaction, title, onClose }: { transaction:
   const match = useMatchCharge(household.id)
   const vendors = useVendorNames()
   const toast = useToast()
+  const { t } = useTranslation('subscriptions')
   return (
-    <Dialog open title="Powiąż z subskrypcją" onClose={onClose} size="md">
+    <Dialog open title={t('link.title')} onClose={onClose} size="md">
       <div className={styles.dialogBody}>
         <p className={styles.chargeSummary}>
           <strong>{title}</strong>, {formatDay(transaction.date)}:{' '}
           <Money amount={transaction.amount.amount} currency={transaction.amount.currency} tone="auto" />
         </p>
-        <QueryState query={suggestions} loading={<Skeleton lines={2} />} errorTitle="Nie udało się wczytać płatności">
+        <QueryState query={suggestions} loading={<Skeleton lines={2} />} errorTitle={t('link.loadError')}>
           {(items) =>
             items.length === 0 ? (
               <p className={styles.muted}>
-                Żadna otwarta płatność subskrypcji z terminem ±15 dni nie pasuje do tej transakcji.{' '}
-                <Link to={householdPath(household.id, 'subscriptions/list')}>Wszystkie subskrypcje</Link>
+                {t('link.none')}{' '}
+                <Link to={householdPath(household.id, 'subscriptions/list')}>{t('link.all')}</Link>
               </p>
             ) : (
-              <ul className={styles.suggestions} aria-label="Pasujące płatności">
+              <ul className={styles.suggestions} aria-label={t('link.label')}>
                 {items.map(({ charge, score }) => (
                   <li key={charge.id} className={styles.suggestion}>
                     <div className={styles.suggestionText}>
@@ -44,7 +46,7 @@ export function LinkChargeDialog({ transaction, title, onClose }: { transaction:
                         <VendorCoin vendor={charge.vendor} name={coinName(charge.vendor, vendors.get(charge.vendor) ?? '', charge.subscription_name)} size="sm" />
                         {charge.subscription_name}
                       </span>
-                      <span className={styles.muted}>termin {formatDay(charge.due_date)}</span>
+                      <span className={styles.muted}>{t('link.due', { date: formatDay(charge.due_date) })}</span>
                     </div>
                     <Money amount={charge.amount.amount} currency={charge.amount.currency} />
                     <ScoreMeter score={score} />
@@ -54,21 +56,21 @@ export function LinkChargeDialog({ transaction, title, onClose }: { transaction:
                       icon="link"
                       disabled={match.isPending}
                       busy={match.isPending && match.variables?.chargeId === charge.id}
-                      aria-label={`Powiąż: ${charge.subscription_name}, ${formatDay(charge.due_date)}`}
+                      aria-label={t('link.actionLabel', { name: charge.subscription_name, date: formatDay(charge.due_date) })}
                       onClick={() =>
                         match.mutate(
                           { chargeId: charge.id, transactionId: transaction.id },
                           {
                             onSuccess: () => {
-                              toast.show({ message: `Powiązano z subskrypcją ${charge.subscription_name}.` })
+                              toast.show({ message: t('link.done', { name: charge.subscription_name }) })
                               onClose()
                             },
-                            onError: () => toast.show({ message: 'Nie udało się powiązać transakcji.', kind: 'error' }),
+                            onError: () => toast.show({ message: t('link.failed'), kind: 'error' }),
                           },
                         )
                       }
                     >
-                      Powiąż
+                      {t('link.action')}
                     </Button>
                   </li>
                 ))}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Outlet, useOutletContext } from 'react-router'
 import { useHousehold } from '../../app/household.tsx'
 import { Button } from '../../components/Button/Button.tsx'
@@ -17,17 +18,18 @@ export function useSubscriptionsLayout(): Context {
 /** Nagłówek, zakładki (przegląd, wszystkie, do dopasowania) i nowa subskrypcja. */
 export function SubscriptionsLayout() {
   const { household, role } = useHousehold()
+  const { t } = useTranslation('subscriptions')
   const canWrite = role !== 'viewer'
   const [creating, setCreating] = useState(false)
   return (
     <>
       <PageHeader
-        title="Subskrypcje"
-        description={`Koszty cykliczne gospodarstwa ${household.name} w ${household.base_currency}.`}
+        title={t('layout.title')}
+        description={t('layout.description', { name: household.name, currency: household.base_currency })}
         actions={
           canWrite && (
             <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-              Nowa subskrypcja
+              {t('layout.new')}
             </Button>
           )
         }
