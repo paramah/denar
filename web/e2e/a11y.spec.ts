@@ -114,6 +114,44 @@ test.describe('signed in', () => {
     await expectAccessible(page, 'tryb układu')
   })
 
+  test('subscription screens and dialogs', async ({ page }) => {
+    const api = `/api${householdPath.replace('/h/', '/households/')}`
+    const yesterday = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' })
+    const sub = await (
+      await page.request.post(`${api}/subscriptions`, {
+        data: {
+          name: 'ChatGPT Plus',
+          vendor: 'openai',
+          price: { amount: '20.00', currency: 'USD' },
+          cycle: { unit: 'month', anchor: yesterday },
+          match_rule: { date_window_days: 1 },
+        },
+      })
+    ).json()
+    await page.request.post(`${api}/subscriptions`, {
+      data: { name: 'Netflix', vendor: 'netflix', price: { amount: '43.00', currency: 'PLN' }, cycle: { unit: 'month', anchor: yesterday }, trial_ends_at: yesterday },
+    })
+    await page.goto(`${householdPath}/subscriptions`)
+    await expect(page.getByRole('region', { name: 'Subskrypcje kosztują miesięcznie' })).toBeVisible()
+    await expectAccessible(page, 'przegląd subskrypcji')
+    await page.goto(`${householdPath}/subscriptions/list`)
+    await expect(page.getByRole('article', { name: 'Subskrypcja Netflix' })).toBeVisible()
+    await expectAccessible(page, 'lista subskrypcji')
+    await page.goto(`${householdPath}/subscriptions/charges`)
+    await expect(page.getByRole('list', { name: 'Płatności do dopasowania' })).toBeVisible()
+    await expectAccessible(page, 'kolejka dopasowań')
+    await page.goto(`${householdPath}/subscriptions/${sub.id}`)
+    await expect(page.getByRole('list', { name: 'Płatności' })).toBeVisible()
+    await expectAccessible(page, 'strona subskrypcji')
+    await page.getByRole('button', { name: 'Edytuj' }).click()
+    await expect(page.getByRole('dialog', { name: 'Edycja: ChatGPT Plus' })).toBeVisible()
+    await expectAccessible(page, 'edycja subskrypcji')
+    await page.keyboard.press('Escape')
+    await page.getByRole('list', { name: 'Płatności' }).getByRole('button', { name: 'Dopasuj' }).first().click()
+    await expect(page.getByRole('dialog', { name: 'Dopasuj płatność' })).toBeVisible()
+    await expectAccessible(page, 'dopasowanie płatności')
+  })
+
   test('user menu and household switcher', async ({ page, isMobile }) => {
     await page.goto(householdPath)
     if ((page.viewportSize()?.width ?? 1280) < 768 || isMobile) {
