@@ -89,7 +89,7 @@
     "alternativeLabel": "{{label}} — alternatywa {{n}}",
     "removeAlternative": "Usuń alternatywę {{n}}: {{label}}",
     "addAlternative": "Dodaj alternatywę: {{label}}",
-    "alternative": "Alternatywa",
+    "alternative": "Dodaj alternatywę",
     "manualHint": "{{hint}} Nazwy lub numery kolumn, po przecinku; puste — jak w presecie."
   },
   "preview": {
