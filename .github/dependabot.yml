@@ -46,6 +46,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # The node major follows web/.nvmrc and moves together with it, by hand.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
     groups:
       base-images:
         patterns: ["*"]
