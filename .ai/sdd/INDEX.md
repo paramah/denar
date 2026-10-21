@@ -31,3 +31,7 @@
 | 006 | mcp | implementation:done (delegated) | `.ai/sdd/specs/006-mcp/` |
 | 007 | webui | — | |
 | 008 | import | implementation:done (delegated) | `.ai/sdd/specs/008-import/` |
+| 009 | hardening-demo | implementation:done (delegated) | `.ai/sdd/specs/009-hardening-demo/` |
+| 010 | psd2 (przyszły; dawniej 009) | — | |
+| 011 | openai-costs (przyszły; dawniej 010) | — | |
+| 012 | apple-receipts (przyszły; dawniej 011) | — | |

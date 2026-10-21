@@ -68,4 +68,4 @@
 ## Open Questions
 
 - Biblioteka UI/styling (`007-webui`).
-- Agregator PSD2 (spec 009).
+- Agregator PSD2 (spec 010).

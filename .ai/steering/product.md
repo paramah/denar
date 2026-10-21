@@ -55,7 +55,7 @@ Jedno binarium self-hosted: budżet kopertowy + subskrypcje jako byt pierwszej k
 
 ### Out of Scope (MVP)
 
-- Połączenia PSD2 z bankami, API OpenAI/Apple (przyszłe specyfikacje 009+).
+- Połączenia PSD2 z bankami, API OpenAI/Apple (przyszłe specyfikacje 010+).
 - Aplikacja mobilna natywna.
 - Inwestycje (wycena portfela papierów), podatki.
 - SaaS multi-tenant.
@@ -75,7 +75,7 @@ Jedno binarium self-hosted: budżet kopertowy + subskrypcje jako byt pierwszej k
 |--------------------|--------|-------------------------|
 | Model kopert w wielu walutach komplikuje inwarianty | High | Koperty tylko w walucie bazowej; snapshot `BaseAmount` na transakcji |
 | API NBP niedostępne / brak kursu w weekend | Medium | Cache + fallback na ostatni dzień roboczy |
-| Integracje bankowe wymagają licencji/agregatora | Medium | Tylko porty w MVP; agregator w spec 009 |
+| Integracje bankowe wymagają licencji/agregatora | Medium | Tylko porty w MVP; agregator w spec 010 |
 
 ## Domain Glossary
 

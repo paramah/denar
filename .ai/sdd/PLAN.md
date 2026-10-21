@@ -134,7 +134,10 @@ Każdy etap: requirements → design → tasks → (zatwierdzenie człowieka) �
 6. **006-mcp** — serwer MCP i kontrakt narzędzi.
 7. **007-webui** — SPA (może startować równolegle po 002 na zamrożonym kontrakcie OpenAPI).
 8. **008-import** — `ImportTransactions`, CSV, porty `BankConnector`/`BillingConnector`, `Connection` + szyfrowanie.
-Przyszłe (poza MVP): 009 PSD2 przez agregatora, 010 OpenAI costs API, 011 Apple/e-mail receipts.
+9. **009-hardening-demo** — ochrona SSRF kanałów powiadomień (blokada sieci prywatnych w dialerze, opt-in administratora), dane demo (`denar demo`, `task demo`).
+Przyszłe (poza MVP): 010 PSD2 przez agregatora, 011 OpenAI costs API, 012 Apple/e-mail receipts.
+
+> Przenumerowanie (2026-10-21): pierwotnie 009 = PSD2, 010 = OpenAI, 011 = Apple. Numer 009 zajęło utwardzenie po przeglądzie bezpieczeństwa i dane demo na poranny przegląd; przyszłe etapy przesunięte o jeden (010–012).
 
 ## Pierwsze kroki po zatwierdzeniu planu
 
@@ -191,3 +194,7 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 008-import | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 008-import | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 008-import | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+| 009-hardening-demo | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 009-hardening-demo | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 009-hardening-demo | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 009-hardening-demo | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
