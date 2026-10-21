@@ -10,6 +10,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/budget"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/subscription"
 	"git.eiac.dev/tools/denar/internal/domain/transaction"
 	"git.eiac.dev/tools/denar/internal/domain/wallet"
 	"git.eiac.dev/tools/denar/internal/usecase"
@@ -119,6 +120,16 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 				noError(t, env.Envelopes.Create(ctx, newEnvelope(env, "e-"+hid, hid, "g-"+hid, "Koperta", 0)))
 				noError(t, env.Assignments.Set(ctx, budget.Assignment{HouseholdID: hid, EnvelopeID: "e-" + hid, Month: month("2026-10"), Amount: 5, UpdatedAt: now(env)}))
 			}
+			if env.Subscriptions != nil {
+				s := newSubscription(env, "s-"+hid, hid, "Netflix")
+				s.WalletID, s.EnvelopeID = "w-"+hid, "e-"+hid
+				noError(t, env.Subscriptions.Create(ctx, s))
+				c := newCharge(env, "c-"+hid, hid, "s-"+hid, "2026-10-20")
+				c.Status, c.TransactionID = subscription.Matched, "t-"+hid
+				noError(t, env.Charges.Create(ctx, c))
+				_, err := env.Events.Append(ctx, newEvent(env, "ev-"+hid, hid, "k"))
+				noError(t, err)
+			}
 		}
 
 		noError(t, env.Households.Delete(ctx, "h1"))
@@ -159,6 +170,20 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 			noError(t, err)
 			if len(left) != 0 || len(kept) != 1 {
 				t.Errorf("assignments left %v, kept %v", left, kept)
+			}
+		}
+
+		if env.Subscriptions != nil {
+			_, err = env.Subscriptions.ByID(ctx, "h1", "s-h1")
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.Charges.ByID(ctx, "h1", "c-h1")
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.Charges.ByID(ctx, "h2", "c-h2")
+			noError(t, err)
+			pending, err := env.Events.ListPending(ctx, 10)
+			noError(t, err)
+			if len(pending) != 1 || pending[0].HouseholdID != "h2" {
+				t.Errorf("events left = %+v", pending)
 			}
 		}
 

@@ -13,6 +13,7 @@ func newEnv(*testing.T) portstest.Env {
 		Bots: r.Bots, Audit: r.Audit, Sessions: r.Sessions, OIDCStates: r.OIDCStates, Tx: r.Tx, Clock: r.Clock,
 		Wallets: r.Wallets, Transactions: r.Transactions, Payees: r.Payees, FxRates: r.FxRates, FxOverrides: r.FxOverrides,
 		EnvelopeGroups: r.EnvelopeGroups, Envelopes: r.Envelopes, Assignments: r.Assignments,
+		Subscriptions: r.Subscriptions, Charges: r.Charges, Events: r.Events,
 	}
 }
 
@@ -32,3 +33,6 @@ func TestFxOverrideRepositoryContract(t *testing.T)    { portstest.RunFxOverride
 func TestEnvelopeGroupRepositoryContract(t *testing.T) { portstest.RunEnvelopeGroupSuite(t, newEnv) }
 func TestEnvelopeRepositoryContract(t *testing.T)      { portstest.RunEnvelopeSuite(t, newEnv) }
 func TestAssignmentRepositoryContract(t *testing.T)    { portstest.RunAssignmentSuite(t, newEnv) }
+func TestSubscriptionRepositoryContract(t *testing.T)  { portstest.RunSubscriptionSuite(t, newEnv) }
+func TestChargeRepositoryContract(t *testing.T)        { portstest.RunChargeSuite(t, newEnv) }
+func TestEventOutboxContract(t *testing.T)             { portstest.RunEventOutboxSuite(t, newEnv) }

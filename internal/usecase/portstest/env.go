@@ -33,8 +33,12 @@ type Env struct {
 	EnvelopeGroups usecase.EnvelopeGroupRepository
 	Envelopes      usecase.EnvelopeRepository
 	Assignments    usecase.AssignmentRepository
-	Tx             usecase.TxManager
-	Clock          usecase.Clock
+	// Stage 004.
+	Subscriptions usecase.SubscriptionRepository
+	Charges       usecase.ChargeRepository
+	Events        usecase.EventOutbox
+	Tx            usecase.TxManager
+	Clock         usecase.Clock
 }
 
 // Factory builds a fresh Env for one test and cleans up through t.

@@ -68,3 +68,9 @@ func (c Changes) Diff(field string, from, to any) Changes {
 	}
 	return c
 }
+
+// Resource types of stage 004.
+const (
+	ResourceSubscription = "subscription"
+	ResourceCharge       = "charge"
+)

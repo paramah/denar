@@ -32,6 +32,14 @@ type Deps struct {
 	EnvelopeGroups EnvelopeGroupRepository
 	Envelopes      EnvelopeRepository
 	Assignments    AssignmentRepository
+	// Subscriptions, Charges and Events hold the subscriptions (stage
+	// 004). With Subscriptions nil envelopes and transactions are not
+	// checked against them. ChargeHorizonDays is how far ahead charges
+	// are expected; 0 means 90.
+	Subscriptions     SubscriptionRepository
+	Charges           ChargeRepository
+	Events            EventOutbox
+	ChargeHorizonDays int
 	// Rates gives exchange rates against PLN; nil means only the base
 	// currency, overrides and cached rates are known.
 	Rates RateProvider

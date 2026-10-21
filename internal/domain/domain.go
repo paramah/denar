@@ -126,3 +126,14 @@ const (
 	// instead.
 	ConflictEnvelopeInUse ConflictReason = "envelope_in_use"
 )
+
+// Reasons of stage 004.
+const (
+	// ConflictDuplicateCharge: the subscription has a charge on that day.
+	ConflictDuplicateCharge ConflictReason = "duplicate_charge"
+	// ConflictChargeState: the charge's status does not allow the
+	// operation (for example, matching one already matched).
+	ConflictChargeState ConflictReason = "charge_state"
+	// ConflictTransactionLinked: the transaction pays another charge.
+	ConflictTransactionLinked ConflictReason = "transaction_linked"
+)

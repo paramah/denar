@@ -11,9 +11,11 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/audit"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/budget"
+	"git.eiac.dev/tools/denar/internal/domain/event"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
+	"git.eiac.dev/tools/denar/internal/domain/subscription"
 	"git.eiac.dev/tools/denar/internal/domain/transaction"
 	"git.eiac.dev/tools/denar/internal/domain/user"
 	"git.eiac.dev/tools/denar/internal/domain/wallet"
@@ -417,4 +419,76 @@ type RateProvider interface {
 	// an error matching ErrRateUnavailable when there is none or the
 	// provider cannot be reached.
 	PLNRate(ctx context.Context, currency string, date domain.Date) (rate string, rateDate domain.Date, err error)
+}
+
+// SubscriptionRepository stores subscriptions with their price points.
+// Lookups by id take the household.
+type SubscriptionRepository interface {
+	// Create stores the subscription and its prices. It returns a
+	// domain.ConflictError with ConflictDuplicateName when the household
+	// has a subscription of that name, case-insensitively.
+	Create(ctx context.Context, s subscription.Subscription) error
+	// Update stores every field except the id, household, prices, creator
+	// and creation time.
+	Update(ctx context.Context, s subscription.Subscription) error
+	// PutPrice stores the price point, replacing the subscription's point
+	// of the same EffectiveFrom.
+	PutPrice(ctx context.Context, householdID, subscriptionID domain.ID, p subscription.PricePoint) error
+	// Delete removes the subscription with its prices and charges.
+	Delete(ctx context.Context, householdID, id domain.ID) error
+	ByID(ctx context.Context, householdID, id domain.ID) (subscription.Subscription, error)
+	// List returns the household's subscriptions, or with an empty
+	// householdID those of every household, ordered as
+	// subscription.SortByName does (by household first for all).
+	List(ctx context.Context, householdID domain.ID) ([]subscription.Subscription, error)
+	// CountByEnvelope counts the household's subscriptions with the
+	// envelope.
+	CountByEnvelope(ctx context.Context, householdID, envelopeID domain.ID) (int, error)
+}
+
+// ChargeFilter narrows ChargeRepository.List. Zero fields do not filter,
+// except SubscriptionIDs: only charges of those subscriptions are listed,
+// and none when it is empty.
+type ChargeFilter struct {
+	HouseholdID     domain.ID
+	SubscriptionIDs []domain.ID
+	Statuses        []subscription.ChargeStatus
+	From, To        domain.Date // inclusive
+}
+
+// ChargeRepository stores the charges expected from subscriptions.
+type ChargeRepository interface {
+	// Create returns a domain.ConflictError with ConflictDuplicateCharge
+	// when the subscription has a charge on the due date.
+	Create(ctx context.Context, c subscription.Charge) error
+	// Update stores the amount, currency, status, transaction and update
+	// time. A transaction that is another charge's gives a
+	// domain.ConflictError with ConflictTransactionLinked.
+	Update(ctx context.Context, c subscription.Charge) error
+	Delete(ctx context.Context, householdID, id domain.ID) error
+	ByID(ctx context.Context, householdID, id domain.ID) (subscription.Charge, error)
+	// ByTransaction returns the charge linked to the transaction.
+	ByTransaction(ctx context.Context, householdID, transactionID domain.ID) (subscription.Charge, error)
+	// List returns the matching charges by due date, then id.
+	List(ctx context.Context, f ChargeFilter, p Page) (items []subscription.Charge, next string, err error)
+	// ListBySubscription returns the subscription's charges due on or
+	// after from (a zero from: all), by due date.
+	ListBySubscription(ctx context.Context, householdID, subscriptionID domain.ID, from domain.Date) ([]subscription.Charge, error)
+	// ListOpen returns up to limit expected and missed charges due within
+	// [from, to] (zero bounds do not limit), by due date, then id; an
+	// empty householdID means every household.
+	ListOpen(ctx context.Context, householdID domain.ID, from, to domain.Date, limit int) ([]subscription.Charge, error)
+}
+
+// EventOutbox keeps domain events until they are dispatched (stage 005).
+// Append them in the transaction of the change they describe.
+type EventOutbox interface {
+	// Append stores the event unless the household has one with the same
+	// DedupeKey, and reports whether it stored it.
+	Append(ctx context.Context, e event.Event) (bool, error)
+	// ListPending returns up to limit events not dispatched yet, oldest
+	// first (by id).
+	ListPending(ctx context.Context, limit int) ([]event.Event, error)
+	// MarkDispatched stores the time the event was dispatched.
+	MarkDispatched(ctx context.Context, id domain.ID, at time.Time) error
 }
