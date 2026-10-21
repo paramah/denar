@@ -190,6 +190,10 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 006-mcp | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 006-mcp | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 006-mcp | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+| 007-webui | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 007-webui | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 007-webui | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 007-webui | implementation:done (części A, B, C1, C2, C3a, C3b, C4) | agenci części (task verify + task web:e2e zielone; scalenia: orkiestrator) | 2026-10-22 |
 | 008-import | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 008-import | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 008-import | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
