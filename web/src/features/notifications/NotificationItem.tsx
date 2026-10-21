@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useMarkNotificationRead } from '../../api/hooks/notifications.ts'
 import type { Notification } from '../../api/types.ts'
@@ -23,6 +24,7 @@ type Props = {
  * przeczytane; na liście jest też osobny przycisk „Oznacz jako przeczytane”.
  */
 export function NotificationItem({ notification: n, householdName, compact, onOpen }: Props) {
+  const { t } = useTranslation('notifications')
   const markRead = useMarkNotificationRead()
   const unread = n.read_at === null
   const typeLabel = eventTypeLabels[n.type] ?? n.type
@@ -45,7 +47,7 @@ export function NotificationItem({ notification: n, householdName, compact, onOp
             onOpen?.()
           }}
         >
-          {unread && <span className="visually-hidden">Nieprzeczytane:</span>}
+          {unread && <span className="visually-hidden">{t('item.unread')}</span>}
           {unread && ' '}
           {n.title}
         </Link>
@@ -66,8 +68,8 @@ export function NotificationItem({ notification: n, householdName, compact, onOp
           className={styles.readButton}
           onClick={() => markRead.mutate(n)}
           disabled={markRead.isPending}
-          aria-label={`Oznacz jako przeczytane: ${n.title}`}
-          title="Oznacz jako przeczytane"
+          aria-label={t('item.markReadNamed', { title: n.title })}
+          title={t('item.markRead')}
         >
           <Icon name="check" size={18} />
         </button>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { useMarkAllNotificationsRead, useNotifications, useUnreadCount } from '../../api/hooks/notifications.ts'
 import { useSessionUser } from '../../api/hooks/session.ts'
@@ -21,6 +22,7 @@ import styles from './notifications.module.css'
  * nieprzeczytanych i (przy kilku gospodarstwach) gospodarstwa.
  */
 export function NotificationsPage() {
+  const { t } = useTranslation('notifications')
   const { household } = useHousehold()
   const { households } = useSessionUser()
   const [params, setParams] = useSearchParams()
@@ -45,11 +47,11 @@ export function NotificationsPage() {
   return (
     <>
       <PageHeader
-        title="Powiadomienia"
+        title={t('page.title')}
         description={
           unread.data !== undefined
-            ? `Odnowienia, okresy próbne, zmiany cen i koperty — ${unreadLabel(unread.data)}.`
-            : 'Odnowienia, okresy próbne, zmiany cen i koperty.'
+            ? t('page.descriptionUnread', { unread: unreadLabel(unread.data) })
+            : t('page.description')
         }
         actions={
           <>
@@ -60,58 +62,54 @@ export function NotificationsPage() {
               onClick={() =>
                 markAll.mutate(householdFilter || undefined, {
                   onSuccess: (updated) =>
-                    toast.show({ message: updated > 0 ? 'Oznaczono powiadomienia jako przeczytane.' : 'Wszystko było już przeczytane.' }),
+                    toast.show({ message: updated > 0 ? t('page.markedRead') : t('page.allWereRead') }),
                   onError: (error) => toast.show({ message: errorMessage(error), kind: 'error' }),
                 })
               }
             >
-              Oznacz wszystkie jako przeczytane
+              {t('page.markAll')}
             </Button>
             <LinkButton icon="settings" to={householdPath(household.id, 'settings/notifications')}>
-              Ustawienia powiadomień
+              {t('page.settings')}
             </LinkButton>
           </>
         }
       />
-      <div className={styles.filters} role="group" aria-label="Filtry powiadomień">
+      <div className={styles.filters} role="group" aria-label={t('page.filters')}>
         <Checkbox
-          label="Tylko nieprzeczytane"
+          label={t('page.unreadOnly')}
           checked={unreadOnly}
           onChange={(event) => setParam('unread', event.target.checked ? '1' : null)}
         />
         {households.length > 1 && (
           <SelectField
-            label="Gospodarstwo"
+            label={t('page.household')}
             value={householdFilter}
             onChange={(event) => setParam('household', event.target.value || null)}
-            options={[{ value: '', label: 'Wszystkie' }, ...households.map((h) => ({ value: h.id, label: h.name }))]}
+            options={[{ value: '', label: t('page.allHouseholds') }, ...households.map((h) => ({ value: h.id, label: h.name }))]}
           />
         )}
       </div>
       {list.isPending ? (
-        <Skeleton lines={6} label="Wczytywanie powiadomień…" />
+        <Skeleton lines={6} label={t('page.loading')} />
       ) : list.isError && items.length === 0 ? (
-        <SectionError title="Nie udało się wczytać powiadomień" error={list.error} onRetry={() => void list.refetch()} />
+        <SectionError title={t('page.loadFailed')} error={list.error} onRetry={() => void list.refetch()} />
       ) : items.length === 0 ? (
         unreadOnly ? (
-          <EmptyState icon="checkCircle" title="Wszystko przeczytane">
-            <p>Nie masz nieprzeczytanych powiadomień.</p>
+          <EmptyState icon="checkCircle" title={t('page.allReadTitle')}>
+            <p>{t('page.allReadBody')}</p>
           </EmptyState>
         ) : (
           <EmptyState
             icon="bell"
-            title="Nie ma jeszcze powiadomień"
+            title={t('page.emptyTitle')}
             action={
               <LinkButton variant="primary" icon="settings" to={householdPath(household.id, 'settings/notifications')}>
-                Wybierz, o czym powiadamiać
+                {t('page.emptyAction')}
               </LinkButton>
             }
           >
-            <p>
-              Tu pojawią się przypomnienia o odnowieniach subskrypcji, końcach okresów próbnych, zmianach cen,
-              przegapionych płatnościach, przekroczonych kopertach i terminach celów. Możesz też dostawać je e-mailem,
-              przez ntfy, Telegram, Matrix albo webhook.
-            </p>
+            <p>{t('page.emptyBody')}</p>
           </EmptyState>
         )
       ) : (
@@ -121,7 +119,7 @@ export function NotificationsPage() {
               <h2 id={`day-${group.day}`} className={styles.dayHeading}>
                 {group.label}
               </h2>
-              <ul className={styles.dayList} aria-label={`Powiadomienia — ${group.label}`}>
+              <ul className={styles.dayList} aria-label={t('page.dayList', { day: group.label })}>
                 {group.items.map((n) => (
                   <li key={n.id}>
                     <NotificationItem notification={n} householdName={names?.get(n.household_id)} />
@@ -133,7 +131,7 @@ export function NotificationsPage() {
           {list.hasNextPage && (
             <div className={styles.more}>
               <Button busy={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
-                Pokaż starsze
+                {t('page.older')}
               </Button>
             </div>
           )}

@@ -1,4 +1,5 @@
 import type { Channel, ChannelCreate, ChannelType, ChannelTypeInfo, ChannelUpdate } from '../../api/types.ts'
+import { hasKey, tk } from '../../i18n/translate.ts'
 
 /**
  * Formularz kanału budowany z `GET /me/channel-types` (`config_fields`,
@@ -12,95 +13,44 @@ export type FieldInfo = {
   inputType?: 'text' | 'email' | 'url'
 }
 
-const fieldInfo: Record<string, FieldInfo> = {
-  'email.address': {
-    label: 'Adres e-mail',
-    hint: 'Puste — adres Twojego konta.',
-    inputType: 'email',
-  },
-  'webhook.url': {
-    label: 'Adres URL',
-    placeholder: 'https://example.org/denar',
-    hint: 'Denar wyśle tu POST z JSON-em każdego powiadomienia.',
-    inputType: 'url',
-  },
-  'webhook.secret': {
-    label: 'Sekret podpisu',
-    hint: 'Opcjonalny. Z nim każde żądanie ma nagłówek X-Denar-Signature (HMAC-SHA256).',
-  },
-  'ntfy.server': {
-    label: 'Serwer ntfy',
-    placeholder: 'https://ntfy.sh',
-    hint: 'Puste — publiczny https://ntfy.sh.',
-    inputType: 'url',
-  },
-  'ntfy.topic': {
-    label: 'Temat',
-    placeholder: 'denar-dom-7f3k',
-    hint: 'Litery, cyfry, „-” i „_”. Na publicznym serwerze wybierz trudny do zgadnięcia.',
-  },
-  'ntfy.token': {
-    label: 'Token dostępu',
-    hint: 'Opcjonalny — dla tematów chronionych (tk_…).',
-  },
-  'telegram.chat_id': {
-    label: 'chat_id',
-    placeholder: '123456789',
-    hint: 'Numer czatu (grupy mają minus na początku) albo @nazwa_kanału.',
-  },
-  'telegram.bot_token': {
-    label: 'Token bota',
-    placeholder: '123456789:AA…',
-    hint: 'Od @BotFather po utworzeniu bota (/newbot).',
-  },
-  'matrix.homeserver': {
-    label: 'Serwer domowy',
-    placeholder: 'https://matrix.org',
-    inputType: 'url',
-  },
-  'matrix.room_id': {
-    label: 'ID pokoju',
-    placeholder: '!abc123:matrix.org',
-    hint: 'Wewnętrzne ID pokoju (zaczyna się od „!”), nie alias #pokój.',
-  },
-  'matrix.access_token': {
-    label: 'Token dostępu',
-    hint: 'Token konta, które pisze do pokoju (najlepiej osobnego konta-bota).',
-  },
+/** Kształt pól: typ, przykład niezależny od języka i które teksty są w tłumaczeniach (field.<typ>.<pole>). */
+const fieldShape: Record<string, Pick<FieldInfo, 'placeholder' | 'inputType'> & { translatedPlaceholder?: boolean; hint?: boolean }> = {
+  'email.address': { inputType: 'email', hint: true },
+  'webhook.url': { placeholder: 'https://example.org/denar', inputType: 'url', hint: true },
+  'webhook.secret': { hint: true },
+  'ntfy.server': { placeholder: 'https://ntfy.sh', inputType: 'url', hint: true },
+  'ntfy.topic': { translatedPlaceholder: true, hint: true },
+  'ntfy.token': { hint: true },
+  'telegram.chat_id': { placeholder: '123456789', hint: true },
+  'telegram.bot_token': { placeholder: '123456789:AA…', hint: true },
+  'matrix.homeserver': { placeholder: 'https://matrix.org', inputType: 'url' },
+  'matrix.room_id': { placeholder: '!abc123:matrix.org', hint: true },
+  'matrix.access_token': { hint: true },
 }
 
 export function describeField(type: ChannelType, name: string): FieldInfo {
-  return fieldInfo[`${type}.${name}`] ?? { label: name }
+  const shape = fieldShape[`${type}.${name}`]
+  if (!shape) return { label: name }
+  const base = `notifications:field.${type}.${name}`
+  const info: FieldInfo = { label: tk(`${base}.label`) }
+  if (shape.hint) info.hint = tk(`${base}.hint`)
+  if (shape.translatedPlaceholder) info.placeholder = tk(`${base}.placeholder`)
+  else if (shape.placeholder) info.placeholder = shape.placeholder
+  if (shape.inputType) info.inputType = shape.inputType
+  return info
 }
 
-export const channelTypeDescriptions: Record<ChannelType, string> = {
-  email: 'Wiadomość na Twoją skrzynkę',
-  webhook: 'POST z JSON-em do Twojej usługi (n8n, Home Assistant, własny serwer)',
-  ntfy: 'Powiadomienia push na telefon przez ntfy',
-  telegram: 'Wiadomość od Twojego bota na Telegramie',
-  matrix: 'Wiadomość w pokoju Matrix (Element)',
+/** Krótki opis typu kanału w aktywnym języku. */
+export function channelTypeDescription(type: ChannelType): string {
+  return hasKey(`notifications:typeDescription.${type}`) ? tk(`notifications:typeDescription.${type}`) : ''
 }
+
+const guideParagraphs: Record<ChannelType, number> = { email: 1, webhook: 3, ntfy: 2, telegram: 2, matrix: 2 }
 
 /** Jak skonfigurować kanał — akapity pomocy pod formularzem. */
-export const channelGuides: Record<ChannelType, string[]> = {
-  email: ['Wiadomości wysyła serwer Denara przez skonfigurowany SMTP. Sprawdź folder spamu po pierwszym teście.'],
-  webhook: [
-    'Każde powiadomienie to POST z treścią JSON: id, type, title, body, url, household {id, name}, occurred_at i data.',
-    'Z sekretem żądanie ma nagłówek X-Denar-Signature: sha256=<hex>, gdzie <hex> to HMAC-SHA256 surowej treści żądania liczony sekretem. Porównaj go po swojej stronie, zanim zaufasz treści.',
-    'X-Denar-Event to typ zdarzenia, a X-Denar-Delivery — identyfikator dostawy (ponowienia mają ten sam, więc łatwo odrzucić duplikat).',
-  ],
-  ntfy: [
-    'Zainstaluj aplikację ntfy i zasubskrybuj ten sam temat na tym samym serwerze.',
-    'Na własnym serwerze ntfy z kontrolą dostępu podaj token użytkownika, który może publikować w temacie.',
-  ],
-  telegram: [
-    'Utwórz bota u @BotFather i skopiuj jego token.',
-    'Napisz cokolwiek do swojego bota (albo dodaj go do grupy), a potem otwórz https://api.telegram.org/bot<token>/getUpdates — chat_id to pole message.chat.id.',
-  ],
-  matrix: [
-    'Zaproś konto, którego token podajesz, do pokoju i przyjmij zaproszenie.',
-    'ID pokoju znajdziesz w Element: Ustawienia pokoju → Zaawansowane → Wewnętrzne ID pokoju.',
-  ],
+export function channelGuide(type: ChannelType): string[] {
+  const count = guideParagraphs[type] ?? 0
+  return Array.from({ length: count }, (_, i) => tk(`notifications:guide.${type}.p${i + 1}`))
 }
 
 /** Co zrobić z zapisanymi sekretami przy edycji. */
@@ -153,18 +103,18 @@ export function validateForm(
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   const name = form.name.trim()
-  if (!name) errors.name = 'Podaj nazwę kanału.'
-  else if (name.length > 100) errors.name = 'Najwyżej 100 znaków.'
+  if (!name) errors.name = tk('notifications:validation.nameRequired')
+  else if (name.length > 100) errors.name = tk('notifications:validation.nameMax')
   for (const field of info.config_fields) {
     if (field.required && !form.config[field.name]?.trim()) {
-      errors[`config.${field.name}`] = 'To pole jest wymagane.'
+      errors[`config.${field.name}`] = tk('notifications:validation.required')
     }
   }
   // Wymagany sekret: przy tworzeniu i przy „Zmień” (albo gdy kanał go nie ma).
   if (!editing || form.secretMode === 'change') {
     for (const field of info.secret_fields) {
       if (field.required && !form.secrets[field.name]?.trim()) {
-        errors[`secrets.${field.name}`] = 'To pole jest wymagane.'
+        errors[`secrets.${field.name}`] = tk('notifications:validation.required')
       }
     }
   }
@@ -220,9 +170,10 @@ export function channelSummary(channel: Channel): string {
     case 'ntfy':
       return [c.server ?? 'https://ntfy.sh', c.topic].filter(Boolean).join('/')
     case 'telegram':
-      return c.chat_id ? `chat ${c.chat_id}` : ''
+      return c.chat_id ? tk('notifications:channels.summaryChat', { id: c.chat_id }) : ''
     case 'matrix':
-      return [c.room_id, c.homeserver].filter(Boolean).join(' na ')
+      if (c.room_id && c.homeserver) return tk('notifications:channels.summaryMatrix', { room: c.room_id, server: c.homeserver })
+      return c.room_id ?? c.homeserver ?? ''
     default:
       return ''
   }

@@ -1,1 +1,239 @@
-{}
+{
+  "day": {
+    "today": "Dziś",
+    "yesterday": "Wczoraj"
+  },
+  "unread": {
+    "none": "brak nieprzeczytanych",
+    "count_one": "{{count}} nieprzeczytane",
+    "count_few": "{{count}} nieprzeczytane",
+    "count_many": "{{count}} nieprzeczytanych",
+    "count_other": "{{count}} nieprzeczytanych"
+  },
+  "bell": {
+    "title": "Powiadomienia",
+    "srLabel": "Powiadomienia, {{unread}}",
+    "heading": "Powiadomienia",
+    "markAll": "Oznacz wszystkie jako przeczytane",
+    "empty": "Nie masz powiadomień. Damy znać o odnowieniach, końcach okresów próbnych i przekroczonych kopertach.",
+    "listLabel": "Ostatnie powiadomienia",
+    "all": "Wszystkie powiadomienia",
+    "settings": "Ustawienia"
+  },
+  "tile": {
+    "heading": "Ostatnie powiadomienia",
+    "all": "Wszystkie powiadomienia",
+    "listLabel": "Ostatnie powiadomienia w gospodarstwie"
+  },
+  "item": {
+    "unread": "Nieprzeczytane:",
+    "markRead": "Oznacz jako przeczytane",
+    "markReadNamed": "Oznacz jako przeczytane: {{title}}"
+  },
+  "page": {
+    "title": "Powiadomienia",
+    "description": "Odnowienia, okresy próbne, zmiany cen i koperty.",
+    "descriptionUnread": "Odnowienia, okresy próbne, zmiany cen i koperty — {{unread}}.",
+    "markedRead": "Oznaczono powiadomienia jako przeczytane.",
+    "allWereRead": "Wszystko było już przeczytane.",
+    "markAll": "Oznacz wszystkie jako przeczytane",
+    "settings": "Ustawienia powiadomień",
+    "filters": "Filtry powiadomień",
+    "unreadOnly": "Tylko nieprzeczytane",
+    "household": "Gospodarstwo",
+    "allHouseholds": "Wszystkie",
+    "loading": "Wczytywanie powiadomień…",
+    "loadFailed": "Nie udało się wczytać powiadomień",
+    "allReadTitle": "Wszystko przeczytane",
+    "allReadBody": "Nie masz nieprzeczytanych powiadomień.",
+    "emptyTitle": "Nie ma jeszcze powiadomień",
+    "emptyAction": "Wybierz, o czym powiadamiać",
+    "emptyBody": "Tu pojawią się przypomnienia o odnowieniach subskrypcji, końcach okresów próbnych, zmianach cen, przegapionych płatnościach, przekroczonych kopertach i terminach celów. Możesz też dostawać je e-mailem, przez ntfy, Telegram, Matrix albo webhook.",
+    "dayList": "Powiadomienia — {{day}}",
+    "older": "Pokaż starsze"
+  },
+  "prefs": {
+    "heading": "O czym i gdzie powiadamiać",
+    "introBefore": "Dla gospodarstwa ",
+    "introAfter": ". W innych gospodarstwach ustawiasz to osobno. Powiadomienia o subskrypcjach z prywatnych portfeli dostają tylko osoby, które te portfele widzą.",
+    "loading": "Wczytywanie preferencji…",
+    "loadFailed": "Nie udało się wczytać preferencji",
+    "formLabel": "Preferencje powiadomień",
+    "saved": "Zapisano preferencje powiadomień.",
+    "caption": "Typ zdarzenia i miejsca, do których trafia powiadomienie",
+    "event": "Zdarzenie",
+    "inApp": "W aplikacji",
+    "disabled": " (wyłączony)",
+    "inAppCell": "{{event}}: w aplikacji",
+    "channelCell": "{{event}}: {{channel}}",
+    "noChannels": "Dodaj kanał powyżej, żeby wybrać, które powiadomienia mają trafiać poza aplikację.",
+    "save": "Zapisz preferencje",
+    "reset": "Cofnij zmiany"
+  },
+  "channels": {
+    "heading": "Kanały",
+    "intro": "Gdzie poza aplikacją wysyłać powiadomienia. Kanały są Twoje — działają we wszystkich Twoich gospodarstwach, a to, co na nie trafia, wybierasz niżej.",
+    "add": "Dodaj kanał",
+    "unavailableList": "Niedostępne typy kanałów",
+    "unavailable": "<strong>{{type}}</strong> niedostępny — {{reason}}",
+    "unsupported": "serwer go nie obsługuje.",
+    "loading": "Wczytywanie kanałów…",
+    "loadFailed": "Nie udało się wczytać kanałów",
+    "emptyTitle": "Nie masz jeszcze kanałów",
+    "addFirst": "Dodaj pierwszy kanał",
+    "emptyBody": "Powiadomienia i tak trafiają do dzwonka w aplikacji. Kanał doda e-mail, push z ntfy, Telegram, Matrix albo webhook.",
+    "listLabel": "Twoje kanały",
+    "withSecret": " · z sekretem",
+    "enabled": "Włączony",
+    "disabled": "Wyłączony",
+    "verifiedTitle": "Ostatnia udana wiadomość: {{date}}",
+    "verified": "Zweryfikowany {{date}}",
+    "unverified": "Niezweryfikowany",
+    "unavailableOnServer": "Niedostępny na serwerze",
+    "lastError": "Ostatni błąd: {{error}}",
+    "lastErrorAt": "Ostatni błąd ({{date}}): {{error}}",
+    "testOk": "Test wysłany — sprawdź, czy wiadomość dotarła.",
+    "testFailed": "Test nieudany: {{error}}",
+    "test": "Wyślij test",
+    "testNamed": "Wyślij test: {{name}}",
+    "enable": "Włącz",
+    "disable": "Wyłącz",
+    "enableNamed": "Włącz: {{name}}",
+    "disableNamed": "Wyłącz: {{name}}",
+    "enabledToast": "Włączono kanał {{name}}.",
+    "disabledToast": "Wyłączono kanał {{name}}.",
+    "edit": "Edytuj",
+    "editNamed": "Edytuj: {{name}}",
+    "delete": "Usuń",
+    "deleteNamed": "Usuń: {{name}}",
+    "deleteTitle": "Usunąć kanał?",
+    "deleteConfirm": "Usuń kanał",
+    "deletedToast": "Usunięto kanał {{name}}.",
+    "deleteBody": "Kanał {{name}} zniknie ze wszystkich preferencji, a niewysłane jeszcze powiadomienia na niego przepadną.",
+    "summaryChat": "chat {{id}}",
+    "summaryMatrix": "{{room}} na {{server}}"
+  },
+  "dialog": {
+    "editTitle": "Edycja kanału {{name}}",
+    "newTitle": "Nowy kanał powiadomień",
+    "unsupportedType": "Ten serwer nie obsługuje kanału typu {{type}}.",
+    "savedToast": "Zapisano kanał {{name}}.",
+    "addedToast": "Dodano kanał {{name}}. Wyślij test, żeby sprawdzić, czy działa.",
+    "editForm": "Edycja kanału",
+    "newForm": "Nowy kanał",
+    "typeFixed": "Typ: <strong>{{type}}</strong> — typu kanału nie da się zmienić.",
+    "typeLegend": "Typ kanału",
+    "unavailable": "Niedostępny: {{reason}}",
+    "name": "Nazwa",
+    "nameHint": "Np. „Telefon (ntfy)” — tak kanał nazywa się w preferencjach.",
+    "emailHint": "Puste — {{email}}.",
+    "optional": "{{label}} (opcjonalnie)",
+    "enabled": "Włączony",
+    "enabledHint": "Wyłączony kanał nie dostaje powiadomień, ale zostaje w preferencjach.",
+    "guideTitle": "Jak ustawić: {{type}}",
+    "cancel": "Anuluj",
+    "save": "Zapisz zmiany",
+    "add": "Dodaj kanał",
+    "secretKeep": "Zostaw bez zmian",
+    "secretKeepHint": "Zapisany sekret działa dalej.",
+    "secretChange": "Zmień",
+    "secretChangeHint": "Wpisz nową wartość — zastąpi zapisaną.",
+    "secretRemove": "Usuń",
+    "secretRemoveHint": "Kanał będzie działał bez sekretu.",
+    "secret": "Sekret",
+    "secretOptional": "Sekret (opcjonalnie)",
+    "noMasterKey": "Serwer nie ma klucza DENAR_MASTER_KEY, więc nie zapisze sekretu. Poproś administratora o ustawienie klucza.",
+    "storedSecret": "Zapisany sekret",
+    "secretNote": "Sekret szyfrujemy na serwerze i nigdy go nie pokazujemy — nawet Tobie."
+  },
+  "validation": {
+    "nameRequired": "Podaj nazwę kanału.",
+    "nameMax": "Najwyżej 100 znaków.",
+    "required": "To pole jest wymagane."
+  },
+  "field": {
+    "email": {
+      "address": {
+        "label": "Adres e-mail",
+        "hint": "Puste — adres Twojego konta."
+      }
+    },
+    "webhook": {
+      "url": {
+        "label": "Adres URL",
+        "hint": "Denar wyśle tu POST z JSON-em każdego powiadomienia."
+      },
+      "secret": {
+        "label": "Sekret podpisu",
+        "hint": "Opcjonalny. Z nim każde żądanie ma nagłówek X-Denar-Signature (HMAC-SHA256)."
+      }
+    },
+    "ntfy": {
+      "server": {
+        "label": "Serwer ntfy",
+        "hint": "Puste — publiczny https://ntfy.sh."
+      },
+      "topic": {
+        "label": "Temat",
+        "placeholder": "denar-dom-7f3k",
+        "hint": "Litery, cyfry, „-” i „_”. Na publicznym serwerze wybierz trudny do zgadnięcia."
+      },
+      "token": {
+        "label": "Token dostępu",
+        "hint": "Opcjonalny — dla tematów chronionych (tk_…)."
+      }
+    },
+    "telegram": {
+      "chat_id": {
+        "label": "chat_id",
+        "hint": "Numer czatu (grupy mają minus na początku) albo @nazwa_kanału."
+      },
+      "bot_token": {
+        "label": "Token bota",
+        "hint": "Od @BotFather po utworzeniu bota (/newbot)."
+      }
+    },
+    "matrix": {
+      "homeserver": {
+        "label": "Serwer domowy"
+      },
+      "room_id": {
+        "label": "ID pokoju",
+        "hint": "Wewnętrzne ID pokoju (zaczyna się od „!”), nie alias #pokój."
+      },
+      "access_token": {
+        "label": "Token dostępu",
+        "hint": "Token konta, które pisze do pokoju (najlepiej osobnego konta-bota)."
+      }
+    }
+  },
+  "typeDescription": {
+    "email": "Wiadomość na Twoją skrzynkę",
+    "webhook": "POST z JSON-em do Twojej usługi (n8n, Home Assistant, własny serwer)",
+    "ntfy": "Powiadomienia push na telefon przez ntfy",
+    "telegram": "Wiadomość od Twojego bota na Telegramie",
+    "matrix": "Wiadomość w pokoju Matrix (Element)"
+  },
+  "guide": {
+    "email": {
+      "p1": "Wiadomości wysyła serwer Denara przez skonfigurowany SMTP. Sprawdź folder spamu po pierwszym teście."
+    },
+    "webhook": {
+      "p1": "Każde powiadomienie to POST z treścią JSON: id, type, title, body, url, household {id, name}, occurred_at i data.",
+      "p2": "Z sekretem żądanie ma nagłówek X-Denar-Signature: sha256=<hex>, gdzie <hex> to HMAC-SHA256 surowej treści żądania liczony sekretem. Porównaj go po swojej stronie, zanim zaufasz treści.",
+      "p3": "X-Denar-Event to typ zdarzenia, a X-Denar-Delivery — identyfikator dostawy (ponowienia mają ten sam, więc łatwo odrzucić duplikat)."
+    },
+    "ntfy": {
+      "p1": "Zainstaluj aplikację ntfy i zasubskrybuj ten sam temat na tym samym serwerze.",
+      "p2": "Na własnym serwerze ntfy z kontrolą dostępu podaj token użytkownika, który może publikować w temacie."
+    },
+    "telegram": {
+      "p1": "Utwórz bota u @BotFather i skopiuj jego token.",
+      "p2": "Napisz cokolwiek do swojego bota (albo dodaj go do grupy), a potem otwórz https://api.telegram.org/bot<token>/getUpdates — chat_id to pole message.chat.id."
+    },
+    "matrix": {
+      "p1": "Zaproś konto, którego token podajesz, do pokoju i przyjmij zaproszenie.",
+      "p2": "ID pokoju znajdziesz w Element: Ustawienia pokoju → Zaawansowane → Wewnętrzne ID pokoju."
+    }
+  }
+}

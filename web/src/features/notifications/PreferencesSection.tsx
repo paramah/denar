@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useChannels, useNotificationPreferences, useSetNotificationPreferences } from '../../api/hooks/notifications.ts'
 import type { Channel, EventType, NotificationPreference } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
@@ -37,6 +38,7 @@ export function toggleInApp(prefs: NotificationPreference[], type: EventType, on
 
 /** Preferencje w bieżącym gospodarstwie: macierz typ zdarzenia × (w aplikacji, kanały). */
 export function PreferencesSection() {
+  const { t } = useTranslation('notifications')
   const { household } = useHousehold()
   const prefs = useNotificationPreferences(household.id)
   const channels = useChannels()
@@ -45,18 +47,19 @@ export function PreferencesSection() {
     <section className={settings.section} aria-labelledby="prefs-heading">
       <div className={settings.sectionHead}>
         <div>
-          <h2 id="prefs-heading">O czym i gdzie powiadamiać</h2>
+          <h2 id="prefs-heading">{t('prefs.heading')}</h2>
           <p>
-            Dla gospodarstwa <strong>{household.name}</strong>. W innych gospodarstwach ustawiasz to osobno. Powiadomienia
-            o subskrypcjach z prywatnych portfeli dostają tylko osoby, które te portfele widzą.
+            {t('prefs.introBefore')}
+            <strong>{household.name}</strong>
+            {t('prefs.introAfter')}
           </p>
         </div>
       </div>
       {prefs.isPending || channels.isPending ? (
-        <Skeleton lines={6} label="Wczytywanie preferencji…" />
+        <Skeleton lines={6} label={t('prefs.loading')} />
       ) : prefs.isError || channels.isError ? (
         <SectionError
-          title="Nie udało się wczytać preferencji"
+          title={t('prefs.loadFailed')}
           error={prefs.error ?? channels.error}
           onRetry={() => {
             void prefs.refetch()
@@ -76,6 +79,7 @@ export function PreferencesSection() {
 }
 
 function PreferencesForm({ initial, channels }: { initial: NotificationPreference[]; channels: Channel[] }) {
+  const { t } = useTranslation('notifications')
   const { household } = useHousehold()
   const save = useSetNotificationPreferences(household.id)
   const toast = useToast()
@@ -86,28 +90,28 @@ function PreferencesForm({ initial, channels }: { initial: NotificationPreferenc
   return (
     <form
       noValidate
-      aria-label="Preferencje powiadomień"
+      aria-label={t('prefs.formLabel')}
       className={styles.prefsForm}
       onSubmit={(event) => {
         event.preventDefault()
         // Kanały usunięte w międzyczasie nie idą do serwera (422).
         const items = prefs.map((p) => ({ ...p, channel_ids: p.channel_ids.filter((id) => known.has(id)) }))
-        save.mutate(items, { onSuccess: () => toast.show({ message: 'Zapisano preferencje powiadomień.' }) })
+        save.mutate(items, { onSuccess: () => toast.show({ message: t('prefs.saved') }) })
       }}
     >
       <FormAlert error={save.error} />
       {/* Przewijany poziomo przy wielu kanałach; checkboxy są osiągalne klawiaturą. */}
       <div className={styles.matrixWrap}>
         <table className={styles.matrix}>
-          <caption className="visually-hidden">Typ zdarzenia i miejsca, do których trafia powiadomienie</caption>
+          <caption className="visually-hidden">{t('prefs.caption')}</caption>
           <thead>
             <tr>
-              <th scope="col">Zdarzenie</th>
-              <th scope="col">W aplikacji</th>
+              <th scope="col">{t('prefs.event')}</th>
+              <th scope="col">{t('prefs.inApp')}</th>
               {channels.map((channel) => (
                 <th scope="col" key={channel.id}>
                   {channel.name}
-                  {!channel.enabled && <span className={styles.matrixNote}> (wyłączony)</span>}
+                  {!channel.enabled && <span className={styles.matrixNote}>{t('prefs.disabled')}</span>}
                 </th>
               ))}
             </tr>
@@ -124,7 +128,7 @@ function PreferencesForm({ initial, channels }: { initial: NotificationPreferenc
                   <td>
                     <input
                       type="checkbox"
-                      aria-label={`${eventTypeLabels[p.type]}: w aplikacji`}
+                      aria-label={t('prefs.inAppCell', { event: eventTypeLabels[p.type] })}
                       checked={p.in_app}
                       onChange={(event) => setPrefs(toggleInApp(prefs, p.type, event.target.checked))}
                     />
@@ -133,7 +137,7 @@ function PreferencesForm({ initial, channels }: { initial: NotificationPreferenc
                     <td key={channel.id}>
                       <input
                         type="checkbox"
-                        aria-label={`${eventTypeLabels[p.type]}: ${channel.name}`}
+                        aria-label={t('prefs.channelCell', { event: eventTypeLabels[p.type], channel: channel.name })}
                         checked={p.channel_ids.includes(channel.id)}
                         onChange={(event) => setPrefs(toggleChannel(prefs, p.type, channel.id, event.target.checked))}
                       />
@@ -145,15 +149,15 @@ function PreferencesForm({ initial, channels }: { initial: NotificationPreferenc
         </table>
       </div>
       {channels.length === 0 && (
-        <p className={styles.formMeta}>Dodaj kanał powyżej, żeby wybrać, które powiadomienia mają trafiać poza aplikację.</p>
+        <p className={styles.formMeta}>{t('prefs.noChannels')}</p>
       )}
       <div className={styles.prefsActions}>
         <Button type="submit" variant="primary" disabled={!dirty} busy={save.isPending}>
-          Zapisz preferencje
+          {t('prefs.save')}
         </Button>
         {dirty && (
           <Button onClick={() => setPrefs(initial)} disabled={save.isPending}>
-            Cofnij zmiany
+            {t('prefs.reset')}
           </Button>
         )}
       </div>

@@ -1,5 +1,6 @@
 import type { EventType, Notification } from '../../api/types.ts'
 import type { IconName } from '../../components/Icon/Icon.tsx'
+import { tk } from '../../i18n/translate.ts'
 import { perLocale } from '../../lib/intl.ts'
 import { safeReturnTo } from '../../lib/returnTo.ts'
 
@@ -43,8 +44,8 @@ export function dayLabel(day: string, now: Date = new Date()): string {
   const today = localDay(now)
   const yesterday = new Date(now)
   yesterday.setDate(now.getDate() - 1)
-  if (day === today) return 'Dziś'
-  if (day === localDay(yesterday)) return 'Wczoraj'
+  if (day === today) return tk('notifications:day.today')
+  if (day === localDay(yesterday)) return tk('notifications:day.yesterday')
   const [y, m, d] = day.split('-').map(Number)
   const date = new Date(y!, m! - 1, d!)
   const text = y === now.getFullYear() ? weekdayFormat().format(date) : yearFormat().format(date)
