@@ -1,0 +1,24 @@
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--outflow);
+  border-radius: var(--radius);
+  background: var(--outflow-soft);
+}
+
+.error > svg {
+  color: var(--outflow);
+  flex: none;
+}
+
+.text {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.title {
+  font-weight: 650;
+}

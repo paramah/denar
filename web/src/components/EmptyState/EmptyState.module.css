@@ -1,0 +1,38 @@
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  max-width: 36rem;
+  padding: var(--space-6) 0;
+}
+
+/* Ikona w „monecie” z karbowanym rantem — ten sam motyw co znak marki. */
+.coin {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: var(--patina-soft);
+  color: var(--patina);
+  outline: 2px dotted var(--line-strong);
+  outline-offset: 3px;
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.text {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}

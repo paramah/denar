@@ -1,0 +1,290 @@
+.tabs {
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs ul {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-weight: 560;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.activeTab {
+  border-bottom-color: var(--patina);
+  color: var(--ink);
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sectionHead > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.sectionHead p {
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.card {
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+}
+
+.danger {
+  padding: var(--space-5);
+  border: 1px solid var(--outflow);
+  border-radius: calc(var(--radius) * 2);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.danger p {
+  color: var(--muted);
+}
+
+/* Wiersz listy: główna treść, meta i akcje; na telefonie łamie się w kolumnę. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.rowMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 640;
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inlineForm {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.inlineForm > button {
+  margin-top: 1.6rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.filters > * {
+  min-width: 12rem;
+}
+
+.scopeTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scopeTable th,
+.scopeTable td {
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.scopeTable thead th {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.scopeTable td:not(:first-child),
+.scopeTable thead th:not(:first-child) {
+  width: 5.5rem;
+  text-align: center;
+}
+
+.scopeTable input[type='checkbox'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--patina);
+}
+
+.scopeArea {
+  display: grid;
+}
+
+.scopeArea span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.fieldset {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.fieldset legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-weight: 650;
+}
+
+.expiry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.audit {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.auditTime {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.changes {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.changes summary {
+  color: var(--patina);
+  cursor: pointer;
+}
+
+.changes dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+
+.changes dl > div {
+  display: contents;
+}
+
+.changes dt {
+  color: var(--muted);
+}
+
+.changes dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.strike {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+@media (max-width: 47.99rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rowActions {
+    justify-content: flex-start;
+  }
+
+  .inlineForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inlineForm > button {
+    margin-top: 0;
+  }
+
+  .audit {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}

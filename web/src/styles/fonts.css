@@ -1,0 +1,3 @@
+/* Fonty z paczek npm: CSP pozwala tylko na font-src 'self'. */
+@import '@fontsource-variable/public-sans/wght.css';
+@import '@fontsource-variable/bricolage-grotesque/standard.css';

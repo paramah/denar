@@ -1,0 +1,38 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+}
+
+.text {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: 640;
+  font-stretch: 84%;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (max-width: 47.99rem) {
+  .title {
+    font-size: var(--text-2xl);
+  }
+}
