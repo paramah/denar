@@ -626,3 +626,77 @@ Zakładka `settings/notifications` (każda rola) = `ChannelsSection` + `Preferen
 - Brak historii dostaw na kanał i ponowienia ręcznego — API daje tylko `verified_at`/`last_error`.
 - Bez SMTP w e2e: ścieżka „Wyślij link e-mailem” i kanał e-mail są testowane tylko w Vitest (MSW).
 - Kanały mają pomoc konfiguracji tylko po polsku i bez kreatora (np. pobierania `chat_id` przez Telegram API z poziomu UI).
+
+---
+
+# Design: część C4 — import CSV i połączenia
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Last Updated: 2026-10-21
+
+## C4-1. Trasy i wejścia
+
+```
+h/:householdId
+  import (ImportLayout: nagłówek „Import transakcji”, zakładki „Nowy import” / „Historia”)
+    index            ImportWizardPage (?wallet=<id> — portfel wybrany ze strony portfela)
+    history          ImportHistoryPage (?wallet=<id> — filtr)
+  import/:importId   ImportBatchPage (szczegóły, błędy, cofnięcie)
+  settings/connections  ConnectionsTab (owner/admin, RequireTab)
+```
+
+Wejścia: „Importuj CSV” w nagłówku strony portfela (z `?wallet=`) i rejestru transakcji, link w pustym stanie historii i połączeń. Import nie dostał pozycji w głównej nawigacji (AD-G01).
+
+## C4-2. Warstwa API (`api/hooks/imports.ts`)
+
+- `useImportPresets` (`staleTime: Infinity`), `usePreviewCsvImport` i `useImportCsv` (mutacje), `useImports` (`useInfiniteQuery`, 30 na stronę, filtr portfela), `useImportBatch`, `useRevertImport`, `useConnectionProviders`, `useConnections`.
+- **Multipart:** `api.POST(…, { body: { file, options: JSON.stringify(opcje) }, bodySerializer: toFormData })` — `toFormData` buduje `FormData` z częścią `file` (z nazwą pliku) i `options` (string JSON `CsvImportOptions`). openapi-fetch nie ustawia `Content-Type` dla `FormData`, więc granicę dodaje przeglądarka. Kontrakt opisuje `file` jako string binarny, stąd rzutowanie `File` w jednym miejscu. Import wysyła te same opcje co ostatni udany podgląd, bez `preview_limit`.
+- Klucze (`api/keys.ts`): `importPresets`, `importsAll(hid)` (prefiks), `imports(hid, filtry)`, `importBatch(hid, id)`, `connectionProviders`, `connections(hid)`. Import i cofnięcie zapisują partię z odpowiedzi do cache (`importBatch`), unieważniają listy historii i wszystko, co unieważnia zmiana transakcji (`useTransactionsChanged`: rejestry, salda, budżet, subskrypcje i obciążenia, dziennik).
+
+## C4-3. Kreator (`features/import/`)
+
+- `model.ts` (czyste funkcje, testy): `ParserForm` (puste pole = „jak w presecie”; w `generic` to wykrywanie), `parserOverrides` — tylko różnice względem pełnych opcji presetu z `GET /import-presets` (pole w żądaniu zastępuje preset w całości), `importOptions`, `presetColumnsInFile` (porównanie nagłówków jak w parserze: bez wielkości liter i wiodącego `#`), `checkFile` (pusty / > 5 MiB — przed wysłaniem), etykiety separatora i kodowania, odmiana liczebników.
+- `ImportWizardPage`: wskaźnik kroków (`ol`, `aria-current="step"`, ukończone z dopiskiem dla czytników), po zmianie kroku focus na nagłówek kroku. Krok 1: `SelectField` portfela (niezarchiwizowane), `FileDrop` (prawdziwy `<input type="file">` ukryty wizualnie z etykietą-przyciskiem, strefa `dragover`/`drop`, nazwa i rozmiar pliku, podpowiedź o limicie), `PresetPicker` (kafelki radio z opisem). 422 `file`/`options.wallet_id` — przy polach, krok zostaje. 422 innych `options.*` (np. brak kolumny daty) — przejście do kroku 2 z otwartym „Dostosuj” i błędami przy polach.
+- `PreviewView`: `dl` „Wykryto w pliku” (separator, kodowanie, linia nagłówka, nagłówki jako żetony), liczniki, tabela pierwszych 50 wierszy w przewijanym poziomo regionie z `tabIndex=0` (duplikaty wyszarzone, plakietki „Nowa”/„Duplikat”, kontrahent z reguł albo „nie rozpoznano”, koperta po nazwie), `RowErrors` (linia, pole po polsku, komunikat przez `translateFieldMessage`).
+- `ParserPanel` (kontrolowany, stan w kreatorze — przetrwa zamknięcie panelu): separator, kodowanie, format daty, separator dziesiętny (pierwsza opcja „Jak w presecie: …” / „Wykryj automatycznie”), pomijane wiersze, importowane stany, nagłówek, odwrócenie znaku; `ColumnPicker` dla 10 kolumn: „Jak w presecie: <znalezione kolumny>”, „Nie używaj” (`[]`), nagłówek; kolejne alternatywy przyciskiem „Alternatywa” (usuwalne). Bez wykrytych nagłówków (lub po odznaczeniu nagłówka) — pole tekstowe „nazwy lub numery po przecinku”. „Zastosuj i odśwież podgląd” ponawia podgląd; „Przywróć ustawienia presetu” widoczne tylko przy zmianach.
+- Import: „Importuj N transakcji” (brak nowych — informacja zamiast przycisku). Krok 3: zdanie podsumowania (`role="status"`), `BatchCounters`, uwagi o dopasowanych subskrypcjach i pominiętych wierszach, linki: rejestr portfela, kolejka dopasowań, szczegóły partii, „Importuj kolejny plik”.
+
+## C4-4. Historia i partia
+
+- `ImportHistoryPage`: filtr portfela w adresie, karty partii (nazwa pliku jako link, plakietka statusu, portfel · preset · autor, data, skrócone liczniki), „Pokaż starsze”, pusty stan z akcją importu (bez niej dla „Podgląd”).
+- `ImportBatchPage`: fakty (status, źródło, preset, kto/kiedy, kto cofnął), liczniki (z „Usunięte przy cofnięciu”), „Pominięte wiersze”, „Cofnij import” (`ConfirmDialog`, liczba transakcji, uwaga o odpięciu obciążeń subskrypcji); błąd 409 w dialogu po polsku; 404 — pusty stan „Nie znaleziono importu”.
+- Autor partii z listy członków (bot/system opisowo).
+
+## C4-5. Połączenia
+
+`ConnectionsTab` (owner/admin): karty połączeń (nazwa, plakietka statusu, dostawca, rodzaj, ostatnia synchronizacja, ostatni błąd, konta → portfele), pusty stan z tekstem o przyszłych integracjach (PSD2, OpenAI, Apple) i przyciskiem „Importuj CSV”, sekcja „Dostawcy na tym serwerze”. Tylko odczyt — brak REST zarządzania (008 AD-811).
+
+## C4-6. Komunikaty i etykiety
+
+`api/messages.ts`: reguły dla pliku (limit, pusty, brak operacji, > 10 000 wierszy, multipart), opcji (preset, separator, kodowanie, format daty, separator dziesiętny, zakresy `N to M`, kolumny daty/kwoty, „no header row has the date column …”) i błędów wierszy (stan, data, liczba, waluta, zero, CSV); przyczyny 409 `import-reverted`, `provider-unavailable`. `lib/labels.ts`: akcje `import.created`, `import.reverted`, `connection.created|account_mapped|synced`, zasoby `import`, `connection`, pola `options.*`, `file`, liczniki partii w zmianach dziennika, `connectionKindLabels`, `connectionStatusLabels`. Ikony `upload`, `plug`, `undo`.
+
+## C4-7. Strategia testów
+
+- Vitest: `features/import/model.test.ts` (nadpisania względem presetu, kolumny presetu w pliku, limit pliku, separator, odmiana), `features/import/import.test.tsx` (pełny przepływ z presetem mBank i sprawdzeniem części multipart `file`/`options` w handlerze MSW przez `request.formData()`, portfel z adresu, „Dostosuj” z alternatywami i „Nie używaj”, 422 kolumny daty → panel z polami tekstowymi i ponowny podgląd, limit 5 MiB i 422 `file`, same duplikaty, rola „Podgląd”, linki z portfela i rejestru, historia z filtrem, cofnięcie i 409, 404, zakładka połączeń: pusty stan, lista, ukrycie dla domownika), `api/messages.test.ts`. Domyślne handlery MSW: presety, pusta historia, brak dostawców i połączeń.
+- Playwright: `e2e/fixtures/mbank-pazdziernik.csv` (syntetyczny wyciąg mBanku w Windows-1250 z preambułą, stopką i błędną datą), `e2e/import.spec.ts` (portfel → „Importuj CSV” → podgląd: kodowanie, nagłówki, liczniki, kontrahent z reguły, błąd wiersza po polsku → import → rejestr z 3 transakcjami → ponowny podgląd: 3 duplikaty, brak przycisku importu → historia → partia → cofnięcie → pusty rejestr → dziennik po polsku; pusty stan połączeń), `a11y.spec.ts` (kreator, historia, połączenia, podgląd z panelem „Dostosuj”, podsumowanie, partia, dialog cofnięcia — jasny, ciemny, telefon), `mobile.spec.ts` (kroki kreatora, historia i połączenia bez poziomego przewijania).
+
+## Decyzje autonomiczne (część C4)
+
+| ID | Decyzja | Uzasadnienie |
+|----|---------|--------------|
+| AD-G01 | Import bez pozycji w głównej nawigacji; wejścia z portfela, rejestru, historii i połączeń | Import robi się przy portfelu lub rejestrze; menu ma już 7 pozycji, na telefonie liczy się każda |
+| AD-G02 | Podgląd jako mutacja (nie zapytanie), wynik w stanie kreatora | Żądanie wysyła plik; nie ma sensu cache'ować ani ponawiać go w tle |
+| AD-G03 | Formularz „Dostosuj” wysyła tylko różnice względem presetu; puste = preset/wykrywanie | Pole w żądaniu zastępuje preset w całości (008 §9); mniejsze ryzyko przypadkowego nadpisania |
+| AD-G04 | Import wysyła opcje ostatniego udanego podglądu, nie bieżący szkic panelu | Użytkownik importuje dokładnie to, co widział |
+| AD-G05 | Przy zerze nowych wierszy brak przycisku importu (zamiast zapisu pustej partii) | Partia z samymi duplikatami nic nie wnosi do historii z perspektywy UI; serwer i tak by ją przyjął (AD-810) |
+| AD-G06 | Limit 5 MiB i pusty plik sprawdzane w przeglądarce przed wysłaniem | Szybka informacja bez przesyłania dużego pliku; serwer i tak pilnuje limitu |
+| AD-G07 | Podgląd pokazuje 50 pierwszych wierszy (`preview_limit: 50`) | Wystarczy do oceny mapowania; tabela pozostaje lekka |
+| AD-G08 | Tabela podglądu w regionie przewijanym poziomo (`tabIndex=0`) zamiast kart na telefonie | Siedem kolumn czyta się najlepiej jako tabela; region jest osiągalny klawiaturą, strona nie przewija się w poziomie |
+| AD-G09 | Połączenia jako zakładka Ustawień (owner/admin), tylko odczyt | Zarządzanie połączeniami (008 FR-833) należy do ról administracyjnych; REST tylko do odczytu w 008 |
+
+## Ograniczenia (część C4)
+
+- Brak filtra rejestru po partii (API go nie ma) — partia pokazuje liczniki i link do rejestru portfela.
+- Własne ustawienia parsera nie są zapamiętywane między importami (każdy import startuje od presetu).
+- W Vitest jsdom gubi nazwę pliku na styku swojego `FormData` i `Request` z Node (`blob`) — nazwę pliku sprawdza e2e.
+- Połączeń nie da się dodać ani zsynchronizować z UI do etapu 009.

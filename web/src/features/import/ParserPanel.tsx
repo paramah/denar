@@ -83,7 +83,10 @@ export function ParserPanel({ preset, headers, form, onChange, errors, busy, onA
             label="Separator dziesiętny"
             value={form.decimal}
             error={errors.decimal_separator}
-            options={[{ value: '', label: presetValue(o.decimal_separator) }, ...decimalOptions]}
+            options={[
+              { value: '', label: presetValue(o.decimal_separator, (v) => (v === ',' ? 'przecinek' : 'kropka')) },
+              ...decimalOptions,
+            ]}
             onChange={(e) => set('decimal', e.target.value)}
           />
           <TextField

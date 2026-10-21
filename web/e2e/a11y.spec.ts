@@ -4,6 +4,7 @@ import {
   deleteAllChannels,
   expectAccessible,
   loginViaApi,
+  previewMbank,
   subscriptionWithReminder,
   unique,
   webhookURL,
@@ -72,6 +73,9 @@ test.describe('signed in', () => {
     ['settings rates', '/settings/rates', 'Ustawienia'],
     ['settings notifications', '/settings/notifications', 'Ustawienia'],
     ['settings audit', '/settings/audit', 'Ustawienia'],
+    ['settings connections', '/settings/connections', 'Ustawienia'],
+    ['import wizard', '/import', 'Import transakcji'],
+    ['import history (empty)', '/import/history', 'Import transakcji'],
   ]
 
   for (const [label, path, heading] of screens) {
@@ -199,6 +203,31 @@ test.describe('signed in', () => {
     await edit.getByRole('radio', { name: /Zmień/ }).check()
     await expect(edit.getByLabel('Sekret podpisu (opcjonalnie)')).toBeVisible()
     await expectAccessible(page, 'edycja kanału z sekretem')
+  })
+
+  test('import: preview with the adjust panel, summary, history, batch and revert dialog', async ({ page }) => {
+    await page.goto(`${householdPath}/import`)
+    await previewMbank(page)
+    await page.getByRole('button', { name: 'Dostosuj' }).click()
+    await expect(page.getByRole('form', { name: 'Dostosuj odczyt pliku' })).toBeVisible()
+    await page.getByRole('combobox', { name: 'Kontrahent', exact: true }).selectOption('Opis operacji')
+    await page.getByRole('button', { name: 'Dodaj alternatywę: Kontrahent' }).click()
+    await expectAccessible(page, 'import — podgląd i dostosowanie')
+    await page.getByRole('button', { name: 'Zastosuj i odśwież podgląd' }).click()
+    await expect(page.getByRole('region', { name: 'Wiersze podglądu' })).toBeVisible()
+    await page.getByRole('button', { name: /^Importuj \d/ }).click()
+    await expect(page.getByRole('heading', { name: '3. Gotowe' })).toBeVisible()
+    await expectAccessible(page, 'import — podsumowanie')
+    await page.getByRole('link', { name: 'Szczegóły importu' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'mbank-pazdziernik.csv' })).toBeVisible()
+    await expectAccessible(page, 'partia importu')
+    await page.getByRole('button', { name: 'Cofnij import' }).click()
+    await expect(page.getByRole('alertdialog', { name: 'Cofnąć ten import?' })).toBeVisible()
+    await expectAccessible(page, 'cofnięcie importu')
+    await page.keyboard.press('Escape')
+    await page.getByRole('link', { name: 'Historia importów' }).click()
+    await expect(page.getByRole('list', { name: 'Partie importu' })).toBeVisible()
+    await expectAccessible(page, 'historia importów')
   })
 
   test('unknown address inside the household', async ({ page }) => {

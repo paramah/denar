@@ -116,3 +116,20 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - T-501…T-506 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 332 testy w 30 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
 - `task web:e2e`: 88 testów Playwright zielonych (10 pominiętych — testy telefonu w projektach desktopowych): kanał webhook do atrapy → „Wyślij test” → podpis `X-Denar-Signature` zgodny z HMAC policzonym w teście → preferencja „odnowienie → webhook” → subskrypcja z przypomnieniem → powiadomienie w skrzynce i dzwonku → klik prowadzi do subskrypcji i oznacza przeczytane → dostawa na webhook z poprawnym podpisem; kanał z błędem 500 → „Test nieudany” i ostatni błąd → usunięcie sekretu przy edycji; axe na skrzynce, panelu dzwonka, zakładce i dialogach kanału w motywie jasnym, ciemnym i na telefonie; skrzynka i zakładka bez poziomego przewijania na 390 px, panel dzwonka w całości w oknie.
 - Kanały są osobiste i konto e2e jest wspólne dla testów — testy kanałów zaczynają od `deleteAllChannels` (limit 20 na osobę).
+
+## Część C4 — import CSV i połączenia
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+
+- [x] **T-601 Spec części C4** — sekcje C4 w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [x] **T-602 Warstwa API** — `api/hooks/imports.ts` (multipart przez `bodySerializer` + `FormData`), klucze i typy, komunikaty 008 w `api/messages.ts` (+ testy), etykiety audytu i pól w `lib/labels.ts`, fixtures i domyślne handlery MSW. FR-G30.
+- [x] **T-603 Kreator** — `ImportLayout`, `ImportWizardPage` (kroki, plik z przeciąganiem, presety), `PreviewView`, `ParserPanel`/`ColumnPicker`, `model.ts` (+ testy), wejścia z portfela i rejestru, ikony. Testy. FR-G01…FR-G07.
+- [x] **T-604 Historia i partia** — `ImportHistoryPage`, `ImportBatchPage` (cofnięcie, 409, 404), `parts.tsx`. Testy. FR-G10, FR-G11.
+- [x] **T-605 Połączenia** — `ConnectionsTab`, zakładka w `SettingsLayout`. Testy. FR-G20.
+- [x] **T-606 E2E** — `e2e/fixtures/mbank-pazdziernik.csv`, `e2e/import.spec.ts`, `previewMbank` w helperach, nowe ekrany w `a11y.spec.ts`/`mobile.spec.ts`. NFR-G01.
+
+## Wynik części C4
+
+- T-601…T-606 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 376 testów w 32 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
+- `task web:e2e`: 103 testy Playwright zielone (12 pominiętych — testy telefonu w projektach desktopowych): wyciąg mBanku w Windows-1250 przez multipart z przeglądarki → podgląd (kodowanie, nagłówki, kontrahent z reguły, błąd daty po polsku) → import 3 transakcji → rejestr → ponowny podgląd z 3 duplikatami → historia → cofnięcie → pusty rejestr i wpisy w dzienniku; pusty stan połączeń; axe na kreatorze (z „Dostosuj”), podsumowaniu, historii, partii, dialogu cofnięcia i zakładce połączeń w motywie jasnym, ciemnym i na telefonie; kroki kreatora, historia i połączenia bez poziomego przewijania na 390 px.
+- Multipart: `bodySerializer` openapi-fetch z `FormData` działa w przeglądarce, MSW (`request.formData()`) i na serwerze; w jsdom ginie tylko nazwa pliku (sprawdza ją e2e).
