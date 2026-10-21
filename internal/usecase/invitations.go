@@ -112,9 +112,8 @@ func (uc *CreateInvitation) Do(ctx context.Context, p Principal, householdID dom
 		// After the commit: a failure leaves the invitation, whose link the
 		// answer still carries (AD-513).
 		link := uc.cfg.BaseURL + "/invite#" + token
-		body := inviter + " zaprasza Cię do gospodarstwa „" + householdName + "” w Denarze.\n\n" +
-			"Otwórz link, aby dołączyć (ważny do " + inv.ExpiresAt.Format("02.01.2006 15:04") + " UTC):\n" + link + "\n"
-		if err := uc.d.Mailer.SendMail(ctx, email, "Zaproszenie do gospodarstwa "+householdName, body); err != nil {
+		subject, body := membership.InvitationEmail(p.User.EffectiveLocale(), inviter, householdName, link, inv.ExpiresAt)
+		if err := uc.d.Mailer.SendMail(ctx, email, subject, body); err != nil {
 			uc.d.log().WarnContext(ctx, "sending the invitation e-mail failed", "invitation_id", string(inv.ID), "error", err.Error())
 			out.EmailError = errorText(err)
 		} else {

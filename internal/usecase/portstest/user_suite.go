@@ -23,10 +23,23 @@ func wantUser(t *testing.T, got, want user.User) {
 		t.Errorf("CreatedAt = %v, want %v", got.CreatedAt, want.CreatedAt)
 	}
 	got.CreatedAt = want.CreatedAt
+	if (got.Locale == nil) != (want.Locale == nil) || (got.Locale != nil && *got.Locale != *want.Locale) {
+		t.Errorf("Locale = %v, want %v", localeString(got.Locale), localeString(want.Locale))
+	}
+	got.Locale = want.Locale
 	if got != want {
 		t.Errorf("user = %+v, want %+v", got, want)
 	}
 }
+
+func localeString(l *user.Locale) string {
+	if l == nil {
+		return "<nil>"
+	}
+	return string(*l)
+}
+
+func localePtr(l user.Locale) *user.Locale { return &l }
 
 // newUser returns a local member account; id also makes the email unique.
 func newUser(env Env, id domain.ID) user.User {
@@ -140,6 +153,41 @@ func RunUserSuite(t *testing.T, factory Factory) {
 		other, err := env.Users.ByID(ctx, "u2")
 		noError(t, err)
 		wantUser(t, other, newUser(env, "u2"))
+	})
+
+	t.Run("the locale is stored, changed and cleared", func(t *testing.T) {
+		env := factory(t)
+		u := newUser(env, "u1")
+		noError(t, env.Users.Create(ctx, u))
+		got, err := env.Users.ByID(ctx, "u1")
+		noError(t, err)
+		if got.Locale != nil {
+			t.Errorf("new user Locale = %v, want nil", localeString(got.Locale))
+		}
+
+		u.Locale = localePtr(user.LocaleEN)
+		noError(t, env.Users.Update(ctx, u))
+		got, err = env.Users.ByID(ctx, "u1")
+		noError(t, err)
+		wantUser(t, got, u)
+		byIDs, err := env.Users.ByIDs(ctx, []domain.ID{"u1"})
+		noError(t, err)
+		if len(byIDs) != 1 || localeString(byIDs[0].Locale) != "en" {
+			t.Errorf("ByIDs Locale = %+v", byIDs)
+		}
+
+		u.Locale = nil
+		noError(t, env.Users.Update(ctx, u))
+		got, err = env.Users.ByID(ctx, "u1")
+		noError(t, err)
+		wantUser(t, got, u)
+
+		withLocale := newUser(env, "u2")
+		withLocale.Locale = localePtr(user.LocalePL)
+		noError(t, env.Users.Create(ctx, withLocale))
+		got, err = env.Users.ByEmail(ctx, withLocale.Email)
+		noError(t, err)
+		wantUser(t, got, withLocale)
 	})
 
 	t.Run("Update of an unknown user gives ErrNotFound", func(t *testing.T) {

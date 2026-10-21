@@ -82,6 +82,7 @@ func newWorld(t *testing.T) *world {
 		Logout:        usecase.NewLogout(r.Sessions),
 		GetAuthConfig: usecase.NewGetAuthConfig(w.oidc, true, "Denar", "v0.0.0-test"),
 		GetMe:         usecase.NewGetMe(d),
+		UpdateMe:      usecase.NewUpdateMe(d),
 
 		CreateHousehold: usecase.NewCreateHousehold(d),
 		ListHouseholds:  usecase.NewListHouseholds(d),

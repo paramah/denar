@@ -50,7 +50,7 @@ func (r *UserRepository) Create(ctx context.Context, u user.User) (err error) {
 			return
 		}
 		if err = r.checkUnique(u); err == nil {
-			r.users[u.ID] = u
+			r.users[u.ID] = cloneUser(u)
 		}
 	})
 	return err
@@ -63,7 +63,7 @@ func (r *UserRepository) Update(ctx context.Context, u user.User) (err error) {
 			return
 		}
 		if err = r.checkUnique(u); err == nil {
-			r.users[u.ID] = u
+			r.users[u.ID] = cloneUser(u)
 		}
 	})
 	return err
@@ -122,4 +122,14 @@ func (r *UserRepository) sorted(match func(user.User) bool) []user.User {
 		return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), cmp.Compare(a.ID, b.ID))
 	})
 	return users
+}
+
+// cloneUser copies the locale so a caller changing it later does not change
+// the stored user.
+func cloneUser(u user.User) user.User {
+	if u.Locale != nil {
+		l := *u.Locale
+		u.Locale = &l
+	}
+	return u
 }

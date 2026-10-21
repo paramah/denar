@@ -27,7 +27,10 @@ type User struct {
 	OIDCSubject   string
 	InstanceAdmin bool
 	Active        bool
-	CreatedAt     time.Time
+	// Locale is the chosen language; nil means automatic (the browser
+	// decides in the Web UI, DefaultLocale on the server).
+	Locale    *Locale
+	CreatedAt time.Time
 }
 
 // Limits, in characters.

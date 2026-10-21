@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/paramah/denar/internal/domain/user"
 	"github.com/paramah/denar/internal/usecase"
 )
 
@@ -215,6 +216,34 @@ func TestPlain(t *testing.T) {
 		t.Errorf("to = %q, auth = %q", to, auth)
 	}
 	wantMessage(t, data, "Odnowienie: Netflix jutro", "Netflix odnowi się 31.10.2026: 43.00 zł.\n\nhttps://denar.example.com/h/h1/subscriptions/s1\n\nGospodarstwo: Dom")
+	wantMessage(t, data, "Odnowienie: Netflix jutro", "\n\n-- \nDenar · ustawienia powiadomień zmienisz w aplikacji.\n")
+}
+
+func TestEnglishFooter(t *testing.T) {
+	s := newFakeServer(t, nil, false, false, false)
+	m := newMailer(t, s, None, nil, "")
+	err := m.Send(context.Background(), usecase.ChannelTarget{Config: map[string]string{"address": "ola@example.com"}},
+		usecase.OutgoingMessage{Title: "Renewal: Netflix tomorrow", Body: "Netflix renews on 2026-10-31: 43.00 PLN.",
+			URL: "https://denar.example.com/h/h1/subscriptions/s1", HouseholdName: "Home", Locale: user.LocaleEN})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, data, _ := s.got()
+	wantMessage(t, data, "Renewal: Netflix tomorrow", "Netflix renews on 2026-10-31: 43.00 PLN.\n\nhttps://denar.example.com/h/h1/subscriptions/s1\n\n"+
+		"Household: Home\n\n-- \nDenar · change your notification settings in the app.\n")
+}
+
+func TestErrorsAreEnglish(t *testing.T) {
+	m, err := New(Config{Host: "127.0.0.1", Port: 1, From: "denar@example.com", TLS: None, Timeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.SendMail(context.Background(), "nope", "s", "b"); err == nil || err.Error() != "invalid recipient address" {
+		t.Errorf("bad address = %v", err)
+	}
+	if err := m.SendMail(context.Background(), "ola@example.com", "s", "b"); err == nil || !strings.HasPrefix(err.Error(), "SMTP: connection failed: ") {
+		t.Errorf("no server = %v", err)
+	}
 }
 
 func TestStartTLSWithAuth(t *testing.T) {
@@ -250,7 +279,7 @@ func TestImplicitTLS(t *testing.T) {
 func TestErrors(t *testing.T) {
 	s := newFakeServer(t, nil, false, false, false)
 	if err := newMailer(t, s, StartTLS, nil, "").SendMail(context.Background(), "a@example.com", "x", "y"); err == nil ||
-		!strings.Contains(err.Error(), "STARTTLS") {
+		err.Error() != "SMTP: server does not support STARTTLS" {
 		t.Errorf("no STARTTLS = %v", err)
 	}
 	s.rejectTo = true

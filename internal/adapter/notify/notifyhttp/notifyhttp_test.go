@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"github.com/paramah/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func get(t *testing.T, client *http.Client, log *slog.Logger, target string) ([]byte, error) {
@@ -109,5 +111,26 @@ func TestSnippet(t *testing.T) {
 	}
 	if Snippet([]byte{0xff, 0xfe}) != "" || Snippet([]byte("  ")) != "" {
 		t.Error("invalid or empty body gave a snippet")
+	}
+}
+
+func TestTextHouseholdLineFollowsTheLocale(t *testing.T) {
+	msg := usecase.OutgoingMessage{Title: "T", Body: "B", URL: "https://x/h", HouseholdName: "Dom"}
+	if got := Text(msg); got != "T\n\nB\n\nhttps://x/h\nGospodarstwo: Dom" {
+		t.Errorf("pl = %q", got)
+	}
+	msg.Locale = user.LocaleEN
+	if got := Text(msg); got != "T\n\nB\n\nhttps://x/h\nHousehold: Dom" {
+		t.Errorf("en = %q", got)
+	}
+}
+
+func TestConnectionErrorsAreEnglish(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	target := srv.URL
+	srv.Close()
+	_, err := get(t, NewClient(notification.TargetPolicy{AllowPrivate: true}), nil, target)
+	if err == nil || !strings.HasPrefix(err.Error(), "connection failed") || strings.Contains(err.Error(), target) {
+		t.Errorf("err = %v", err)
 	}
 }

@@ -45,7 +45,12 @@ func nullableRole(r membership.Role) nullable.Nullable[api.Role] {
 }
 
 func apiUser(u user.User) api.User {
-	return api.User{Id: string(u.ID), Email: u.Email, Name: u.Name, InstanceAdmin: u.InstanceAdmin, CreatedAt: u.CreatedAt}
+	out := api.User{Id: string(u.ID), Email: u.Email, Name: u.Name, InstanceAdmin: u.InstanceAdmin, CreatedAt: u.CreatedAt,
+		Locale: nullable.NewNullNullable[api.Locale]()}
+	if u.Locale != nil {
+		out.Locale = nullable.NewNullableWithValue(api.Locale(*u.Locale))
+	}
+	return out
 }
 
 func apiHousehold(v usecase.HouseholdView) api.Household {

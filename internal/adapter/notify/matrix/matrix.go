@@ -49,7 +49,7 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 		"/send/m.room.message/" + url.PathEscape(msg.ID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(body))
 	if err != nil {
-		return errors.New("niepoprawny adres serwera Matrix")
+		return errors.New("invalid Matrix homeserver URL")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+target.Secrets["access_token"])

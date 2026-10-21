@@ -600,6 +600,10 @@ type OutgoingMessage struct {
 	HouseholdName string
 	OccurredAt    time.Time
 	Data          map[string]string
+	// Locale is the language of the person the message is for; channels
+	// write their fixed texts (household line, e-mail footer) in it with
+	// the notification package helpers. Title and Body are already in it.
+	Locale user.Locale
 }
 
 // Notifier sends messages over one type of channel. Errors are short and

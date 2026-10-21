@@ -19,22 +19,34 @@ type UserRepository struct{ db *DB }
 
 func NewUserRepository(db *DB) *UserRepository { return &UserRepository{db: db} }
 
-const userColumns = `id, email, name, instance_admin, oidc_issuer, oidc_subject, password_hash, active, created_at`
+const userColumns = `id, email, name, instance_admin, oidc_issuer, oidc_subject, password_hash, active, locale, created_at`
 
 func scanUser(row interface{ Scan(...any) error }) (user.User, error) {
 	var (
 		u                             user.User
 		issuer, subject, passwordHash sql.NullString
+		locale                        sql.NullString
 		active                        bool
 		created                       int64
 	)
-	if err := row.Scan(&u.ID, &u.Email, &u.Name, &u.InstanceAdmin, &issuer, &subject, &passwordHash, &active, &created); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.Name, &u.InstanceAdmin, &issuer, &subject, &passwordHash, &active, &locale, &created); err != nil {
 		return user.User{}, err
 	}
 	u.OIDCIssuer, u.OIDCSubject, u.PasswordHash = issuer.String, subject.String, passwordHash.String
 	u.Active = active
+	if locale.Valid {
+		l := user.Locale(locale.String)
+		u.Locale = &l
+	}
 	u.CreatedAt = fromMicros(created)
 	return u, nil
+}
+
+func nullLocale(l *user.Locale) sql.NullString {
+	if l == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: string(*l), Valid: true}
 }
 
 func mapUserWriteError(err error) error {
@@ -51,19 +63,19 @@ func mapUserWriteError(err error) error {
 
 func (r *UserRepository) Create(ctx context.Context, u user.User) error {
 	_, err := r.db.Exec(ctx).ExecContext(ctx,
-		`INSERT INTO users (`+userColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO users (`+userColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		u.ID, u.Email, u.Name, u.InstanceAdmin, nullString(u.OIDCIssuer), nullString(u.OIDCSubject),
-		nullString(u.PasswordHash), u.Active, toMicros(u.CreatedAt))
+		nullString(u.PasswordHash), u.Active, nullLocale(u.Locale), toMicros(u.CreatedAt))
 	return mapUserWriteError(err)
 }
 
 // Update stores every field except the id and the creation time.
 func (r *UserRepository) Update(ctx context.Context, u user.User) error {
 	res, err := r.db.Exec(ctx).ExecContext(ctx,
-		`UPDATE users SET email = ?, name = ?, instance_admin = ?, oidc_issuer = ?, oidc_subject = ?, password_hash = ?, active = ?
+		`UPDATE users SET email = ?, name = ?, instance_admin = ?, oidc_issuer = ?, oidc_subject = ?, password_hash = ?, active = ?, locale = ?
 		 WHERE id = ?`,
 		u.Email, u.Name, u.InstanceAdmin, nullString(u.OIDCIssuer), nullString(u.OIDCSubject),
-		nullString(u.PasswordHash), u.Active, u.ID)
+		nullString(u.PasswordHash), u.Active, nullLocale(u.Locale), u.ID)
 	if err != nil {
 		return mapUserWriteError(err)
 	}

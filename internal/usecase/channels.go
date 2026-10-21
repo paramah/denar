@@ -100,8 +100,10 @@ func (d Deps) sealSecrets(id domain.ID, secrets map[string]string) ([]byte, erro
 // errNoMasterKey and errSecretsUnreadable are the reasons a channel with
 // secrets cannot be used.
 var (
-	errNoMasterKey       = errors.New("brak klucza DENAR_MASTER_KEY do odczytu sekretów kanału")
-	errSecretsUnreadable = errors.New("nie można odczytać sekretów kanału (zmieniony DENAR_MASTER_KEY?) — ustaw je ponownie")
+	// The texts are stable English; the Web UI translates them (013).
+	errNoMasterKey       = errors.New("DENAR_MASTER_KEY is not set: cannot read the channel secrets")
+	errSecretsUnreadable = errors.New("cannot read the channel secrets (DENAR_MASTER_KEY changed?): set them again")
+	errNoSMTP            = errors.New("SMTP is not configured on the server")
 )
 
 // openSecrets decrypts the secrets of a channel.
@@ -133,7 +135,7 @@ func (d Deps) send(ctx context.Context, c notification.Channel, msg OutgoingMess
 		if reason == UnavailableSecrets {
 			return errPermanent{errNoMasterKey}
 		}
-		return errPermanent{errors.New("serwer nie ma skonfigurowanego SMTP")}
+		return errPermanent{errNoSMTP}
 	}
 	secrets, err := d.openSecrets(c)
 	if err != nil {
@@ -350,9 +352,10 @@ func (uc *TestChannel) Do(ctx context.Context, p Principal, id domain.ID) (Chann
 		return ChannelTestResult{}, plainNotFound(err)
 	}
 	link := uc.d.BaseURL
-	sendErr := uc.d.send(ctx, c, OutgoingMessage{ID: string(uc.d.IDs.NewID()), Type: "test", Title: "Test kanału Denar",
-		Body: "Ten kanał (" + c.Name + ") działa: tu będą trafiać powiadomienia Denara.", URL: link, OccurredAt: uc.d.Clock.Now(),
-		Data: map[string]string{}})
+	locale := p.User.EffectiveLocale()
+	title, body := notification.TestMessage(locale, c.Name)
+	sendErr := uc.d.send(ctx, c, OutgoingMessage{ID: string(uc.d.IDs.NewID()), Type: "test", Title: title,
+		Body: body, URL: link, OccurredAt: uc.d.Clock.Now(), Data: map[string]string{}, Locale: locale})
 	now := uc.d.Clock.Now()
 	res := ChannelTestResult{OK: sendErr == nil, TestedAt: now}
 	err = uc.d.Tx.WithinTx(ctx, func(ctx context.Context) error {
