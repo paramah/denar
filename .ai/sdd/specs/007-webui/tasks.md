@@ -1,4 +1,4 @@
-# Tasks: Web UI — część A (007-webui)
+# Tasks: Web UI (007-webui)
 
 > Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
 > Source: `design.md`
@@ -99,3 +99,20 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - `task web:e2e`: 79 testów Playwright zielonych (8 pominiętych — testy telefonu w projektach desktopowych): token z dialogu bota działa z `/mcp` (`tools/call whoami`), axe na dialogu tokenu z podłączeniem asystenta i na 404 w gospodarstwie w motywie jasnym, ciemnym i na telefonie.
 - Przegląd jakości: bez błędów JS w konsoli na całej ścieżce nowego użytkownika; naprawione — angielskie komunikaty serwera, angielskie akcje/zasoby/cykle w dzienniku, 404 bez nawigacji, błąd walidacji poza widokiem w długim formularzu. Pozostałe — „Ograniczenia (część C3a)” w `design.md`.
 - Dla C3b: `ComingSoonPage section="notifications"` nadal w trasie `notifications`; scope `notifications:read` jest w `scopeGroups` i w zestawie „Asystent AI”; nowe komunikaty walidacji backendu 005 dopisz do `api/messages.ts`, akcje audytu do `lib/labels.ts`.
+
+## Część C3b — powiadomienia
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+
+- [x] **T-501 Spec części C3b** — sekcje C3b w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [x] **T-502 Warstwa API** — `api/hooks/notifications.ts`, klucze `notifications*`/`channel*`/`notificationPreferences` w `api/keys.ts`, typy, etykiety w `lib/labels.ts`, reguły 005 w `api/messages.ts` (+ testy), fabryki i domyślne handlery MSW. FR-F31.
+- [x] **T-503 Dzwonek i skrzynka** — `NotificationBell` (pasek i belka telefonu), `NotificationItem`, `NotificationsPage` (zamiast `ComingSoonPage`, usunięty), `model.ts`, `RecentNotificationsTile` na pulpicie, ikony `target`/`send`. Testy. FR-F01…FR-F12.
+- [x] **T-504 Ustawienia → Powiadomienia** — `channelForm.ts` (+ testy), `ChannelDialog`, `ChannelsSection`, `PreferencesSection`, zakładka `settings/notifications`. Testy. FR-F20…FR-F23.
+- [x] **T-505 Zaproszenia e-mailem** — checkbox `send_email`, wynik `email_sent`/`email_error`. Testy. FR-F30.
+- [x] **T-506 E2E** — odbiornik webhooków w atrapie NBP, `DENAR_MASTER_KEY` i krótkie interwały w `playwright.config.ts`, `notifications.spec.ts`, nowe ekrany w `a11y.spec.ts`/`mobile.spec.ts`. NFR-F01.
+
+## Wynik części C3b
+
+- T-501…T-506 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 332 testy w 30 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
+- `task web:e2e`: 88 testów Playwright zielonych (10 pominiętych — testy telefonu w projektach desktopowych): kanał webhook do atrapy → „Wyślij test” → podpis `X-Denar-Signature` zgodny z HMAC policzonym w teście → preferencja „odnowienie → webhook” → subskrypcja z przypomnieniem → powiadomienie w skrzynce i dzwonku → klik prowadzi do subskrypcji i oznacza przeczytane → dostawa na webhook z poprawnym podpisem; kanał z błędem 500 → „Test nieudany” i ostatni błąd → usunięcie sekretu przy edycji; axe na skrzynce, panelu dzwonka, zakładce i dialogach kanału w motywie jasnym, ciemnym i na telefonie; skrzynka i zakładka bez poziomego przewijania na 390 px, panel dzwonka w całości w oknie.
+- Kanały są osobiste i konto e2e jest wspólne dla testów — testy kanałów zaczynają od `deleteAllChannels` (limit 20 na osobę).

@@ -22,6 +22,7 @@ import { WalletDialog } from '../wallets/WalletDialog.tsx'
 import { WalletSummary } from '../wallets/WalletCard.tsx'
 import { BudgetTile } from '../budget/BudgetTile.tsx'
 import { SubscriptionsTile } from '../subscriptions/SubscriptionsTile.tsx'
+import { RecentNotificationsTile } from '../notifications/RecentNotificationsTile.tsx'
 import placeholder from '../placeholders/placeholders.module.css'
 import styles from './dashboard.module.css'
 
@@ -41,6 +42,7 @@ const recentShown = 5
  * Pulpit: salda portfeli w walucie bazowej, portfele i ostatnie transakcje.
  * Budżet (część C1): kafelek „Do przydzielenia” i przekroczone koperty.
  * Subskrypcje (część C2): koszt miesięczny i najbliższe odnowienia.
+ * Powiadomienia (część C3b): trzy ostatnie z gospodarstwa.
  */
 export function DashboardPage() {
   const { household, role } = useHousehold()
@@ -187,6 +189,8 @@ export function DashboardPage() {
             )
           }
         </QueryState>
+
+        <RecentNotificationsTile />
 
         <dl className={styles.facts} aria-label="Gospodarstwo">
           <div>

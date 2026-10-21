@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { fieldErrors } from '../../api/errors.ts'
 import { useCreateInvitation, useInvitations, useRevokeInvitation } from '../../api/hooks/invitations.ts'
+import { useChannelTypes } from '../../api/hooks/notifications.ts'
 import type { Invitation, InvitationCreated, Role } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
 import { Badge } from '../../components/Badge/Badge.tsx'
@@ -9,7 +10,7 @@ import { CopyField } from '../../components/CopyField/CopyField.tsx'
 import { DataList } from '../../components/DataList/DataList.tsx'
 import { ConfirmDialog, Dialog } from '../../components/Dialog/Dialog.tsx'
 import { EmptyState } from '../../components/EmptyState/EmptyState.tsx'
-import { SelectField, TextField } from '../../components/Field/Field.tsx'
+import { Checkbox, SelectField, TextField } from '../../components/Field/Field.tsx'
 import { Callout, Form, FormAlert } from '../../components/Form/Form.tsx'
 import { useDocumentTitle } from '../../components/PageHeader/PageHeader.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
@@ -31,6 +32,9 @@ export function InvitationsTab() {
   const invitations = useInvitations(household.id)
   const [created, setCreated] = useState<InvitationCreated | null>(null)
   const [revoking, setRevoking] = useState<Invitation | null>(null)
+  // E-mail z linkiem tylko, gdy serwer ma SMTP (typ kanału „email” dostępny).
+  const channelTypes = useChannelTypes()
+  const canEmail = channelTypes.data?.some((t) => t.type === 'email' && t.available) ?? false
 
   return (
     <>
@@ -38,11 +42,15 @@ export function InvitationsTab() {
         <div className={styles.sectionHead}>
           <div>
             <h2 id="invite-heading">Zaproś do gospodarstwa</h2>
-            <p>Dostaniesz jednorazowy link. Przekaż go zaproszonej osobie — Denar nie wysyła e-maili.</p>
+            <p>
+              {canEmail
+                ? 'Dostaniesz jednorazowy link. Denar może też wysłać go e-mailem do zaproszonej osoby.'
+                : 'Dostaniesz jednorazowy link. Przekaż go zaproszonej osobie — ten serwer nie ma skonfigurowanej poczty.'}
+            </p>
           </div>
         </div>
         <div className={styles.card}>
-          <InviteForm onCreated={setCreated} />
+          <InviteForm onCreated={setCreated} canEmail={canEmail} />
         </div>
       </section>
 
@@ -101,6 +109,14 @@ export function InvitationsTab() {
               Wyślij ten link do <strong>{created.invitation.email}</strong>. Działa raz, do{' '}
               {formatDateTime(created.invitation.expires_at)}.
             </p>
+            {created.email_sent && (
+              <Callout>Wysłaliśmy link e-mailem na adres {created.invitation.email}.</Callout>
+            )}
+            {created.email_error && (
+              <Callout tone="warn" title="Nie udało się wysłać e-maila">
+                {created.email_error}. Zaproszenie powstało — przekaż link samodzielnie.
+              </Callout>
+            )}
             <CopyField label="Link z zaproszeniem" value={created.url} initialFocus />
             <Callout tone="warn">Link pokazujemy tylko teraz. Po zamknięciu okna możesz wygenerować nowy.</Callout>
           </>
@@ -112,12 +128,13 @@ export function InvitationsTab() {
   )
 }
 
-function InviteForm({ onCreated }: { onCreated: (created: InvitationCreated) => void }) {
+function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCreated) => void; canEmail: boolean }) {
   const { household, role } = useHousehold()
   const create = useCreateInvitation(household.id)
   const [email, setEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<Role>('member')
   const [emailError, setEmailError] = useState<string>()
+  const [sendEmail, setSendEmail] = useState(true)
   const server = fieldErrors(create.error)
   const roles = roleOrder.filter((r) => role === 'owner' || r !== 'owner')
 
@@ -128,7 +145,7 @@ function InviteForm({ onCreated }: { onCreated: (created: InvitationCreated) => 
     }
     setEmailError(undefined)
     create.mutate(
-      { email: email.trim(), role: inviteRole },
+      { email: email.trim(), role: inviteRole, ...(canEmail && sendEmail ? { send_email: true } : {}) },
       {
         onSuccess: (result) => {
           setEmail('')
@@ -160,9 +177,17 @@ function InviteForm({ onCreated }: { onCreated: (created: InvitationCreated) => 
           hint={roleDescriptions[inviteRole]}
         />
         <Button type="submit" variant="primary" icon="link" busy={create.isPending}>
-          Utwórz link
+          {canEmail && sendEmail ? 'Utwórz i wyślij' : 'Utwórz link'}
         </Button>
       </div>
+      {canEmail && (
+        <Checkbox
+          label="Wyślij link e-mailem"
+          hint="Link i tak zobaczysz po utworzeniu — możesz go też przekazać sam."
+          checked={sendEmail}
+          onChange={(event) => setSendEmail(event.target.checked)}
+        />
+      )}
     </Form>
   )
 }

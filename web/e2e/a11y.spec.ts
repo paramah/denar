@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { createHousehold, expectAccessible, loginViaApi } from './support/helpers.ts'
+import {
+  createHousehold,
+  deleteAllChannels,
+  expectAccessible,
+  loginViaApi,
+  subscriptionWithReminder,
+  unique,
+  webhookURL,
+} from './support/helpers.ts'
 
 // Dostępność każdego ekranu części A w motywie jasnym, ciemnym i na telefonie.
 
@@ -62,6 +70,7 @@ test.describe('signed in', () => {
     ['settings bots', '/settings/bots', 'Ustawienia'],
     ['settings payees', '/settings/payees', 'Ustawienia'],
     ['settings rates', '/settings/rates', 'Ustawienia'],
+    ['settings notifications', '/settings/notifications', 'Ustawienia'],
     ['settings audit', '/settings/audit', 'Ustawienia'],
   ]
 
@@ -150,6 +159,46 @@ test.describe('signed in', () => {
     await page.getByRole('list', { name: 'Płatności' }).getByRole('button', { name: 'Dopasuj' }).first().click()
     await expect(page.getByRole('dialog', { name: 'Dopasuj płatność' })).toBeVisible()
     await expectAccessible(page, 'dopasowanie płatności')
+  })
+
+  test('notifications: inbox, bell panel and channel dialogs', async ({ page }) => {
+    const hid = householdPath.replace('/h/', '')
+    await deleteAllChannels(page.request)
+    await page.request.post('/api/me/channels', {
+      data: { type: 'webhook', name: 'Hook a11y', config: { url: webhookURL('a11y') }, secrets: { secret: 's' } },
+    })
+    const sub = await subscriptionWithReminder(page.request, hid, `Kino a11y ${unique()}`)
+    await page.goto(`${householdPath}/notifications?household=${hid}`)
+    await expect(async () => {
+      await page.reload()
+      await expect(page.getByRole('article', { name: `Odnowienie: ${sub.name} za 3 dni` })).toBeVisible({ timeout: 1_000 })
+    }).toPass({ timeout: 30_000 })
+    await expectAccessible(page, 'skrzynka powiadomień')
+    let overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+
+    // Dzwonek: w pasku na komputerze, w górnej belce na telefonie (widoczny jest jeden).
+    await page.getByRole('button', { name: /^Powiadomienia, / }).click()
+    const panel = page.getByRole('region', { name: 'Powiadomienia' })
+    await expect(panel.getByRole('link', { name: `Nieprzeczytane: Odnowienie: ${sub.name} za 3 dni` })).toBeInViewport()
+    await expectAccessible(page, 'panel powiadomień')
+    await page.keyboard.press('Escape')
+    await expect(panel).toBeHidden()
+
+    await page.goto(`${householdPath}/settings/notifications`)
+    await expect(page.getByRole('table')).toBeVisible()
+    await expectAccessible(page, 'kanały i preferencje')
+    overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+    await page.getByRole('button', { name: 'Dodaj kanał' }).first().click()
+    await page.getByRole('dialog', { name: 'Nowy kanał powiadomień' }).getByRole('radio', { name: /Matrix/ }).check()
+    await expectAccessible(page, 'nowy kanał (Matrix)')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Edytuj: Hook a11y' }).click()
+    const edit = page.getByRole('dialog', { name: 'Edycja kanału Hook a11y' })
+    await edit.getByRole('radio', { name: /Zmień/ }).check()
+    await expect(edit.getByLabel('Sekret podpisu (opcjonalnie)')).toBeVisible()
+    await expectAccessible(page, 'edycja kanału z sekretem')
   })
 
   test('unknown address inside the household', async ({ page }) => {

@@ -567,3 +567,62 @@ Vitest: `api/messages.test.ts`, `features/settings/AssistantConnect.test.ts`, `B
 - Pola daty (`<input type="date">`) wyświetlają format zależny od języka przeglądarki/systemu, nie od `lang` strony (np. `mm/dd/yyyy` w przeglądarce po angielsku).
 - Pasek zakładek ustawień i subskrypcji na telefonie przewija się poziomo w swoim kontenerze (ostatnia zakładka bywa częściowo ucięta przy krawędzi).
 - Wartości w zmianach dziennika poza kwotami i cyklami (np. scope'y `wallets:read`, `via: auto_assign`) pokazywane są jak zapisał je serwer.
+
+---
+
+# Design: część C3b — powiadomienia
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Last Updated: 2026-10-21
+
+## C3b-1. Warstwa API
+
+- `api/hooks/notifications.ts`: `useUnreadCount` (`refetchInterval` 60 s, `refetchOnWindowFocus: 'always'`), `useRecentNotifications(limit, {householdId})`, `useNotifications({householdId, unread})` (`useInfiniteQuery`, 30 na stronę), `useMarkNotificationRead`, `useMarkAllNotificationsRead`, `useChannelTypes`, `useChannels`, `useCreateChannel`, `useUpdateChannel`, `useDeleteChannel`, `useTestChannel`, `useNotificationPreferences(hid)`, `useSetNotificationPreferences(hid)`.
+- Klucze (`api/keys.ts`): powiadomienia są osobiste, więc nie leżą pod `['household', hid]`: `['notifications']` (prefiks), `['notifications','list',filtry]`, `['notifications','unread-count']`, `['channel-types']`, `['channels']`; preferencje — `['household', hid, 'notification-preferences']`. Oznaczenie przeczytanego unieważnia cały prefiks `notifications`; zmiana licznika z odpytywania unieważnia listy (nowe powiadomienie pojawia się w otwartej skrzynce). Usunięcie kanału unieważnia preferencje wszystkich gospodarstw.
+- Typy w `api/types.ts`, etykiety (`eventTypeLabels`/`Descriptions`/`Order`, `channelTypeLabels`, `unavailableReasonLabels`, pola `config.*`/`secrets.*`/`items.*`) w `lib/labels.ts`; reguły komunikatów 005 i przyczyny 409 w `api/messages.ts`. Etap 005 nie dodał akcji audytu (kanały i preferencje są osobiste, AD-507) — `actionLabels` bez zmian.
+
+## C3b-2. Dzwonek i skrzynka (`features/notifications/`)
+
+- `NotificationBell` (`placement: 'rail' | 'topbar'`): w pasku obok znaku Denara, na telefonie w górnej belce (`RailContent bell` — szuflada menu go nie powtarza). Przycisk z plakietką liczby (do „99+”) i ukrytym tekstem „Powiadomienia, N nieprzeczytane”; panel to `section` z nagłówkiem (rola `region`), `useDisclosure` (Escape z powrotem focusu, klik/focus poza). Panel jest `position: fixed` (pasek ma `overflow-y: auto` i przycinałby go): na komputerze obok paska, na telefonie pod belką na całą szerokość. Lista ładowana dopiero po otwarciu (8 ostatnich).
+- `NotificationItem`: karta `article` z ikoną w kolorze tonu (ostrzeżenia: zmiana ceny, okres próbny, termin celu; negatywne: przegapiona płatność, przekroczona koperta), tytułem jako linkiem rozciągniętym na kartę (`::after`), treścią i czasem; nieprzeczytane — pogrubienie, kropka i ukryty prefiks „Nieprzeczytane:”. Klik linku oznacza przeczytane (`mutate` — mutacja kończy się po odmontowaniu). Na liście dodatkowy przycisk „Oznacz jako przeczytane”. `notificationLink` przepuszcza tylko ścieżki SPA (`safeReturnTo`), inaczej `/h/{household_id}`.
+- `NotificationsPage`: filtry w adresie (`?unread=1`, `?household=`), `groupByDay` po lokalnym dniu, `PageHeader` z „Oznacz wszystkie” i „Ustawienia powiadomień”; puste stany „Wszystko przeczytane” i zaproszenie do ustawień.
+- `RecentNotificationsTile` na pulpicie (3 ostatnie z gospodarstwa; brak — nic).
+
+## C3b-3. Ustawienia → Powiadomienia
+
+Zakładka `settings/notifications` (każda rola) = `ChannelsSection` + `PreferencesSection`.
+
+- `channelForm.ts` (czyste funkcje, testy tabelaryczne): opisy pól per `typ.pole` (etykieta, podpowiedź, placeholder, typ inputu) z fallbackiem na nazwę pola z serwera, `channelGuides` (pomoc per typ), `emptyForm`/`formFromChannel`, `validateForm` (nazwa, wymagane `config`, wymagane sekrety przy tworzeniu i przy „Zmień”), `createBody` (bez pustych pól), `updateBody` (tylko zmiany; `config` w całości, bo PATCH go zastępuje; `secrets`: brak / obiekt / `null`), `canRemoveSecrets`, `secretsAvailable` (brak klucza głównego wnioskowany z `unavailable_reason: secrets_unavailable` typów z wymaganym sekretem), `channelSummary`.
+- `ChannelDialog` (rozmiar `lg`): przy tworzeniu kafelki typów (radio; niedostępne zablokowane z powodem w nazwie dostępnej), przy edycji typ tylko do odczytu; pola `config_fields` (opcjonalne z dopiskiem „(opcjonalnie)”), sekrety jako `type="password"`, `autoComplete="new-password"`; przy kanale z sekretem — radio „Zostaw bez zmian / Zmień / Usuń”; „Włączony”; pomoc typu w `Callout`. Błędy 422 pól `config.*`/`secrets.*` przy polach, reszta w `FormAlert`.
+- `ChannelsSection`: lista niedostępnych typów z powodem, karty kanałów z plakietkami i akcjami (nazwy dostępne „Wyślij test: X”, „Wyłącz: X”…), wynik testu w `role="status"` w karcie, limit 20 (przycisk „Dodaj kanał” wyłączony).
+- `PreferencesSection`: `completePreferences` (6 typów w kolejności serwera, brakujące domyślne, nieznane z nowszego serwera zachowane), tabela w kontenerze przewijanym poziomo (checkboxy z nazwami „Typ: kanał”), wyłączone kanały z dopiskiem; zapis odfiltrowuje kanały usunięte w międzyczasie; formularz remontowany kluczem po zapisie.
+
+## C3b-4. Zaproszenia
+
+`InvitationsTab` czyta `useChannelTypes`; gdy `email.available` — checkbox „Wyślij link e-mailem” (domyślnie zaznaczony, przycisk „Utwórz i wyślij”), body `send_email: true`; dialog linku pokazuje `email_sent` (informacja) lub `email_error` (ostrzeżenie: zaproszenie powstało, przekaż link sam). Bez SMTP — opis „ten serwer nie ma skonfigurowanej poczty”.
+
+## C3b-5. Strategia testów
+
+- Vitest: `features/notifications/model.test.ts` (grupowanie po dniu, bezpieczne linki, odmiana „nieprzeczytane”, `createBody`/`updateBody`/`validateForm`, preferencje), `notifications.test.tsx` (dzwonek: licznik, panel, klik → nawigacja i read, „Oznacz wszystkie”, odświeżenie przy fokusie, Escape; skrzynka: dni, pojedyncze read, filtr, kursor, gospodarstwa; pulpit), `settings/NotificationsTab.test.tsx` (formularz z typów, niedostępne typy, sekrety przy edycji, test/wyłącz/usuń, brak klucza → 409 po polsku, macierz → PUT, viewer, zaproszenie e-mailem), `api/messages.test.ts`. Domyślne handlery MSW: licznik 0, pusta lista, typy (z kluczem, bez SMTP), brak kanałów, domyślne preferencje.
+- Playwright: atrapa NBP (`e2e/support/nbp-stub.mjs`) przyjmuje też webhooki (`POST /webhook/<nazwa>` zapisuje nagłówki i surowe body, `/webhook-fail/<nazwa>` → 500, `GET /webhook/<nazwa>` zwraca zapisane). `playwright.config.ts`: `DENAR_MASTER_KEY` testowy, `DENAR_SUBSCRIPTION_INTERVAL` i `DENAR_NOTIFY_INTERVAL` = 2 s, bez SMTP. `notifications.spec.ts`: webhook z sekretem → „Wyślij test” → podpis HMAC policzony w teście zgadza się → preferencja → subskrypcja (płatność za 3 dni, przypomnienie 3 dni) → powiadomienie w skrzynce i dzwonku → klik → strona subskrypcji, przeczytane → dostawa na webhook z poprawnym podpisem i treścią; kanał zepsuty → „Test nieudany” i ostatni błąd → edycja „Usuń” sekret → usunięcie. `a11y.spec.ts` (zakładka, skrzynka z powiadomieniem, panel dzwonka, nowy kanał Matrix, edycja z sekretem), `mobile.spec.ts` (bez poziomego przewijania, dzwonek w belce, panel w całości w oknie).
+
+## Decyzje autonomiczne (część C3b)
+
+| ID | Decyzja | Uzasadnienie |
+|----|---------|--------------|
+| AD-F01 | Dzwonek i skrzynka pokazują powiadomienia ze wszystkich gospodarstw (nazwa gospodarstwa przy kilku), skrzynka ma filtr gospodarstwa; pulpit — tylko bieżące | Powiadomienia są osobiste (`/me/…`), linki prowadzą do właściwego gospodarstwa; licznik per gospodarstwo chowałby ważne rzeczy |
+| AD-F02 | Kanały i preferencje jako zakładka „Powiadomienia” w Ustawieniach gospodarstwa, widoczna dla każdej roli; kanały opisane jako wspólne dla gospodarstw, macierz — dla bieżącego | Nie ma strony profilu; preferencje i tak są per gospodarstwo |
+| AD-F03 | Odpytywanie licznika co 60 s + przy fokusie; zmiana licznika unieważnia listy | 005 nie ma powiadomień na żywo; minuta to rozsądny koszt dla instancji domowej |
+| AD-F04 | Panel dzwonka `position: fixed` zamiast natywnego `<dialog>`/popover | Pasek przewija się w pionie i przyciąłby panel; wzorzec disclosure jak przełącznik gospodarstwa |
+| AD-F05 | Klik w powiadomienie oznacza je jako przeczytane; osobny przycisk tylko na liście | Typowe zachowanie skrzynek; panel ma być lekki |
+| AD-F06 | Sekrety per kanał jako grupa: „Zostaw / Zmień / Usuń” dotyczy wszystkich sekretów kanału | Kontrakt: obiekt `secrets` zastępuje całość (AD-511); każdy typ ma najwyżej jeden sekret |
+| AD-F07 | Brak klucza głównego wykrywany z `unavailable_reason: secrets_unavailable` typów z wymaganym sekretem; pola opcjonalnych sekretów (webhook, ntfy) wtedy zablokowane | Kontrakt nie ma osobnej flagi; zapis i tak dałby 409 |
+| AD-F08 | „Wyślij link e-mailem” domyślnie zaznaczone, gdy SMTP jest dostępne | Skoro serwer umie wysłać, to oczekiwana ścieżka; link i tak widać po utworzeniu |
+| AD-F09 | E2E: joby subskrypcji i rozsyłki co 2 s, webhook do atrapy NBP rozszerzonej o odbiornik zamiast osobnego serwera | Jeden dodatkowy proces mniej; atrapa i tak startuje jako `webServer` |
+
+## Ograniczenia (część C3b)
+
+- Licznik i nowe powiadomienia pojawiają się z opóźnieniem do minuty (lub od razu po powrocie do karty).
+- Brak historii dostaw na kanał i ponowienia ręcznego — API daje tylko `verified_at`/`last_error`.
+- Bez SMTP w e2e: ścieżka „Wyślij link e-mailem” i kanał e-mail są testowane tylko w Vitest (MSW).
+- Kanały mają pomoc konfiguracji tylko po polsku i bez kreatora (np. pobierania `chat_id` przez Telegram API z poziomu UI).

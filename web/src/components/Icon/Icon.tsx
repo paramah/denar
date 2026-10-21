@@ -217,6 +217,19 @@ const paths: Record<string, ReactNode> = {
       <path d="M15 8h5v5" />
     </>
   ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <circle cx="12" cy="12" r="0.8" />
+    </>
+  ),
+  send: (
+    <>
+      <path d="M20.5 3.5 10 14" />
+      <path d="M20.5 3.5 14 20.5l-4-6.5-6.5-4z" />
+    </>
+  ),
   circle: <circle cx="12" cy="12" r="7.5" />,
   checkCircle: (
     <>

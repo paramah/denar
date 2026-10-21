@@ -5,6 +5,7 @@ import type { Household } from '../api/types.ts'
 import { IconButton } from '../components/Button/Button.tsx'
 import { CoinMark, Icon } from '../components/Icon/Icon.tsx'
 import { SkipLink } from '../components/SkipLink/SkipLink.tsx'
+import { NotificationBell } from '../features/notifications/NotificationBell.tsx'
 import { roleLabels } from '../lib/labels.ts'
 import { storageKeys, writeStored } from '../lib/storage.ts'
 import { useDisclosure } from '../lib/useDisclosure.ts'
@@ -29,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={styles.shell}>
       <SkipLink />
       <aside className={styles.rail} aria-label="Menu aplikacji">
-        <RailContent />
+        <RailContent bell />
       </aside>
       <header className={styles.topbar}>
         <IconButton
@@ -43,6 +44,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <CoinMark size={28} />
           <span className={styles.topName}>{household.name}</span>
         </Link>
+        <div className={styles.topBell}>
+          <NotificationBell placement="topbar" />
+        </div>
       </header>
       {drawerOpen && <Drawer onClose={() => setDrawerOpen(false)} />}
       <main id="main" className={styles.main} tabIndex={-1}>
@@ -90,14 +94,18 @@ function Drawer({ onClose }: { onClose: () => void }) {
   )
 }
 
-function RailContent() {
+/** Treść paska; dzwonek tylko w stałym pasku (na telefonie jest w górnej belce). */
+function RailContent({ bell = false }: { bell?: boolean }) {
   const { household, role } = useHousehold()
   return (
     <div className={styles.railContent}>
-      <Link to={householdPath(household.id)} className={styles.brand}>
-        <CoinMark size={40} />
-        <span className={styles.wordmark}>Denar</span>
-      </Link>
+      <div className={styles.brandRow}>
+        <Link to={householdPath(household.id)} className={styles.brand}>
+          <CoinMark size={40} />
+          <span className={styles.wordmark}>Denar</span>
+        </Link>
+        {bell && <NotificationBell placement="rail" />}
+      </div>
       <HouseholdSwitcher current={household} roleLabel={roleLabels[role]} />
       <nav aria-label="Główna" className={styles.nav}>
         <ul>

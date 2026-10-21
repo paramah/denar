@@ -18,7 +18,7 @@ export function useInvitations(hid: string) {
 export function useCreateInvitation(hid: string) {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { email: string; role: Role }) =>
+    mutationFn: async (body: { email: string; role: Role; send_email?: boolean }) =>
       unwrap(await api.POST('/households/{householdId}/invitations', { params: { path: { householdId: hid } }, body })),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: keys.invitations(hid) })

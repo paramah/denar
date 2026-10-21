@@ -30,6 +30,9 @@ process.env[nbpPortKey] ??= String(await freePort())
 export const nbpPort = Number(process.env[nbpPortKey])
 export const nbpURL = `http://127.0.0.1:${nbpPort}`
 
+/** Testowy DENAR_MASTER_KEY: 32 bajty w base64. */
+export const masterKey = Buffer.from('denar-e2e-master-key-32-bytes!!!').toString('base64')
+
 export const adminEmail = 'admin-e2e@example.test'
 export const adminName = 'Ada Admin'
 
