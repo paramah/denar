@@ -55,4 +55,10 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - [x] **T-203 Strona budżetu** — `BudgetPage`, `BudgetSummary`, `BudgetGrid` (edycja w miejscu, cele, stany), `BudgetFlows`, trasy `budget` i `budget/:month`, ikony. Testy. FR-C01…FR-C14, FR-C25.
 - [x] **T-204 Operacje** — `MoveDialog`, auto-przydział z podsumowaniem, `StructureDialogs` (grupy, koperty, cele, 409), kolejność, `EnvelopeDetails`. Testy. FR-C20…FR-C24.
 - [x] **T-205 Integracja z częścią B** — flaga `envelopes`, `useEnvelopeOptions`/`useEnvelopeNames`, edycja kopert/splitów tylko przy zmianie, koperta w przelewie on↔off, domyślna koperta kontrahenta, filtr i plakietka koperty w rejestrze, `BudgetTile` na pulpicie. Testy. FR-C30…FR-C35.
-- [ ] **T-206 E2E** — `e2e/budget.spec.ts`, budżet w `a11y.spec.ts` i `mobile.spec.ts`. NFR-C02.
+- [x] **T-206 E2E** — `e2e/budget.spec.ts`, budżet w `a11y.spec.ts` i `mobile.spec.ts`. NFR-C02.
+
+## Wynik części C1
+
+- T-201…T-206 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 218 testów w 22 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
+- `task web:e2e`: 67 testów Playwright zielonych (6 pominiętych — testy telefonu w projektach desktopowych): przepływ budżetu na binarium (wpływ 3000 zł z szybkiego dodawania → grupa i koperty z celem z UI → przydziały z klawiatury Enter/Tab → wydatek 650 zł z kopertą (skrót `n`) → przekroczenie −150 zł w siatce, szczegółach i na pulpicie → następny miesiąc: koperta wyzerowana, RTA 2150 zł z uwagą o przekroczeniu → przeniesienie z RTA → auto-przydział celu 800 zł → bieżący miesiąc widzi 850 zł przydziałów przyszłych), drugi test: kolejność przyciskami z powrotem fokusu, 409 `group-not-empty`, 409 `envelope-in-use` → ukrycie; axe na budżecie, dialogach, szczegółach i trybie układu w motywie jasnym, ciemnym i na telefonie; budżet i pulpit bez poziomego przewijania na 390 px.
+- Lint wymaga ucieczek `\u00a0`/`\u202f` w wyrażeniach regularnych testów (narzędzia edycji potrafią je zamienić na znaki dosłowne — `no-irregular-whitespace`).

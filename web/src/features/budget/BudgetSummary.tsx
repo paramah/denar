@@ -16,7 +16,7 @@ export function rtaState(month: BudgetMonth): RtaState {
 }
 
 /** Duża kwota „Do przydzielenia” z opisem stanu. */
-export function ReadyToAssign({ month, compact }: { month: BudgetMonth; compact?: boolean }) {
+export function ReadyToAssign({ month }: { month: BudgetMonth }) {
   const state = rtaState(month)
   const amount = month.ready_to_assign
   const text =
@@ -28,7 +28,7 @@ export function ReadyToAssign({ month, compact }: { month: BudgetMonth; compact?
   return (
     <div className={styles.rta} data-state={state} role="group" aria-label="Do przydzielenia">
       <span className={styles.rtaLabel}>Do przydzielenia</span>
-      <Money amount={amount.amount} currency={amount.currency} size="xl" className={compact ? undefined : styles.rtaAmount} />
+      <Money amount={amount.amount} currency={amount.currency} size="xl" className={styles.rtaAmount} />
       <p className={styles.rtaText}>
         {state === 'negative' && <Icon name="alert" size={16} />} {text}
       </p>

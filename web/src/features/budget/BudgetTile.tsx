@@ -28,7 +28,7 @@ export function BudgetTile() {
   const link = householdPath(household.id, 'budget')
   return (
     <section className={styles.dashTile} aria-label={`Budżet — ${formatMonth(month)}`}>
-      <ReadyToAssign month={budget.data} compact />
+      <ReadyToAssign month={budget.data} />
       <div className={styles.dashOver}>
         <h2>{over.length > 0 ? 'Przekroczone koperty' : 'Koperty'}</h2>
         {over.length > 0 ? (

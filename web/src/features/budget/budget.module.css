@@ -646,6 +646,10 @@
   padding-block: var(--space-4);
 }
 
+.dashTile .rtaAmount {
+  font-size: var(--text-3xl);
+}
+
 .dashOver {
   display: grid;
   align-content: start;
