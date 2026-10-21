@@ -33,3 +33,13 @@ Po fundamencie: każdy obszar `features/<obszar>` przenosi napisy do `{pl,en}/<o
 - AD-1301: zapisane powiadomienia nie są ponownie renderowane (treść jest w bazie).
 - AD-1302: brak preferencji po stronie serwera = `pl` (serwer nie zna przeglądarki odbiorcy).
 - AD-1303: angielskie formatowanie dat i liczb w UI wg `en-GB` (dzień przed miesiącem, poniedziałek pierwszym dniem tygodnia — bliżej przyzwyczajeń użytkowników w Polsce).
+
+### Decyzje — backend (część A)
+
+- AD-1304: `PATCH /me` nie zapisuje wpisu audytu — `audit_log.household_id` jest `NOT NULL`, a język to ustawienie osobiste (jak kanały i preferencje, AD-507). Zmiana trafia do logu (`user preferences updated`, `user_id`, `locale`).
+- AD-1305: bot na `PATCH /me` dostaje 403 z powodem `human_only` (jak inne operacje tylko dla ludzi); brak pola `locale` (`{}`) → 422 `locale: is required`; `null` czyści preferencję; nieznana wartość → 422 `locale: must be pl or en` (dekoder nie waliduje enumu, robi to `user.ParseLocale`).
+- AD-1306: `User.Locale *Locale`; wartość spoza `pl|en` (niemożliwa przez `CHECK` w bazie) traktowana jak brak preferencji (`pl`). Use case czyta konto z repozytorium w transakcji, więc nieaktualny principal nie nadpisuje innych pól.
+- AD-1307: kwoty w powiadomieniach w obu językach bez zmian: dziesiętny string z payloadu + kod waluty (`43.00 PLN`) — spójnie z dotychczasowym helperem i bez formatowania liczb w domenie. Daty: PL `02.01.2006` (bez zmian), EN ISO `2006-01-02`. Względne terminy: `dziś/jutro/za N dni` ↔ `today/tomorrow/in N days`.
+- AD-1308: port `OutgoingMessage` dostał pole `Locale user.Locale` (zmiana `ports.go`, minimalna). Stałe teksty kanałów (linia „Gospodarstwo:/Household:” w SMTP, ntfy, Telegram, Matrix; stopka e-maila; wiadomość testowa) są w domenie (`notification.HouseholdLine`, `EmailFooter`, `TestMessage`), adaptery wołają je z `msg.Locale`. Worker dostaw czyta aktualny język odbiorcy w chwili wysyłki (treść i tytuł wyrenderowane przy dispatchu, zwykle sekundy wcześniej). Payload webhooka bez zmian.
+- AD-1309: e-mail z zaproszeniem w języku zapraszającego (języka adresata serwer nie zna); `membership.InvitationEmail`. Termin ważności zawsze w UTC (wcześniej formatowany w strefie zegara — w praktyce UTC).
+- AD-1310: komunikaty błędów dostarczania i testu kanału (`last_error`, `ChannelTestResult.error`, `email_error`) oraz komunikat 422 SSRF (`config.url`) są stałe, po angielsku; Web UI tłumaczy je regułami w `messages.ts` (lista dla części B w raporcie T-1304). Błędy przekazywane z zewnątrz (np. `Telegram: <description>`, `Matrix: HTTP 403 M_FORBIDDEN`, `HTTP 500`, kody SMTP) zostają jak są.
