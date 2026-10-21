@@ -44,6 +44,20 @@ describe('session and households', () => {
     expect(await screen.findByRole('heading', { name: 'Nie znaleziono gospodarstwa' })).toBeInTheDocument()
   })
 
+  it('shows an unknown address of a household inside the app, with a way back', async () => {
+    const { user, router } = renderApp('/h/h-dom/nie-ma-takiej')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Nie ma takiej strony' })).toBeInTheDocument()
+    expect((await screen.findAllByRole('navigation', { name: 'Główna' })).length).toBeGreaterThan(0)
+    await user.click(screen.getByRole('link', { name: 'Wróć na pulpit' }))
+    expect(router.state.location.pathname).toBe('/h/h-dom')
+  })
+
+  it('shows a plain not-found page for an unknown address outside a household', async () => {
+    renderApp('/cos/innego')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Nie ma takiej strony' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Przejdź na start' })).toHaveAttribute('href', '/')
+  })
+
   it('shows the navigation of the household', async () => {
     renderApp('/h/h-dom')
     const nav = (await screen.findAllByRole('navigation', { name: 'Główna' }))[0]!
