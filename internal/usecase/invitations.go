@@ -21,6 +21,8 @@ type InvitationConfig struct {
 	// SessionTTL is the session length of a person who registers with an
 	// invitation.
 	SessionTTL time.Duration
+	// BaseURL starts the invitation link sent by e-mail (stage 005).
+	BaseURL string
 }
 
 // InvitationView is an invitation without its token hash, with its state.
@@ -39,11 +41,17 @@ func invitationView(i membership.Invitation, now time.Time) InvitationView {
 type NewInvitation struct {
 	InvitationView
 	Token string
+	// EmailSent: the link went out by e-mail; EmailError says why not
+	// when sending was asked for and failed.
+	EmailSent  bool
+	EmailError string
 }
 
 type CreateInvitationInput struct {
 	Email string
 	Role  membership.Role
+	// SendEmail asks to e-mail the link (FR-570); it needs SMTP.
+	SendEmail bool
 }
 
 // CreateInvitation invites an email with a role; owners and admins only,
@@ -65,6 +73,10 @@ func (uc *CreateInvitation) Do(ctx context.Context, p Principal, householdID dom
 	if err := errors.Join(user.ValidateEmail("email", email), membership.ValidateRole("role", in.Role)); err != nil {
 		return NewInvitation{}, err
 	}
+	if in.SendEmail && uc.d.Mailer == nil {
+		return NewInvitation{}, domain.ConflictError{Reason: domain.ConflictSMTPNotConfigured}
+	}
+	var householdName, inviter string
 	token, err := uc.d.Tokens.NewToken()
 	if err != nil {
 		return NewInvitation{}, fmt.Errorf("make the invitation token: %w", err)
@@ -88,13 +100,28 @@ func (uc *CreateInvitation) Do(ctx context.Context, p Principal, householdID dom
 		if err := uc.d.Invitations.Create(ctx, inv); err != nil {
 			return err
 		}
+		householdName, inviter = s.Household.Name, cmpOr(p.User.Name, p.User.Email)
 		return uc.d.record(ctx, householdID, p.Actor(), "invitation.created", audit.ResourceInvitation, inv.ID,
 			audit.Changes{}.Set("email", email).Set("role", string(in.Role)).Set("expires_at", inv.ExpiresAt.Format(time.RFC3339)))
 	})
 	if err != nil {
 		return NewInvitation{}, err
 	}
-	return NewInvitation{InvitationView: invitationView(inv, now), Token: token}, nil
+	out := NewInvitation{InvitationView: invitationView(inv, now), Token: token}
+	if in.SendEmail {
+		// After the commit: a failure leaves the invitation, whose link the
+		// answer still carries (AD-513).
+		link := uc.cfg.BaseURL + "/invite#" + token
+		body := inviter + " zaprasza Cię do gospodarstwa „" + householdName + "” w Denarze.\n\n" +
+			"Otwórz link, aby dołączyć (ważny do " + inv.ExpiresAt.Format("02.01.2006 15:04") + " UTC):\n" + link + "\n"
+		if err := uc.d.Mailer.SendMail(ctx, email, "Zaproszenie do gospodarstwa "+householdName, body); err != nil {
+			uc.d.log().WarnContext(ctx, "sending the invitation e-mail failed", "invitation_id", string(inv.ID), "error", err.Error())
+			out.EmailError = errorText(err)
+		} else {
+			out.EmailSent = true
+		}
+	}
+	return out, nil
 }
 
 // ListInvitations returns the invitations of a household, newest first;
