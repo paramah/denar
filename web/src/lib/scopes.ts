@@ -33,6 +33,13 @@ export const scopeGroups: ScopeGroup[] = [
 export const allScopes: Scope[] = scopeGroups.flatMap((group) => (group.write ? [group.read, group.write] : [group.read]))
 export const readScopes: Scope[] = scopeGroups.map((group) => group.read)
 
+/**
+ * Zestaw „Asystent AI”: odczyt wszystkiego i wprowadzanie wydatków
+ * (narzędzia MCP record_expense/record_income/transfer). Budżetu ani
+ * subskrypcji asystent nie zmienia, dopóki ktoś nie doda zapisu ręcznie.
+ */
+export const assistantScopes: Scope[] = allScopes.filter((scope) => scope.endsWith(':read') || scope === 'transactions:write')
+
 const scopeLabels: Record<Scope, string> = Object.fromEntries(
   scopeGroups.flatMap((group) => [
     [group.read, `${group.label}: odczyt`],

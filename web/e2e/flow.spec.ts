@@ -64,12 +64,21 @@ test('login → household → invitation → bot token → audit', async ({ page
   await page.getByRole('button', { name: 'Utwórz pierwszego bota' }).click()
   const botDialog = page.getByRole('dialog', { name: 'Nowy bot' })
   await botDialog.getByRole('textbox', { name: 'Nazwa' }).fill('Claude E2E')
-  await botDialog.getByRole('checkbox', { name: 'Transakcje: zapis' }).check()
+  await botDialog.getByRole('button', { name: 'Asystent AI (odczyt + wprowadzanie wydatków)' }).click()
+  await expect(botDialog.getByRole('checkbox', { name: 'Transakcje: zapis' })).toBeChecked()
   await expectAccessible(page, 'nowy bot')
   await botDialog.getByRole('button', { name: 'Utwórz bota' }).click()
   const tokenDialog = page.getByRole('dialog', { name: 'Token bota Claude E2E' })
   const token = await tokenDialog.getByRole('textbox', { name: 'Token' }).inputValue()
   expect(token).toMatch(/^dnr_/)
+  // Podłączenie asystenta: adres i nagłówek z dialogu działają z serwerem MCP.
+  const connect = tokenDialog.getByRole('region', { name: 'Podłącz do asystenta AI' })
+  const mcpUrl = await connect.getByRole('textbox', { name: 'Adres serwera MCP' }).inputValue()
+  expect(mcpUrl).toBe(`${baseURL}/mcp`)
+  const authHeader = await connect.getByRole('textbox', { name: 'Nagłówek uwierzytelnienia' }).inputValue()
+  expect(authHeader).toBe(`Authorization: Bearer ${token}`)
+  await expect(connect.getByText(`claude mcp add --transport http denar ${mcpUrl} --header "${authHeader}"`)).toBeVisible()
+  await expectAccessible(page, 'token bota z podłączeniem asystenta')
   await tokenDialog.getByRole('button', { name: 'Zapisałem token' }).click()
   await expect(page.getByRole('article', { name: 'Bot Claude E2E' })).toContainText('Aktywny')
 
@@ -77,6 +86,12 @@ test('login → household → invitation → bot token → audit', async ({ page
   const asBot = await anonymous.request.get(`${baseURL}/api/me`, { headers: { Authorization: `Bearer ${token}` } })
   expect(asBot.status()).toBe(200)
   expect(await asBot.json()).toMatchObject({ kind: 'bot', bot: { name: 'Claude E2E' } })
+  const whoami = await anonymous.request.post(`${baseURL}/mcp`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json, text/event-stream' },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'whoami', arguments: {} } },
+  })
+  expect(whoami.status()).toBe(200)
+  expect(JSON.stringify(await whoami.json())).toContain('Claude E2E')
   await anonymous.close()
 
   // Dziennik zmian pokazuje, co się stało, z nazwami aktorów.
