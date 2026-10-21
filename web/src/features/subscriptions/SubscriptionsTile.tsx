@@ -25,7 +25,7 @@ export function SubscriptionsTile() {
   if (total === 0) {
     return (
       <p className={styles.dashEmpty}>
-        <Trans t={t} i18nKey="tile.empty" components={{ link: <Link to={link} /> }} />
+        <Trans t={t} i18nKey="tile.empty" components={{ add: <Link to={link} /> }} />
       </p>
     )
   }

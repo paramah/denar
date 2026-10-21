@@ -51,6 +51,15 @@ describe('subscriptions in English', () => {
     expect(within(tabs).getByRole('link', { name: 'To match' })).toBeInTheDocument()
   })
 
+  it('invites from the dashboard tile with a named link', async () => {
+    renderApp('/h/h-dom')
+    const link = await screen.findByRole('link', { name: 'Add subscriptions' })
+    expect(link).toHaveAttribute('href', '/h/h-dom/subscriptions')
+    expect(plain(link.parentElement?.textContent)).toBe(
+      "Paying for Netflix or ChatGPT? Add subscriptions and we'll show their cost and upcoming renewals.",
+    )
+  })
+
   it('shows the subscription page and the form', async () => {
     const { user } = renderApp('/h/h-dom/subscriptions/s-openai')
     expect(await screen.findByRole('heading', { level: 1, name: 'ChatGPT Plus' })).toBeInTheDocument()

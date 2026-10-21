@@ -120,7 +120,7 @@
     "charges": "Do dopasowania"
   },
   "tile": {
-    "empty": "Płacisz za Netflixa albo ChatGPT? <link>Dodaj subskrypcje</link>, a pokażemy ich koszt i najbliższe odnowienia.",
+    "empty": "Płacisz za Netflixa albo ChatGPT? <add>Dodaj subskrypcje</add>, a pokażemy ich koszt i najbliższe odnowienia.",
     "label": "Subskrypcje",
     "cost": "Subskrypcje — koszt/mies.",
     "yearly": "rocznie",

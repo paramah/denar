@@ -98,7 +98,7 @@
     "charges": "To match"
   },
   "tile": {
-    "empty": "Paying for Netflix or ChatGPT? <link>Add subscriptions</link> and we'll show their cost and upcoming renewals.",
+    "empty": "Paying for Netflix or ChatGPT? <add>Add subscriptions</add> and we'll show their cost and upcoming renewals.",
     "label": "Subscriptions",
     "cost": "Subscriptions — cost/month",
     "yearly": "yearly",
