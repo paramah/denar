@@ -25,7 +25,9 @@ type ProviderView struct {
 // (FR-831); people only.
 type ListConnectionProviders struct{ d Deps }
 
-func NewListConnectionProviders(d Deps) *ListConnectionProviders { return &ListConnectionProviders{d: d} }
+func NewListConnectionProviders(d Deps) *ListConnectionProviders {
+	return &ListConnectionProviders{d: d}
+}
 
 func (uc *ListConnectionProviders) Do(_ context.Context, p Principal) ([]ProviderView, error) {
 	if err := requireHuman(p); err != nil {
