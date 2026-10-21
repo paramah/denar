@@ -190,6 +190,7 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		Logout:        usecase.NewLogout(d.Sessions),
 		GetAuthConfig: usecase.NewGetAuthConfig(provider, cfg.LocalLogin, cfg.InstanceName, version),
 		GetMe:         usecase.NewGetMe(d),
+		UpdateMe:      usecase.NewUpdateMe(d),
 
 		CreateHousehold: usecase.NewCreateHousehold(d),
 		ListHouseholds:  usecase.NewListHouseholds(d),

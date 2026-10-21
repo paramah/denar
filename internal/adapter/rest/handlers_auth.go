@@ -170,7 +170,22 @@ func (s *Server) ListCurrencies(context.Context, api.ListCurrenciesRequestObject
 	return api.ListCurrencies200JSONResponse{Items: items}, nil
 }
 
-// UpdateMe — implementacja w etapie 013-i18n (use case UpdateMe).
-func (s *Server) UpdateMe(context.Context, api.UpdateMeRequestObject) (api.UpdateMeResponseObject, error) {
-	return nil, domain.ErrForbidden
+func (s *Server) UpdateMe(ctx context.Context, request api.UpdateMeRequestObject) (api.UpdateMeResponseObject, error) {
+	p := principalFrom(ctx)
+	if p.IsBot() {
+		return nil, domain.ForbiddenError{Reason: domain.ForbiddenHumanOnly}
+	}
+	if request.Body == nil || !request.Body.Locale.IsSpecified() {
+		return nil, domain.ValidationError{Field: "locale", Message: "is required"}
+	}
+	var in usecase.UpdateMeInput
+	if !request.Body.Locale.IsNull() {
+		l := string(request.Body.Locale.MustGet())
+		in.Locale = &l
+	}
+	u, err := s.deps.UpdateMe.Do(ctx, p, in)
+	if err != nil {
+		return nil, err
+	}
+	return api.UpdateMe200JSONResponse(apiUser(u)), nil
 }

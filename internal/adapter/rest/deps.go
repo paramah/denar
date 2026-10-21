@@ -38,6 +38,7 @@ type Deps struct {
 	Logout            *usecase.Logout
 	GetAuthConfig     *usecase.GetAuthConfig
 	GetMe             *usecase.GetMe
+	UpdateMe          *usecase.UpdateMe
 
 	CreateHousehold *usecase.CreateHousehold
 	ListHouseholds  *usecase.ListHouseholds
