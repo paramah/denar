@@ -49,7 +49,7 @@ describe('TransactionDialog', () => {
   })
 
   afterEach(() => {
-    features.envelopes = false
+    features.envelopes = true
   })
 
   async function open() {
@@ -180,7 +180,8 @@ describe('TransactionDialog', () => {
     expect(updated).not.toHaveProperty('envelope_id')
   })
 
-  it('hides envelopes and splits until the envelope API exists', async () => {
+  it('hides envelopes and splits when the envelopes flag is off', async () => {
+    features.envelopes = false
     const { dialog } = await open()
     expect(dialog.queryByRole('combobox', { name: 'Koperta' })).not.toBeInTheDocument()
     expect(dialog.queryByRole('button', { name: 'Podziel na koperty' })).not.toBeInTheDocument()

@@ -45,3 +45,14 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - T-101…T-110 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 177 testów w 19 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
 - `task web:e2e`: 61 testów Playwright zielonych (4 pominięte — testy telefonu w projektach desktopowych): nowy przepływ portfele PLN/USD → wydatek → przelew wielowalutowy → salda → rejestr → pulpit, ręczny kurs (CHF w gospodarstwie EUR), axe na nowych ekranach i dialogach w motywie jasnym, ciemnym i na telefonie, rejestr bez poziomego przewijania na 390 px. NBP zastępuje atrapa `e2e/support/nbp-stub.mjs` (drugi `webServer`, `DENAR_NBP_URL`) — testy nie wychodzą do sieci.
 - Poprawki znalezione przez e2e: pulpit pokazuje teraz kilka kwot „0,00 €” (kafelki), więc test części A sprawdza region „Sumy portfeli”; przycisk „Edytuj” portfela trzeba odróżniać od „Edytuj: <transakcja>” w wierszach rejestru (`exact`).
+
+## Część C1 — budżet kopertowy
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+
+- [x] **T-201 Spec części C1** — sekcje C1 w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [x] **T-202 Warstwa API i miesiąc** — `api/hooks/budget.ts`, klucze `budget*` w `api/keys.ts`, typy, unieważnienia w hookach transakcji i portfeli, `lib/budgetMonth.ts` (+ testy), fabryki i domyślne handlery MSW budżetu. FR-C01, NFR-C01.
+- [x] **T-203 Strona budżetu** — `BudgetPage`, `BudgetSummary`, `BudgetGrid` (edycja w miejscu, cele, stany), `BudgetFlows`, trasy `budget` i `budget/:month`, ikony. Testy. FR-C01…FR-C14, FR-C25.
+- [x] **T-204 Operacje** — `MoveDialog`, auto-przydział z podsumowaniem, `StructureDialogs` (grupy, koperty, cele, 409), kolejność, `EnvelopeDetails`. Testy. FR-C20…FR-C24.
+- [x] **T-205 Integracja z częścią B** — flaga `envelopes`, `useEnvelopeOptions`/`useEnvelopeNames`, edycja kopert/splitów tylko przy zmianie, koperta w przelewie on↔off, domyślna koperta kontrahenta, filtr i plakietka koperty w rejestrze, `BudgetTile` na pulpicie. Testy. FR-C30…FR-C35.
+- [ ] **T-206 E2E** — `e2e/budget.spec.ts`, budżet w `a11y.spec.ts` i `mobile.spec.ts`. NFR-C02.

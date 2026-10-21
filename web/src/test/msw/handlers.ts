@@ -35,5 +35,13 @@ export const handlers: RequestHandler[] = [
   http.get(apiUrl('/households/:hid/transactions'), () => HttpResponse.json({ items: [], next_cursor: null })),
   http.get(apiUrl('/households/:hid/payees'), () => HttpResponse.json({ items: [] })),
   http.get(apiUrl('/households/:hid/fx-rates/overrides'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/households/:hid/budget/envelope-groups'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/households/:hid/budget/envelopes'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/households/:hid/budget/months/:month'), ({ params }) =>
+    HttpResponse.json(f.budgetMonth({ month: String(params.month) })),
+  ),
+  http.get(apiUrl('/households/:hid/budget/months/:month/envelopes/:eid/transactions'), () =>
+    HttpResponse.json({ items: [], next_cursor: null }),
+  ),
   http.post(apiUrl('/auth/logout'), () => new HttpResponse(null, { status: 204 })),
 ]

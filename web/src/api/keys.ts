@@ -49,6 +49,16 @@ export const keys = {
   fxQuote: (hid: string, currency?: string, date?: string) =>
     currency ? (['household', hid, 'fx-quote', currency, date ?? ''] as const) : (['household', hid, 'fx-quote'] as const),
   fxOverrides: (hid: string) => ['household', hid, 'fx-overrides'] as const,
+
+  /** Prefiks wszystkiego, co dotyczy budżetu (miesiące, grupy, koperty, historia kopert). */
+  budget: (hid: string) => ['household', hid, 'budget'] as const,
+  /** Bez miesiąca — prefiks wszystkich miesięcy. */
+  budgetMonth: (hid: string, month?: string) =>
+    month ? (['household', hid, 'budget', 'month', month] as const) : (['household', hid, 'budget', 'month'] as const),
+  envelopeGroups: (hid: string) => ['household', hid, 'budget', 'groups'] as const,
+  envelopes: (hid: string) => ['household', hid, 'budget', 'envelopes'] as const,
+  envelopeActivity: (hid: string, month: string, envelopeId: string) =>
+    ['household', hid, 'budget', 'activity', month, envelopeId] as const,
 }
 
 export { normalize as normalizeFilters }

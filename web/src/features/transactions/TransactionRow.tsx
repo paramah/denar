@@ -42,9 +42,11 @@ type Props = {
   canWrite: boolean
   onEdit: () => void
   onDelete: () => void
+  /** Nazwy kopert po id (część C1); bez nich wiersz nie pokazuje koperty. */
+  envelopes?: Map<string, string>
 }
 
-export function TransactionRow({ transaction, wallets, showWallet, canWrite, onEdit, onDelete }: Props) {
+export function TransactionRow({ transaction, wallets, showWallet, canWrite, onEdit, onDelete, envelopes }: Props) {
   const { household } = useHousehold()
   const title = transactionTitle(transaction, wallets)
   const wallet = wallets.get(transaction.wallet_id)
@@ -74,6 +76,12 @@ export function TransactionRow({ transaction, wallets, showWallet, canWrite, onE
           )}
           {showNote && <span>{transaction.note}</span>}
           {transaction.source !== 'manual' && <Badge>{sourceLabels[transaction.source]}</Badge>}
+          {transaction.envelope_id && envelopes?.has(transaction.envelope_id) && (
+            <Badge tone="brand" title="Koperta">
+              <Icon name="budget" size={12} />
+              {envelopes.get(transaction.envelope_id)}
+            </Badge>
+          )}
           {transaction.splits.length > 0 && <Badge>Podział: {transaction.splits.length}</Badge>}
           {transaction.tags.length > 0 && (
             <ul className={styles.tags} aria-label="Tagi">

@@ -48,7 +48,7 @@ export function useRecentTransactions(hid: string, limit: number, options: { ena
 
 /**
  * Po zmianie transakcji: rejestry, salda portfeli, kontrahenci (mogli
- * powstać z nazwy) i dziennik.
+ * powstać z nazwy), budżet (aktywność kopert, Do przydzielenia) i dziennik.
  */
 export function useTransactionsChanged(hid: string) {
   const client = useQueryClient()
@@ -58,6 +58,7 @@ export function useTransactionsChanged(hid: string) {
       client.invalidateQueries({ queryKey: keys.wallets(hid) }),
       client.invalidateQueries({ queryKey: keys.wallet(hid) }),
       client.invalidateQueries({ queryKey: keys.payees(hid) }),
+      client.invalidateQueries({ queryKey: keys.budget(hid) }),
       client.invalidateQueries({ queryKey: keys.audit(hid) }),
     ])
   }

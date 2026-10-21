@@ -293,3 +293,111 @@ Sumy w UI (kafelki pulpitu, nagłówek portfeli, kontrola splitów) liczone z `a
 - Nie da się zmienić kwot nogi przelewu (ograniczenie API — usuń i utwórz ponownie).
 - Podpowiedź kwoty docelowej przelewu wielowalutowego nie jest liczona (brak kursu krzyżowego w API); użytkownik wpisuje kwotę z wyciągu.
 - Lista członków portfela prywatnego pochodzi z `GET /members`; viewer też może być członkiem portfela.
+
+---
+
+# Design: część C1 — budżet kopertowy
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `requirements.md` (część C1), `api/openapi.yaml` (etap 003), `003-envelope-budget/design.md`
+> Last Updated: 2026-10-21
+
+Bez zmian backendu i kontraktu. Konwencje z części A/B (sekcje 1–8, B1–B11) obowiązują.
+
+## C1-1. Trasy
+
+```
+h/:householdId
+  budget            BudgetPage — bieżący miesiąc budżetowy (currentBudgetMonth)
+  budget/:month     BudgetPage — miesiąc YYYY-MM (isMonth; inaczej pusty stan „Nie ma takiego miesiąca”)
+```
+
+`BudgetPage` → `BudgetMonthView key={month}` (zmiana miesiąca czyści stan dialogów i pól). `ComingSoonPage` zostaje dla subskrypcji i powiadomień (C2).
+
+## C1-2. Warstwa API (`api/hooks/budget.ts`)
+
+| Hook | Endpoint | Klucz |
+|---|---|---|
+| `useBudgetMonth(hid, month)` | `GET budget/months/{month}` | `budgetMonth(hid, month)` |
+| `useEnvelopeGroups`, `useEnvelopes` (zawsze `include_hidden=true`) | `GET budget/envelope-groups`, `GET budget/envelopes` | `envelopeGroups(hid)`, `envelopes(hid)` |
+| `useEnvelopeActivity(hid, month, id)` (infinite, 50) | `GET …/envelopes/{id}/transactions` | `envelopeActivity(hid, month, id)` |
+| `useSetAssignment`, `useMoveBetweenEnvelopes`, `useAutoAssign` | `PUT assignments/{id}`, `POST moves`, `POST auto-assign` | wynik → `setQueryData(budgetMonth)`; pozostałe miesiące i `audit` unieważnione |
+| `use{Create,Update,Delete}Envelope{Group,}` | CRUD grup i kopert | unieważnia prefiks `budget(hid)` i `audit` (usunięcie koperty — też `payees`) |
+
+Wszystkie klucze budżetu leżą pod `['household', hid, 'budget']`. Zmiany transakcji (`useTransactionsChanged`) i portfeli unieważniają ten prefiks (aktywność, RTA, `on_budget`). `reorderPatches(items, from, to)` — nowa kolejność jako pozycje = indeksy, tylko zmienione (pozycje z API mogą się powtarzać).
+
+## C1-3. Miesiąc (`lib/budgetMonth.ts`)
+
+`isMonth`, `shiftMonth(m, ±n)`, `monthOfDay(day, startDay)` (dzień < startDay → poprzedni miesiąc, 003 FR-200), `currentBudgetMonth(tz, startDay, now)` (przez `todayIn`), `formatMonth` („październik 2026”, `Intl` pl-PL). Testy tabelaryczne (przełom roku, start 10/28, strefa).
+
+## C1-4. Komponenty (`features/budget/`)
+
+| Plik | Zawartość |
+|---|---|
+| `BudgetPage.tsx` | nawigacja miesiąca (`nav` „Miesiąc budżetu”, linki ←/→, „Bieżący miesiąc”), `BudgetSummary`, pasek akcji (`role=toolbar`: Przenieś środki, Uzupełnij cele + suma niedofinansowania, Pokaż ukryte, Układ `aria-pressed`, Nowa grupa), `BudgetGrid`, `BudgetFlows`, stan dialogów (jeden `Modal` union), `AutoAssignSummary` |
+| `BudgetSummary.tsx` | `ReadyToAssign` (rola `group` „Do przydzielenia”, rant monety w kolorze stanu), sumy miesiąca, uwagi (przekroczenia, przyszłe, `incomplete`), `BudgetFlows` |
+| `BudgetGrid.tsx` | grupy (`section` + `h3`, sumy, akcje), wiersze (`article` „Koperta X”), `AssignedInput`, `GoalProgress` (`role=progressbar` z `aria-valuetext`) |
+| `MoveDialog.tsx` | z/do (wartość `rta` = Do przydzielenia), kwota; RTA↔koperta przez `setAssignment(assigned ± kwota)` (`shiftAssigned`, bigint) |
+| `StructureDialogs.tsx` | `GroupDialog`, `EnvelopeDialog` (nazwa, grupa, cel, ukrycie), `DeleteEnvelopeDialog`/`DeleteGroupDialog` z obsługą 409 |
+| `EnvelopeDetails.tsx` | dialog szczegółów: kwoty, cel, akcje, `ActivityList` (DataList), link do rejestru |
+| `BudgetTile.tsx` | kafelek pulpitu: `ReadyToAssign` + do 3 przekroczonych kopert |
+| `goal.ts`, `model.ts` | `checkGoal`/`goalDraft`/`describeGoal`; `availableState`, `envelopesOf`, `overspent` (sort po `bigint`), `shiftAssigned` |
+
+### Edycja przydziału w miejscu
+
+Zawsze widoczne pole (`inputMode=decimal`, `aria-label="Przydzielono: <koperta>"`, `data-assign`) zamiast przełączania tekst/pole — mniej kliknięć i naturalny porządek tabulacji. Stan: `draft` (edycja, lustro w `ref`, bo `blur` po Tab przychodzi przed renderem), `saving` (wartość pokazywana w trakcie zapisu, `aria-busy`), `error` (`aria-invalid` + `aria-describedby`). `parseAmountInput(…, {allowNegative, allowZero})`; brak zmiany (porównanie `toMinor`) — bez żądania. Tab/Shift+Tab: zapis, potem fokus na następne/poprzednie pole `[data-assign]` w kolejności strony (ostatnie — domyślny Tab). Wyjście z pola z błędną kwotą przywraca zapisaną wartość.
+
+### Kolejność
+
+Tryb „Układ” pokazuje przyciski ↑/↓ przy grupach i kopertach (oraz usuwanie grup) i ukryte koperty. Klik → `reorderPatches` → kolejne `PATCH {position}`; po odświeżeniu fokus wraca na ten sam przycisk (`data-reorder="<id>:up|down"`, a gdy zablokowany — na przeciwny). Nowa koperta/grupa dostaje pozycję na końcu; przeniesienie koperty do innej grupy — koniec tej grupy.
+
+### Stany kwot
+
+`Dostępne` — pigułka: `negative` (tło `--outflow-soft`, obramowanie, ukryte „(przekroczono)”), `underfunded` (dodatnie, cel niepokryty — `--warn-soft`), `positive`, `zero`. Znak minus zawsze widoczny. RTA: `positive` (kwota `--inflow`), `zero`, `negative` (tło `--outflow-soft` i komunikat z kwotą do zmniejszenia).
+
+### Telefon
+
+Poniżej 48rem: podsumowanie w jednej kolumnie, nagłówek kolumn ukryty, wiersz koperty to karta 2×2 (`name | available`, `assigned | activity`) z widocznymi etykietami komórek (`.cellLabel` — na komputerze ukryte jak `visually-hidden`), sumy grupy ograniczone do „dostępne”.
+
+## C1-5. Integracja z częścią B
+
+- `lib/features.ts`: `envelopes: true`. `useEnvelopeOptions` czyta `useEnvelopes` + `useEnvelopeGroups` (`envelopeOptions()` — kolejność grup, „Grupa · Koperta”, „(ukryta)”); `useEnvelopeNames` — mapa id → nazwa (wiersz rejestru, kontrahenci).
+- `TransactionDialog`: edycja wysyła `envelope_id`/`splits` tylko przy zmianie (`editedEnvelopeFields`).
+- `TransferDialog`: pole „Koperta (wypływ z budżetu | wpływ do budżetu)”, gdy dokładnie jeden portfel jest `on_budget`; `envelope_id` tylko wtedy.
+- `PayeesTab`: „Domyślna koperta” (create: tylko ustawiona; update: tylko zmiana, pusta = `null`), wiersz „Domyślna koperta: X”.
+- `Register`: parametr `envelope` → `envelope_id`, select „Koperta”; `TransactionRow` z plakietką koperty (`title="Koperta"`).
+- `DashboardPage`: `BudgetTile` pod sumami portfeli (gdy są portfele).
+
+## C1-6. Strategia testów
+
+- **Vitest**: `lib/budgetMonth` (tabelarycznie), `BudgetPage.test.tsx` (RTA i uwagi, stany kopert, ukryte; edycja w miejscu Enter/Esc/Tab/Shift; błędna kwota i 422; przeniesienia koperta↔koperta i RTA→koperta z sumą na bigint; walidacja przeniesienia; pokrycie przekroczenia z szczegółów; auto-przydział z podsumowaniem; walidacja celów i 409 `duplicate-name`; usunięcie celu `goal:null`; 409 `envelope-in-use` → ukrycie; 409 `group-not-empty`; kolejność; viewer; zły miesiąc; pusty budżet), `integration.test.tsx` (opcje kopert, koperta i splity w szybkim dodawaniu, przelew on→off z kopertą, domyślna koperta kontrahenta, filtr rejestru, kafelek pulpitu, transakcje koperty ze splitem). Domyślne handlery MSW dla budżetu (puste) — każdy test części A/B dalej działa z włączoną flagą.
+- **Playwright** `e2e/budget.spec.ts` (na binarium): wpływ 3000 zł → grupy i koperty z UI (cel miesięczny) → przydziały w siatce z klawiatury (Enter, Tab) → wydatek z kopertą z szybkiego dodawania → przekroczenie widoczne w siatce i na pulpicie → następny miesiąc (koperta wyzerowana, RTA pomniejszone o przekroczenie, uwaga o przekroczeniach) → przeniesienie i auto-przydział → kontrola RTA; axe na budżecie, dialogach i szczegółach. `a11y.spec.ts`: ekran budżetu z danymi; `mobile.spec.ts`: budżet bez poziomego przewijania na 390 px.
+
+## Decyzje autonomiczne (część C1)
+
+| ID | Decyzja | Uzasadnienie |
+|----|---------|--------------|
+| AD-C01 | Przeniesienie z/do „Do przydzielenia” przez `setAssignment` (przydział ± kwota), a nie osobny endpoint | API `moves` łączy tylko koperty; zmiana przydziału to dokładnie ruch z/do RTA (003 FR-204) |
+| AD-C02 | Pole przydziału zawsze widoczne (nie tryb „kliknij, by edytować”) | Najmniej kroków, natywna tabulacja i czytniki; Tab między kopertami jak w arkuszu |
+| AD-C03 | Wyjście z pola zapisuje zmianę (jak Tab); błędna kwota przy wyjściu — powrót do zapisanej | Zgodne z oczekiwaniem z arkuszy; nie zostawiamy „wiszących” szkiców |
+| AD-C04 | Kolejność przyciskami ↑/↓ w trybie „Układ”, pozycje przenumerowane od 0 przy każdej zmianie | Dostępne z klawiatury, bez biblioteki drag & drop; odporne na powtarzające się pozycje |
+| AD-C05 | Bieżący miesiąc liczony w UI (`todayIn` strefy gospodarstwa + `month_start_day`) | API nie ma endpointu „bieżący miesiąc”; ta sama reguła co 003 FR-200 |
+| AD-C06 | Ukryte koperty poza siatką domyślnie, przełącznik w `localStorage` (`denar:budget:hidden`); w trybie „Układ” widoczne | Porządek siatki; ukrytą da się przywrócić bez szukania |
+| AD-C07 | Opcje kopert zawsze z ukrytymi (z dopiskiem) | Edycja starej transakcji z ukrytą kopertą nie może jej zgubić (003 AD-305) |
+| AD-C08 | Po operacji na przydziałach odpowiedź (`BudgetMonth`) trafia do cache; inne miesiące unieważnione | Bez dodatkowego żądania i migotania siatki; przeniesienia zmieniają kolejne miesiące |
+| AD-C09 | 409 `group-not-empty` proponuje ukrycie kopert grupy (grupy nie da się ukryć w API) | „Propozycja ukrycia” z zadania; grupa z samymi ukrytymi kopertami znika z siatki |
+| AD-C10 | Nowa data celu `target_by_date` nie może być w przeszłości (klient); stara data po terminie zostaje edytowalna | Serwer akceptuje cel po terminie (003: n = 1), ale nowy cel w przeszłości to pomyłka |
+| AD-C11 | Pasek postępu celu jako `div role=progressbar` z szerokością przez CSSOM (`style` z Reacta) | CSP `style-src 'self'` blokuje atrybut `style` w HTML, ale nie właściwości ustawiane skryptem |
+
+## Ograniczenia (część C1)
+
+- Brak przeciągania myszą; brak przeniesienia transakcji z usuwanej koperty (409 → ukrycie).
+- Brak historii przydziałów i podglądu „ile przydzielono w poprzednich miesiącach” (brak API; można policzyć z kolejnych `GET months`).
+- Kafelek pulpitu pokazuje tylko bieżący miesiąc.
+
+## Punkty rozszerzenia dla części C2
+
+- **Subskrypcje (004):** `EnvelopeField` + `useEnvelopeOptions` gotowe dla formularza subskrypcji (koperta i portfel płatności); cel `monthly` koperty może podpowiadać sumę miesięcznych subskrypcji (`EnvelopeDialog` → pole kwoty). `DeleteEnvelopeDialog` już obsługuje 409 `envelope-in-use` (004 doda powód „użyta przez subskrypcję” — ten sam kod). Wiersz rejestru ma plakietkę źródła `subscription`.
+- **Powiadomienia (005):** `envelope.overspent`/`goal_due` mogą linkować do `/h/:id/budget/:month` (szczegóły koperty: stan `{kind:'details', envelopeId}` w `BudgetBody` — do wystawienia przez parametr adresu, np. `?envelope=`).
+- **MCP (006):** scope'y `budget:read|write` już są w `BotsTab`; UI nie potrzebuje zmian poza ewentualnym opisem narzędzi.
+- Pulpit: miejsce na kafelek „Najbliższe odnowienia” obok `BudgetTile` (`DashboardPage`).

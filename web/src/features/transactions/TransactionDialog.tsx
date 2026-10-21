@@ -218,7 +218,7 @@ function TransactionForm({
           amount: { amount: value, currency },
           kind,
           ...payeeBody(),
-          ...envelopeFields,
+          ...editedEnvelopeFields(envelopeFields, transaction),
         }
         await update.mutateAsync({ transactionId: transaction.id, body })
         toast.show({ message: 'Zapisano zmiany transakcji.' })
@@ -392,6 +392,24 @@ function TransactionForm({
       </div>
     </form>
   )
+}
+
+/**
+ * Przy edycji wysyłamy kopertę i splity tylko, gdy się zmieniają — bez
+ * zmian transakcja zostaje, jak była.
+ */
+function editedEnvelopeFields(
+  fields: { envelope_id?: string | null; splits?: SplitInput[] },
+  transaction: Transaction,
+): { envelope_id?: string | null; splits?: SplitInput[] } {
+  const out: { envelope_id?: string | null; splits?: SplitInput[] } = {}
+  if ('envelope_id' in fields && (fields.envelope_id ?? null) !== (transaction.envelope_id ?? null)) {
+    out.envelope_id = fields.envelope_id ?? null
+  }
+  if (fields.splits && (fields.splits.length > 0 || transaction.splits.length > 0)) {
+    out.splits = fields.splits
+  }
+  return out
 }
 
 function splitsBalanced(splits: SplitDraft[], parsed: ReturnType<typeof parseAmountInput>, decimals: number): boolean {

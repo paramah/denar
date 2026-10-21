@@ -18,6 +18,7 @@ export const staleTime = {
   transactions: 15 * second,
   payees: minute,
   fx: 5 * minute,
+  budget: 15 * second,
 } as const
 
 const maxRetries = 2

@@ -12,7 +12,8 @@ import { useToast } from '../../components/Toast/Toast.tsx'
 import { todayIn } from '../../lib/format.ts'
 import { statusLabels } from '../../lib/labels.ts'
 import { formatMoney, parseAmountInput } from '../../lib/money.ts'
-import { AmountField, parseTags, TextAreaField } from './fields.tsx'
+import { envelopesEnabled, useEnvelopeOptions } from './envelopes.ts'
+import { AmountField, EnvelopeField, parseTags, TextAreaField } from './fields.tsx'
 import { pickError, useDecimals } from './money.ts'
 import styles from './transactions.module.css'
 
@@ -48,6 +49,8 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
   const [status, setStatus] = useState<TransactionStatus>('cleared')
   const [tags, setTags] = useState('')
   const [note, setNote] = useState('')
+  const [envelopeId, setEnvelopeId] = useState('')
+  const envelopeOptions = useEnvelopeOptions(household.id)
   const [errors, setErrors] = useState<Record<string, string | undefined>>({})
 
   const fromId = active.some((w) => w.id === from) ? from : (active[0]?.id ?? '')
@@ -55,6 +58,8 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
   const source = active.find((w) => w.id === fromId)
   const target = active.find((w) => w.id === toId)
   const crossCurrency = !!source && !!target && source.currency !== target.currency
+  // Koperta tylko przy przelewie między budżetem a portfelem poza nim (trafia na nogę budżetową).
+  const crossBudget = envelopesEnabled() && !!source && !!target && source.on_budget !== target.on_budget
   const server = fieldErrors(create.error)
   const archived = create.error instanceof ApiError && create.error.reason === 'wallet-archived'
 
@@ -93,6 +98,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
       status,
       tags: parseTags(tags),
       note: note.trim(),
+      ...(crossBudget && envelopeId ? { envelope_id: envelopeId } : {}),
     }
     try {
       await create.mutateAsync(body)
@@ -133,7 +139,7 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
       ) : (
         <FormAlert
           error={create.error}
-          shownFields={['from_wallet_id', 'to_wallet_id', 'amount', 'amount.amount', 'to_amount', 'to_amount.amount', 'date', 'tags', 'note']}
+          shownFields={['from_wallet_id', 'to_wallet_id', 'amount', 'amount.amount', 'to_amount', 'to_amount.amount', 'date', 'tags', 'note', 'envelope_id']}
         />
       )}
       <div className={styles.grid}>
@@ -185,6 +191,22 @@ function TransferForm({ onClose, fromWalletId }: { onClose: () => void; fromWall
             onChange={(event) => setDate(event.target.value)}
             error={errors.date ?? server.date}
           />
+        )}
+        {crossBudget && source && (
+          <div className={styles.wide}>
+            <EnvelopeField
+              label={source.on_budget ? 'Koperta (wypływ z budżetu)' : 'Koperta (wpływ do budżetu)'}
+              value={envelopeId}
+              onChange={setEnvelopeId}
+              options={envelopeOptions}
+              error={server.envelope_id}
+            />
+            <p className={styles.note}>
+              {source.on_budget
+                ? 'Np. odkładanie na wakacje z koperty „Wakacje”. Bez koperty przelew pomniejszy kwotę do przydzielenia.'
+                : 'Bez koperty pieniądze trafią do kwoty do przydzielenia.'}
+            </p>
+          </div>
         )}
         <SelectField
           label="Status"

@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
+import { BudgetPage } from '../features/budget/BudgetPage.tsx'
 import { InvitePage } from '../features/auth/InvitePage.tsx'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { CreateHouseholdPage } from '../features/households/CreateHouseholdPage.tsx'
@@ -41,7 +42,8 @@ export const routes: RouteObject[] = [
           { path: 'wallets', element: <WalletsPage /> },
           { path: 'wallets/:walletId', element: <WalletPage /> },
           { path: 'transactions', element: <TransactionsPage /> },
-          { path: 'budget', element: <ComingSoonPage section="budget" /> },
+          { path: 'budget', element: <BudgetPage /> },
+          { path: 'budget/:month', element: <BudgetPage /> },
           { path: 'subscriptions', element: <ComingSoonPage section="subscriptions" /> },
           { path: 'notifications', element: <ComingSoonPage section="notifications" /> },
           {

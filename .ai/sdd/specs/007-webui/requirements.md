@@ -125,3 +125,57 @@ Część B wypełnia sekcję „Portfele”, dodaje rejestr transakcji, kontrahe
 
 - **NFR-B01** Każdy nowy ekran i dialog bez naruszeń axe serious/critical w motywie jasnym, ciemnym i na telefonie 390 px; rejestr na telefonie jako lista kart, bez poziomego przewijania.
 - **NFR-B02** Testy: Vitest + MSW (walidacja formularzy, błędy problem+json, splity, przelew wielowalutowy, lib kwot), Playwright e2e na binarium (portfele PLN i USD → wydatek → przelew → salda) bez dostępu do sieci — NBP zastępuje lokalny stub.
+
+---
+
+# Część C1 — budżet kopertowy (F07C1)
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `api/openapi.yaml` (sekcja budget, etap 003), `.ai/sdd/specs/003-envelope-budget/`
+> Last Updated: 2026-10-21
+
+Część C1 wypełnia sekcję „Budżet” i włącza koperty w formularzach części B. Stoi na kontrakcie etapu 003; nie zmienia backendu. Subskrypcje, powiadomienia i UI związane z MCP to część C2 (po etapach 004–006).
+
+## Non-Goals (część C1)
+
+- Zmiany backendu i `api/openapi.yaml`; przeciąganie myszą (kolejność zmieniają przyciski).
+- Przenoszenie transakcji z usuwanej koperty na inną (003 AD-304), historia przydziałów, raporty.
+
+## Requirements (EARS)
+
+### Miesiąc i „Do przydzielenia”
+
+- **FR-C01** Strona `/h/:id/budget/:month?` SHALL pokazywać miesiąc budżetowy `YYYY-MM`; bez miesiąca — bieżący miesiąc budżetowy gospodarstwa (dziś w strefie gospodarstwa i `month_start_day`); nagłówek SHALL mieć przejście do poprzedniego/następnego miesiąca i powrót do bieżącego; miesiąc spoza 2000-01…2100-12 — komunikat z linkiem do bieżącego.
+- **FR-C02** Nagłówek SHALL pokazywać dużą kwotę „Do przydzielenia” (RTA) z opisem stanu: dodatnia — „rozdziel”, zero — „każda złotówka ma zadanie”, ujemna — ostrzeżenie z kwotą do zmniejszenia; obok — sumy miesiąca (przydzielono, aktywność, dostępne w kopertach).
+- **FR-C03** WHEN miesiąc ma przekroczenia z poprzedniego miesiąca, przydziały przyszłe albo `incomplete` THE SYSTEM SHALL pokazać odpowiednią uwagę (kwota przekroczeń, kwota przydziałów przyszłych, liczba transakcji czekających na kurs z linkiem do rejestru).
+
+### Siatka kopert
+
+- **FR-C10** Siatka SHALL pokazywać grupy (z sumami przydzielono/aktywność/dostępne) i ich koperty: nazwa, przydzielono, aktywność, dostępne (stan: dodatnie, zero, ujemne = przekroczone, dodatnie z niedofinansowanym celem), pasek postępu celu i stan („Cel pokryty” / „Brakuje X”).
+- **FR-C11** Member+ SHALL edytować przydział w miejscu: Enter zapisuje, Esc przywraca, Tab zapisuje i przechodzi do następnej koperty (Shift+Tab — do poprzedniej), wyjście z pola zapisuje; kwota może być ujemna, 0 usuwa przydział; błędna kwota — komunikat przy polu bez wywołania API; błąd serwera — toast i powrót do zapisanej wartości.
+- **FR-C12** Koperty ukryte SHALL być poza siatką, dopóki użytkownik nie zaznaczy „Pokaż ukryte (n)”; grupa z samymi ukrytymi kopertami znika razem z nimi.
+- **FR-C13** Pod siatką SHALL być sekcja „Poza kopertami”: wpływy, wydatki bez koperty, przelewy (z widoku miesiąca).
+- **FR-C14** Na telefonie (390 px) siatka SHALL być listą kart bez poziomego przewijania strony.
+
+### Operacje
+
+- **FR-C20** Member+ SHALL przenosić środki (dialog: z, do, kwota) między kopertami (`moves`) oraz z „Do przydzielenia” do koperty i z koperty do „Do przydzielenia” (zmiana przydziału koperty o kwotę, liczona na `bigint`); walidacja: kwota > 0, źródło ≠ cel.
+- **FR-C21** Member+ SHALL uruchomić auto-przydział wg celów jednym przyciskiem; wynik SHALL być pokazany (koperty i kwoty, pozostałe RTA, niedofinansowanie albo „nic do uzupełnienia”).
+- **FR-C22** Member+ SHALL tworzyć grupy i koperty, zmieniać ich nazwy, przenosić kopertę do innej grupy, zmieniać kolejność przyciskami „w górę/w dół” (dostępnymi klawiaturą, tryb „Układ”), ukrywać/przywracać koperty i usuwać grupy/koperty z potwierdzeniem. 409 `envelope-in-use` SHALL dać komunikat z przyciskiem „Ukryj kopertę”, 409 `group-not-empty` — komunikat z propozycją ukrycia kopert grupy; 409 `duplicate-name` — błąd przy nazwie.
+- **FR-C23** Formularz koperty SHALL mieć cel: brak, `monthly` (kwota co miesiąc), `target_by_date` (kwota i data); kwota > 0 w walucie bazowej, data wymagana dla `target_by_date` (nowa data nie może być w przeszłości); zmiana na „Bez celu” wysyła `goal: null`.
+- **FR-C24** Szczegóły koperty (dialog z nazwy koperty) SHALL pokazywać kwoty miesiąca, cel, akcje (przenieś/pokryj przekroczenie, edytuj, ukryj, usuń) i transakcje koperty w miesiącu (`envelopes/{id}/transactions`, „Pokaż więcej”, przy splicie — kwota linii tej koperty) z linkiem do rejestru filtrowanego kopertą i datami miesiąca.
+- **FR-C25** Viewer SHALL widzieć budżet bez akcji zapisu.
+
+### Integracja z częścią B
+
+- **FR-C30** Flaga `envelopes` SHALL być włączona; opcje kopert w formularzach pochodzą z `GET /budget/envelopes?include_hidden=true` i grup (etykieta „Grupa · Koperta”, ukryte z dopiskiem).
+- **FR-C31** Pole koperty i edytor splitów SHALL działać w szybkim dodawaniu i edycji transakcji; edycja SHALL wysyłać kopertę/splity tylko, gdy się zmieniają.
+- **FR-C32** Przelew między portfelem budżetowym a poza budżetem SHALL mieć opcjonalne pole koperty (`envelope_id` na nogę budżetową).
+- **FR-C33** Kontrahent SHALL mieć „Domyślną kopertę” (tworzenie, edycja, wyczyszczenie = `null`); lista pokazuje ją przy kontrahencie.
+- **FR-C34** Rejestr SHALL mieć filtr „Koperta” (`envelope=` w adresie → `envelope_id`) i pokazywać kopertę w wierszu.
+- **FR-C35** Pulpit SHALL pokazywać kafelek „Do przydzielenia” bieżącego miesiąca i do 3 kopert z największym przekroczeniem z linkiem do budżetu.
+
+### Jakość
+
+- **NFR-C01** Kwoty wyłącznie przez `lib/money.ts` (`bigint`, stringi dziesiętne); porównania i sumy nigdy na `minor`.
+- **NFR-C02** Testy: Vitest + MSW (edycja w miejscu, przeniesienia, auto-przydział, walidacja celów, 409, kolejność, integracja B), Playwright e2e na binarium (wpływ → przydziały → wydatek z kopertą → przekroczenie → następny miesiąc → RTA), axe na nowych ekranach w motywie jasnym, ciemnym i na telefonie.

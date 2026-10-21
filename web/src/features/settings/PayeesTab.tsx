@@ -13,7 +13,8 @@ import { FormAlert } from '../../components/Form/Form.tsx'
 import { useDocumentTitle } from '../../components/PageHeader/PageHeader.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
 import { useToast } from '../../components/Toast/Toast.tsx'
-import { TextAreaField } from '../transactions/fields.tsx'
+import { envelopesEnabled, useEnvelopeNames, useEnvelopeOptions } from '../transactions/envelopes.ts'
+import { EnvelopeField, TextAreaField } from '../transactions/fields.tsx'
 import styles from './settings.module.css'
 
 /** Wzorce wpisane po jednym w linii. */
@@ -28,6 +29,7 @@ export function PayeesTab() {
   const canWrite = role !== 'viewer'
   const [editing, setEditing] = useState<Payee | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Payee | null>(null)
+  const envelopeNames = useEnvelopeNames(household.id)
 
   return (
     <section className={styles.section} aria-labelledby="payees-heading">
@@ -71,6 +73,11 @@ export function PayeesTab() {
                   ) : (
                     <span className={styles.rowMeta}>Bez wzorców — rozpoznawany po nazwie</span>
                   )}
+                  {envelopesEnabled() && payee.default_envelope_id && (
+                    <span className={styles.rowMeta}>
+                      Domyślna koperta: {envelopeNames.get(payee.default_envelope_id) ?? 'nieznana'}
+                    </span>
+                  )}
                 </div>
                 {canWrite && (
                   <div className={styles.rowActions}>
@@ -107,6 +114,9 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
   const mutation = payee ? update : create
   const [name, setName] = useState(payee?.name ?? '')
   const [patterns, setPatterns] = useState(payee?.patterns.join('\n') ?? '')
+  const [envelopeId, setEnvelopeId] = useState(payee?.default_envelope_id ?? '')
+  const envelopeOptions = useEnvelopeOptions(household.id)
+  const showEnvelope = envelopesEnabled()
   const [error, setError] = useState<string>()
   const server = fieldErrors(mutation.error)
   const duplicate = mutation.error instanceof ApiError && mutation.error.reason === 'duplicate-name'
@@ -120,9 +130,11 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
     const body = { name: name.trim(), patterns: parsePatterns(patterns) }
     try {
       if (payee) {
-        await update.mutateAsync({ payeeId: payee.id, body })
+        const envelope =
+          showEnvelope && envelopeId !== (payee.default_envelope_id ?? '') ? { default_envelope_id: envelopeId || null } : {}
+        await update.mutateAsync({ payeeId: payee.id, body: { ...body, ...envelope } })
       } else {
-        await create.mutateAsync(body)
+        await create.mutateAsync({ ...body, ...(showEnvelope && envelopeId ? { default_envelope_id: envelopeId } : {}) })
       }
       toast.show({ message: `Zapisano kontrahenta ${body.name}.` })
       onDone()
@@ -141,7 +153,7 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
         void submit()
       }}
     >
-      <FormAlert error={duplicate ? null : mutation.error} shownFields={['name', 'patterns']} />
+      <FormAlert error={duplicate ? null : mutation.error} shownFields={['name', 'patterns', 'default_envelope_id']} />
       <TextField
         label="Nazwa"
         value={name}
@@ -159,6 +171,18 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
         hint="Jeden w linii. Fragment tekstu bez względu na wielkość liter, np. ORLEN."
         error={server.patterns}
       />
+      {showEnvelope && (
+        <div>
+          <EnvelopeField
+            label="Domyślna koperta"
+            value={envelopeId}
+            onChange={setEnvelopeId}
+            options={envelopeOptions}
+            error={server.default_envelope_id}
+          />
+          <p className={styles.rowMeta}>Wydatek u tego kontrahenta bez wybranej koperty trafi do tej koperty.</p>
+        </div>
+      )}
       <div className={styles.rowActions}>
         <Button onClick={onDone}>Anuluj</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>

@@ -43,6 +43,8 @@ export function useWalletsChanged(hid: string) {
       client.invalidateQueries({ queryKey: keys.wallets(hid) }),
       client.invalidateQueries({ queryKey: keys.wallet(hid) }),
       client.invalidateQueries({ queryKey: keys.transactions(hid) }),
+      // Portfel w budżecie / saldo otwarcia zmieniają sumy budżetu.
+      client.invalidateQueries({ queryKey: keys.budget(hid) }),
       client.invalidateQueries({ queryKey: keys.audit(hid) }),
     ])
   }

@@ -1,5 +1,10 @@
 import type {
   AuditEntry,
+  BudgetEnvelope,
+  BudgetGroup,
+  BudgetMonth,
+  Envelope,
+  EnvelopeGroup,
   AuthConfig,
   Bot,
   FxOverride,
@@ -210,6 +215,95 @@ export function fxOverride(overrides: Partial<FxOverride> = {}): FxOverride {
     rate: '4.1',
     created_by: { kind: 'user', id: 'u-ada' },
     created_at: '2026-10-19T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function envelopeGroup(overrides: Partial<EnvelopeGroup> = {}): EnvelopeGroup {
+  return {
+    id: 'g-codzienne',
+    name: 'Codzienne',
+    position: 0,
+    created_at: '2026-10-01T10:00:00Z',
+    updated_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export function envelope(overrides: Partial<Envelope> = {}): Envelope {
+  return {
+    id: 'e-jedzenie',
+    group_id: 'g-codzienne',
+    name: 'Jedzenie',
+    position: 0,
+    hidden: false,
+    goal: null,
+    created_at: '2026-10-01T10:00:00Z',
+    updated_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
+}
+
+const zero = (currency = 'PLN') => money('0.00', currency)
+
+/** Koperta w widoku miesiąca; available = carried + assigned + activity liczone na bigint. */
+export function budgetEnvelope(overrides: Partial<BudgetEnvelope> & { carried?: string } = {}): BudgetEnvelope {
+  const { carried, ...rest } = overrides
+  const assigned = rest.assigned ?? zero()
+  const activity = rest.activity ?? zero()
+  const carriedOver = rest.carried_over ?? money(carried ?? '0.00')
+  const minor = BigInt(assigned.minor) + BigInt(activity.minor) + BigInt(carriedOver.minor)
+  const negative = minor < 0n
+  const digits = (negative ? -minor : minor).toString().padStart(3, '0')
+  const available = money(`${negative ? '-' : ''}${digits.slice(0, -2)}.${digits.slice(-2)}`)
+  return {
+    id: 'e-jedzenie',
+    group_id: 'g-codzienne',
+    name: 'Jedzenie',
+    position: 0,
+    hidden: false,
+    goal: null,
+    goal_status: null,
+    assigned,
+    activity,
+    carried_over: carriedOver,
+    available,
+    ...rest,
+  }
+}
+
+export function budgetGroup(overrides: Partial<BudgetGroup> = {}): BudgetGroup {
+  return {
+    id: 'g-codzienne',
+    name: 'Codzienne',
+    position: 0,
+    assigned: zero(),
+    activity: zero(),
+    available: zero(),
+    envelopes: [],
+    ...overrides,
+  }
+}
+
+export function budgetMonth(overrides: Partial<BudgetMonth> = {}): BudgetMonth {
+  return {
+    month: '2026-10',
+    start: '2026-10-01',
+    end: '2026-10-31',
+    currency: 'PLN',
+    ready_to_assign: zero(),
+    assigned_in_future: zero(),
+    overspent_last_month: zero(),
+    income: zero(),
+    uncategorized: zero(),
+    transfers: zero(),
+    assigned: zero(),
+    activity: zero(),
+    available: zero(),
+    underfunded: zero(),
+    incomplete: false,
+    pending_transactions: 0,
+    groups: [],
     ...overrides,
   }
 }

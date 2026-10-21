@@ -16,6 +16,7 @@ import { kindLabels, statusLabels } from '../../lib/labels.ts'
 import { useDebouncedValue } from '../../lib/useDebouncedValue.ts'
 import { DeleteTransactionDialog, TransactionRow, transactionTitle } from './TransactionRow.tsx'
 import { TransactionDialog } from './TransactionDialog.tsx'
+import { envelopesEnabled, useEnvelopeNames, useEnvelopeOptions } from './envelopes.ts'
 import styles from './transactions.module.css'
 
 /** Parametry adresu → filtry API. */
@@ -28,6 +29,7 @@ const paramNames = {
   kind: 'kind',
   status: 'status',
   tag: 'tag',
+  envelope: 'envelope_id',
 } as const
 
 type Param = keyof typeof paramNames
@@ -64,6 +66,7 @@ export function Register({ walletId, onAdd }: Props) {
   const canWrite = role !== 'viewer'
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState<Transaction | null>(null)
+  const envelopeNames = useEnvelopeNames(household.id)
   const filtered = Object.keys(filters).some((key) => key !== 'wallet_id' || !walletId)
 
   return (
@@ -111,6 +114,7 @@ export function Register({ walletId, onAdd }: Props) {
                 canWrite={canWrite}
                 onEdit={() => setEditing(t)}
                 onDelete={() => setDeleting(t)}
+                envelopes={envelopeNames}
               />
             )}
           />
@@ -131,6 +135,7 @@ export function Register({ walletId, onAdd }: Props) {
 function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wallet[] }) {
   const { household } = useHousehold()
   const payees = usePayees(household.id)
+  const envelopeOptions = useEnvelopeOptions(household.id)
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState(params.get('q') ?? '')
   const [tag, setTag] = useState(params.get('tag') ?? '')
@@ -214,6 +219,14 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
             onChange={(event) => set({ payee: event.target.value })}
             options={[{ value: '', label: 'Wszyscy' }, ...(payees.data ?? []).map((p) => ({ value: p.id, label: p.name }))]}
           />
+          {envelopesEnabled() && (
+            <SelectField
+              label="Koperta"
+              value={params.get('envelope') ?? ''}
+              onChange={(event) => set({ envelope: event.target.value })}
+              options={[{ value: '', label: 'Wszystkie' }, ...envelopeOptions]}
+            />
+          )}
         </div>
         <div className={styles.filterRow}>
           <TextField label="Od dnia" type="date" value={params.get('from') ?? ''} onChange={(event) => set({ from: event.target.value })} />
