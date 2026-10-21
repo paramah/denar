@@ -744,6 +744,281 @@ export interface paths {
         patch: operations["updateEnvelope"];
         trace?: never;
     };
+    "/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Słownik dostawców subskrypcji (klucz i nazwa wyświetlana) */
+        get: operations["listVendors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Widoczne subskrypcje wg nazwy (subscriptions:read) */
+        get: operations["listSubscriptions"];
+        put?: never;
+        /** Zapisuje subskrypcję i jej oczekiwane obciążenia do horyzontu (subscriptions:write) */
+        post: operations["createSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/subscriptions/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Koszty subskrypcji w walucie bazowej, odnowienia, triale i zmiany cen (subscriptions:read) */
+        get: operations["getSubscriptionSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/subscriptions/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Oczekiwane obciążenia z terminem od dziś do dziś + days (subscriptions:read) */
+        get: operations["listUpcomingRenewals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/subscriptions/{subscriptionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getSubscription"];
+        put?: never;
+        post?: never;
+        /** Usuwa subskrypcję z cenami i obciążeniami; transakcje zostają */
+        delete: operations["deleteSubscription"];
+        options?: never;
+        head?: never;
+        /** Zmienia subskrypcję; przyszłe oczekiwane obciążenia idą za zmianą (subscriptions:write) */
+        patch: operations["updateSubscription"];
+        trace?: never;
+    };
+    "/households/{householdId}/subscriptions/{subscriptionId}/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        /** Historia cen od najstarszej */
+        get: operations["listSubscriptionPrices"];
+        put?: never;
+        /** Nowa cena od dnia (ten sam dzień nadpisuje punkt); zdarzenie subscription.price_changed */
+        post: operations["changeSubscriptionPrice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Obciążenia widocznych subskrypcji wg terminu (subscriptions:read) */
+        get: operations["listCharges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges/{chargeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getCharge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges/{chargeId}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        /** Transakcje, które mogą opłacać obciążenie, od najlepszej (subscriptions:read i transactions:read) */
+        get: operations["suggestChargeMatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges/{chargeId}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wiąże otwarte obciążenie z transakcją (subscriptions:write i transactions:read) */
+        post: operations["matchCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges/{chargeId}/unmatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Odłącza transakcję; obciążenie wraca do expected (missed po oknie) */
+        post: operations["unmatchCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges/{chargeId}/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Księguje wydatek z obciążenia (source subscription) i wiąże go (subscriptions:write i transactions:write) */
+        post: operations["postCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/charges/{chargeId}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oznacza otwarte obciążenie jako pominięte */
+        post: operations["skipCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/transactions/{transactionId}/charge-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                transactionId: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        /** Otwarte obciążenia, które transakcja może opłacać (subscriptions:read i transactions:read) */
+        get: operations["suggestChargesForTransaction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1359,6 +1634,281 @@ export interface components {
             }[];
             month: components["schemas"]["BudgetMonth"];
         };
+        Vendor: {
+            /** @example openai */
+            key: string;
+            /** @example OpenAI */
+            name: string;
+        };
+        VendorList: {
+            items: components["schemas"]["Vendor"][];
+        };
+        /** @enum {string} */
+        SubscriptionStatus: "trial" | "active" | "paused" | "cancelled";
+        /** @enum {string} */
+        CycleUnit: "day" | "week" | "month" | "year";
+        Cycle: {
+            unit: components["schemas"]["CycleUnit"];
+            every: number;
+            /**
+             * Format: date
+             * @description Dzień jednego z terminów; kolejne liczone od niego (31 → koniec krótszego miesiąca)
+             */
+            anchor: string;
+        };
+        CycleInput: {
+            /** @description day, week, month lub year */
+            unit: string;
+            /** @description Domyślnie 1 */
+            every?: number;
+            /** Format: date */
+            anchor: string;
+        };
+        MatchRule: {
+            /** @description Podciąg kontrahenta/notatki; pusty — nazwa dostawcy i subskrypcji */
+            payee_pattern: string;
+            amount_tolerance_pct: number;
+            date_window_days: number;
+        };
+        MatchRuleInput: {
+            payee_pattern?: string;
+            /** @description 0–50, domyślnie 10 */
+            amount_tolerance_pct?: number;
+            /** @description 0–15, domyślnie 3 */
+            date_window_days?: number;
+        };
+        Subscription: {
+            id: string;
+            name: string;
+            vendor: string;
+            vendor_name: string;
+            external_ref: string | null;
+            /** @description Cena obowiązująca dziś */
+            price: components["schemas"]["Money"];
+            /** Format: date */
+            price_effective_from: string;
+            cycle: components["schemas"]["Cycle"];
+            /** Format: date */
+            trial_ends_at: string | null;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Format: date-time */
+            cancelled_at: string | null;
+            /**
+             * Format: date
+             * @description Pierwszy nieopłacony dzień anulowanej subskrypcji
+             */
+            ends_at: string | null;
+            wallet_id: string | null;
+            envelope_id: string | null;
+            /** @description Dni przed terminem, malejąco */
+            reminder_offsets: number[];
+            match_rule: components["schemas"]["MatchRule"];
+            note: string;
+            manage_url: string | null;
+            /**
+             * Format: date
+             * @description Najbliższy termin do zapłaty (null — brak)
+             */
+            next_due: string | null;
+            /** @description Średni koszt miesięczny w walucie ceny */
+            monthly: components["schemas"]["Money"];
+            /** @description Średni koszt roczny w walucie ceny */
+            yearly: components["schemas"]["Money"];
+            created_by: components["schemas"]["Actor"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SubscriptionList: {
+            items: components["schemas"]["Subscription"][];
+        };
+        SubscriptionCreate: {
+            name: string;
+            /** @description Klucz z /vendors */
+            vendor: string;
+            external_ref?: string;
+            /** @description Cena w dowolnej obsługiwanej walucie, od anchor */
+            price: components["schemas"]["MoneyInput"];
+            cycle: components["schemas"]["CycleInput"];
+            /** Format: date */
+            trial_ends_at?: string;
+            /** @description Domyślnie trial, gdy jest trial_ends_at, inaczej active */
+            status?: string;
+            /** Format: date */
+            ends_at?: string;
+            wallet_id?: string;
+            envelope_id?: string;
+            /** @description Domyślnie [3] */
+            reminder_offsets?: number[];
+            match_rule?: components["schemas"]["MatchRuleInput"];
+            note?: string;
+            manage_url?: string;
+        };
+        SubscriptionUpdate: {
+            name?: string;
+            vendor?: string;
+            external_ref?: string | null;
+            cycle?: components["schemas"]["CycleInput"];
+            /** Format: date */
+            trial_ends_at?: string | null;
+            /** @description trial, active, paused lub cancelled (ustawia cancelled_at i ends_at) */
+            status?: string;
+            /** Format: date */
+            ends_at?: string | null;
+            wallet_id?: string | null;
+            envelope_id?: string | null;
+            reminder_offsets?: number[];
+            match_rule?: components["schemas"]["MatchRuleInput"];
+            note?: string;
+            manage_url?: string | null;
+        };
+        PricePoint: {
+            id: string;
+            /** Format: date */
+            effective_from: string;
+            price: components["schemas"]["Money"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        PricePointList: {
+            items: components["schemas"]["PricePoint"][];
+        };
+        PriceChange: {
+            /**
+             * Format: date
+             * @description Domyślnie dziś
+             */
+            effective_from?: string;
+            price: components["schemas"]["MoneyInput"];
+        };
+        /** @enum {string} */
+        ChargeStatus: "expected" | "matched" | "missed" | "skipped" | "posted";
+        Charge: {
+            id: string;
+            subscription_id: string;
+            subscription_name: string;
+            vendor: string;
+            /** @description Portfel subskrypcji */
+            wallet_id: string | null;
+            /** Format: date */
+            due_date: string;
+            /** @description W walucie ceny z dnia terminu */
+            amount: components["schemas"]["Money"];
+            status: components["schemas"]["ChargeStatus"];
+            transaction_id: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ChargePage: {
+            items: components["schemas"]["Charge"][];
+            next_cursor: string | null;
+        };
+        ChargeMatch: {
+            transaction_id: string;
+        };
+        ChargePost: {
+            /** @description Domyślnie portfel subskrypcji */
+            wallet_id?: string;
+            /** @description Zapłacona kwota (> 0) w walucie portfela; domyślnie kwota obciążenia przeliczona kursem z dnia terminu */
+            amount?: components["schemas"]["MoneyInput"];
+            /**
+             * Format: date
+             * @description Domyślnie termin
+             */
+            date?: string;
+            /** @description Domyślnie nazwa dostawcy (other — nazwa subskrypcji) */
+            payee_name?: string;
+            note?: string;
+        };
+        PostedCharge: {
+            charge: components["schemas"]["Charge"];
+            transaction: components["schemas"]["Transaction"];
+        };
+        TransactionSuggestionList: {
+            items: components["schemas"]["TransactionSuggestion"][];
+        };
+        TransactionSuggestion: {
+            score: number;
+            transaction: components["schemas"]["Transaction"];
+        };
+        ChargeSuggestionList: {
+            items: components["schemas"]["ChargeSuggestion"][];
+        };
+        ChargeSuggestion: {
+            score: number;
+            charge: components["schemas"]["Charge"];
+        };
+        Cost: {
+            monthly: components["schemas"]["Money"];
+            yearly: components["schemas"]["Money"];
+        };
+        UpcomingRenewal: {
+            charge: components["schemas"]["Charge"];
+            /** @description Szacunek w walucie bazowej po dzisiejszym kursie; null bez kursu */
+            base_amount: components["schemas"]["Money"] | null;
+        };
+        UpcomingRenewalList: {
+            items: components["schemas"]["UpcomingRenewal"][];
+        };
+        SubscriptionSummary: {
+            /** @description Waluta bazowa */
+            currency: string;
+            /** @description Suma aktywnych i triali — średnio na miesiąc */
+            monthly: components["schemas"]["Money"];
+            yearly: components["schemas"]["Money"];
+            /** @description Brak dzisiejszego kursu części walut — te subskrypcje pominięto w sumach */
+            incomplete: boolean;
+            missing_currencies: string[];
+            counts: components["schemas"]["SubscriptionCounts"];
+            by_vendor: components["schemas"]["VendorCost"][];
+            /** @description Koszt per koperta (podpowiedź celu monthly) */
+            by_envelope: components["schemas"]["EnvelopeCost"][];
+            /** @description Oczekiwane obciążenia w 30 dni */
+            upcoming: components["schemas"]["UpcomingRenewal"][];
+            /** @description Triale kończące się w 14 dni */
+            trials_ending: components["schemas"]["TrialEnding"][];
+            /** @description Zmiany cen od 90 dni temu (także zaplanowane), od najnowszej */
+            price_changes: components["schemas"]["PriceChangeEntry"][];
+        };
+        SubscriptionCounts: {
+            trial: number;
+            active: number;
+            paused: number;
+            cancelled: number;
+        };
+        VendorCost: {
+            vendor: string;
+            vendor_name: string;
+            count: number;
+            monthly: components["schemas"]["Money"];
+            yearly: components["schemas"]["Money"];
+        };
+        EnvelopeCost: {
+            envelope_id: string | null;
+            count: number;
+            monthly: components["schemas"]["Money"];
+            yearly: components["schemas"]["Money"];
+        };
+        TrialEnding: {
+            subscription_id: string;
+            name: string;
+            vendor: string;
+            /** Format: date */
+            trial_ends_at: string;
+            /** @description Cena po trialu */
+            price: components["schemas"]["Money"];
+        };
+        PriceChangeEntry: {
+            subscription_id: string;
+            name: string;
+            /** Format: date */
+            effective_from: string;
+            old_price: components["schemas"]["Money"];
+            new_price: components["schemas"]["Money"];
+        };
     };
     responses: {
         /** @description Błąd w formacie RFC 7807 */
@@ -1389,6 +1939,8 @@ export interface components {
         PayeeId: string;
         GroupId: string;
         EnvelopeId: string;
+        SubscriptionId: string;
+        ChargeId: string;
         /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
         Month: string;
     };
@@ -3025,6 +3577,513 @@ export interface operations {
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
+        };
+    };
+    listVendors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dostawcy w stałej kolejności */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    listSubscriptions: {
+        parameters: {
+            query?: {
+                status?: string;
+                vendor?: string;
+                wallet_id?: string;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subskrypcje */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    createSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Subskrypcja */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getSubscriptionSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Podsumowanie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionSummary"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    listUpcomingRenewals: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nadchodzące odnowienia wg terminu */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingRenewalList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subskrypcja */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deleteSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usunięta */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zmieniona subskrypcja */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listSubscriptionPrices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Punkty ceny */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricePointList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    changeSubscriptionPrice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                subscriptionId: components["parameters"]["SubscriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceChange"];
+            };
+        };
+        responses: {
+            /** @description Subskrypcja z nową historią cen */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listCharges: {
+        parameters: {
+            query?: {
+                subscription_id?: string;
+                /** @description Jeden lub więcej statusów (expected, matched, missed, skipped, posted) */
+                status?: string[];
+                from?: string;
+                to?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Strona obciążeń */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargePage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Obciążenie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Charge"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    suggestChargeMatches: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sugestie z punktacją 0–100 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionSuggestionList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    matchCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargeMatch"];
+            };
+        };
+        responses: {
+            /** @description Obciążenie matched */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Charge"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    unmatchCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Obciążenie otwarte */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Charge"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    postCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ChargePost"];
+            };
+        };
+        responses: {
+            /** @description Obciążenie posted i nowa transakcja */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostedCharge"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    skipCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                chargeId: components["parameters"]["ChargeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Obciążenie skipped */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Charge"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    suggestChargesForTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                transactionId: components["parameters"]["TransactionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sugestie z punktacją 0–100 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargeSuggestionList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
 }
