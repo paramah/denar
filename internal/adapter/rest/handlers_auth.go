@@ -169,3 +169,8 @@ func (s *Server) ListCurrencies(context.Context, api.ListCurrenciesRequestObject
 	}
 	return api.ListCurrencies200JSONResponse{Items: items}, nil
 }
+
+// UpdateMe — implementacja w etapie 013-i18n (use case UpdateMe).
+func (s *Server) UpdateMe(context.Context, api.UpdateMeRequestObject) (api.UpdateMeResponseObject, error) {
+	return nil, domain.ErrForbidden
+}

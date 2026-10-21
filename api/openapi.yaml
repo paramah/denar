@@ -193,6 +193,24 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Me" }
         "401": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [me]
+      operationId: updateMe
+      summary: Zmienia preferencje zalogowanego człowieka (język); bot dostaje 403
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdate" }
+      responses:
+        "200":
+          description: Zaktualizowany użytkownik
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
   /currencies:
     get:
       tags: [me]
@@ -1992,7 +2010,24 @@ components:
         email: { type: string }
         name: { type: string }
         instance_admin: { type: boolean, description: Konto startowe instancji (narzędzia CLI) }
+        locale:
+          description: Język interfejsu i powiadomień; null — według przeglądarki (powiadomienia po polsku)
+          oneOf:
+            - { $ref: "#/components/schemas/Locale" }
+            - { type: "null" }
         created_at: { type: string, format: date-time }
+    Locale:
+      type: string
+      enum: [pl, en]
+    UserUpdate:
+      type: object
+      required: [locale]
+      properties:
+        locale:
+          description: Nowy język; null wraca do wyboru według przeglądarki
+          oneOf:
+            - { $ref: "#/components/schemas/Locale" }
+            - { type: "null" }
     Role:
       type: string
       enum: [owner, admin, member, viewer]

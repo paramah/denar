@@ -92,7 +92,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Zmienia preferencje zalogowanego człowieka (język); bot dostaje 403 */
+        patch: operations["updateMe"];
         trace?: never;
     };
     "/currencies": {
@@ -1360,8 +1361,16 @@ export interface components {
             name: string;
             /** @description Konto startowe instancji (narzędzia CLI) */
             instance_admin: boolean;
+            /** @description Język interfejsu i powiadomień; null — według przeglądarki (powiadomienia po polsku) */
+            locale?: components["schemas"]["Locale"] | null;
             /** Format: date-time */
             created_at: string;
+        };
+        /** @enum {string} */
+        Locale: "pl" | "en";
+        UserUpdate: {
+            /** @description Nowy język; null wraca do wyboru według przeglądarki */
+            locale: components["schemas"]["Locale"] | null;
         };
         /** @enum {string} */
         Role: "owner" | "admin" | "member" | "viewer";
@@ -2694,6 +2703,33 @@ export interface operations {
                 };
             };
             401: components["responses"]["Problem"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zaktualizowany użytkownik */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
         };
     };
     listCurrencies: {

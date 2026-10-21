@@ -366,6 +366,24 @@ func (e InvitationState) Valid() bool {
 	}
 }
 
+// Defines values for Locale.
+const (
+	En Locale = "en"
+	Pl Locale = "pl"
+)
+
+// Valid indicates whether the value is a known member of the Locale enum.
+func (e Locale) Valid() bool {
+	switch e {
+	case En:
+		return true
+	case Pl:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MeKind.
 const (
 	MeKindBot  MeKind = "bot"
@@ -1536,6 +1554,9 @@ type LocalLogin struct {
 	Password string `json:"password"`
 }
 
+// Locale defines model for Locale.
+type Locale string
+
 // MatchRule defines model for MatchRule.
 type MatchRule struct {
 	AmountTolerancePct int `json:"amount_tolerance_pct"`
@@ -2070,8 +2091,17 @@ type User struct {
 	Id        string    `json:"id"`
 
 	// InstanceAdmin Konto startowe instancji (narzędzia CLI)
-	InstanceAdmin bool   `json:"instance_admin"`
-	Name          string `json:"name"`
+	InstanceAdmin bool `json:"instance_admin"`
+
+	// Locale Język interfejsu i powiadomień; null — według przeglądarki (powiadomienia po polsku)
+	Locale nullable.Nullable[Locale] `json:"locale,omitempty"`
+	Name   string                    `json:"name"`
+}
+
+// UserUpdate defines model for UserUpdate.
+type UserUpdate struct {
+	// Locale Nowy język; null wraca do wyboru według przeglądarki
+	Locale nullable.Nullable[Locale] `json:"locale"`
 }
 
 // Vendor defines model for Vendor.
@@ -2426,6 +2456,9 @@ type PreviewInvitationJSONRequestBody = InvitationToken
 // RegisterWithInvitationJSONRequestBody defines body for RegisterWithInvitation for application/json ContentType.
 type RegisterWithInvitationJSONRequestBody = InvitationRegister
 
+// UpdateMeJSONRequestBody defines body for UpdateMe for application/json ContentType.
+type UpdateMeJSONRequestBody = UserUpdate
+
 // CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
 type CreateChannelJSONRequestBody = ChannelCreate
 
@@ -2692,6 +2725,9 @@ type ServerInterface interface {
 	// GetMe Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// UpdateMe Zmienia preferencje zalogowanego człowieka (język); bot dostaje 403
+	// (PATCH /me)
+	UpdateMe(w http.ResponseWriter, r *http.Request)
 	// ListChannelTypes Typy kanałów, ich pola i dostępność na tym serwerze (SMTP, klucz główny)
 	// (GET /me/channel-types)
 	ListChannelTypes(w http.ResponseWriter, r *http.Request)
@@ -5699,6 +5735,20 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateMe operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListChannelTypes operation middleware
 func (siw *ServerInterfaceWrapper) ListChannelTypes(w http.ResponseWriter, r *http.Request) {
 
@@ -6182,6 +6232,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/callback", wrapper.LoginCallback)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/logout", wrapper.Logout)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/me", wrapper.UpdateMe)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/currencies", wrapper.ListCurrencies)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households", wrapper.ListHouseholds)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households", wrapper.CreateHousehold)
@@ -12563,6 +12614,72 @@ func (response GetMe401ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w 
 	return err
 }
 
+type UpdateMeRequestObject struct {
+	Body *UpdateMeJSONRequestBody
+}
+
+type UpdateMeResponseObject interface {
+	VisitUpdateMeResponse(w http.ResponseWriter) error
+}
+
+type UpdateMe200JSONResponse User
+
+func (response UpdateMe200JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMe401ApplicationProblemPlusJSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateMe403ApplicationProblemPlusJSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateMe422ApplicationProblemPlusJSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListChannelTypesRequestObject struct {
 }
 
@@ -13748,6 +13865,9 @@ type StrictServerInterface interface {
 	// GetMe Kim jest wywołujący — człowiek z gospodarstwami albo bot z uprawnieniami
 	// (GET /me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// UpdateMe Zmienia preferencje zalogowanego człowieka (język); bot dostaje 403
+	// (PATCH /me)
+	UpdateMe(ctx context.Context, request UpdateMeRequestObject) (UpdateMeResponseObject, error)
 	// ListChannelTypes Typy kanałów, ich pola i dostępność na tym serwerze (SMTP, klucz główny)
 	// (GET /me/channel-types)
 	ListChannelTypes(ctx context.Context, request ListChannelTypesRequestObject) (ListChannelTypesResponseObject, error)
@@ -16255,6 +16375,37 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMe operation middleware
+func (sh *strictHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	var request UpdateMeRequestObject
+
+	var body UpdateMeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMe(ctx, request.(UpdateMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMeResponseObject); ok {
+		if err := validResponse.VisitUpdateMeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

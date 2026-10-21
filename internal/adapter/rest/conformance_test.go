@@ -404,6 +404,8 @@ var conformanceCases = map[string][]conformanceCase{
 		{status: 200, as: "owner", target: "/api/me"},
 		{status: 200, as: "bot", target: "/api/me"},
 	},
+	// Etap 013 dopisze przypadki 200 i 422, gdy powstanie use case UpdateMe.
+	"updateMe":       {{status: 403, as: "bot", target: "/api/me", body: `{"locale":"en"}`}},
 	"listCurrencies": {{status: 200, as: "viewer", target: "/api/currencies"}},
 	"listHouseholds": {{status: 200, as: "owner", target: "/api/households"}, {status: 200, as: "bot", target: "/api/households"}},
 	"createHousehold": {
