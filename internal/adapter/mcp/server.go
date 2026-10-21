@@ -88,6 +88,9 @@ type useCases struct {
 	confirmChargeMatch      *usecase.ConfirmChargeMatch
 	postCharge              *usecase.PostCharge
 	skipCharge              *usecase.SkipCharge
+
+	listNotifications *usecase.ListNotifications
+	countUnread       *usecase.CountUnreadNotifications
 }
 
 func newUseCases(d usecase.Deps) useCases {
@@ -123,6 +126,9 @@ func newUseCases(d usecase.Deps) useCases {
 		confirmChargeMatch:      usecase.NewConfirmChargeMatch(d),
 		postCharge:              usecase.NewPostCharge(d),
 		skipCharge:              usecase.NewSkipCharge(d),
+
+		listNotifications: usecase.NewListNotifications(d),
+		countUnread:       usecase.NewCountUnreadNotifications(d),
 	}
 }
 
@@ -167,6 +173,7 @@ func NewHandler(deps Deps) http.Handler {
 	s.addBudgetTools(mcpServer)
 	s.addSubscriptionTools(mcpServer)
 	s.addWriteTools(mcpServer)
+	s.addNotificationTools(mcpServer)
 
 	var h http.Handler = sdk.NewStreamableHTTPHandler(
 		func(*http.Request) *sdk.Server { return mcpServer },

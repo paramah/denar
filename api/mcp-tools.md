@@ -1,6 +1,6 @@
 # Kontrakt narzędzi MCP
 
-Serwer MCP działa pod `/mcp` (Streamable HTTP). Asystent uwierzytelnia się tokenem bota gospodarstwa: `Authorization: Bearer dnr_…`. Implementacja: etap `006-mcp`, `internal/adapter/mcp`; każde narzędzie woła use case, a reguły (scope'y, rola twórcy, lista portfeli, rozpoznawanie nazw, audyt) zostają w `internal/usecase`. Opisy narzędzi i pól widoczne dla modelu są po angielsku; ten dokument jest ich źródłem i opisem zachowania.
+Serwer MCP działa pod `/mcp` (Streamable HTTP). Asystent uwierzytelnia się tokenem bota gospodarstwa: `Authorization: Bearer dnr_…`. Implementacja: etapy `006-mcp` i `005-notifications` (`list_notifications`), `internal/adapter/mcp`; każde narzędzie woła use case, a reguły (scope'y, rola twórcy, lista portfeli, rozpoznawanie nazw, audyt) zostają w `internal/usecase`. Opisy narzędzi i pól widoczne dla modelu są po angielsku; ten dokument jest ich źródłem i opisem zachowania.
 
 ## Uwierzytelnianie i transport
 
@@ -147,7 +147,16 @@ Serwer MCP działa pod `/mcp` (Streamable HTTP). Asystent uwierzytelnia się tok
 - `post_charge`: tworzy wydatek (`source: subscription`) i wiąże go z obciążeniem. `wallet` domyślnie portfel subskrypcji; `amount` (dodatni, w walucie portfela) domyślnie kwota obciążenia przeliczona kursem z dnia terminu; `date` domyślnie termin.
 - `skip_charge`: obciążenie `expected`/`missed` → `skipped`.
 
+### Powiadomienia
+
+| Narzędzie | Wejście | Wynik | Scope |
+|---|---|---|---|
+| `list_notifications` | `unread_only?`, `limit?`, `cursor?` | `{ notifications: Notification[], unread_count, next_cursor: string \| null }` | `notifications:read` |
+
+- `Notification`: `{ id, type, title, body, link, url, created_at, read }`; `type` ∈ `subscription.renewal_upcoming`, `subscription.trial_ending`, `subscription.price_changed`, `subscription.charge_missed`, `envelope.overspent`, `envelope.goal_due`; `title` i `body` po polsku; `link` — ścieżka Web UI (`/h/{hid}/subscriptions/{id}`, `/h/{hid}/subscriptions/charges`, `/h/{hid}/budget/{YYYY-MM}`), `url` — pełny adres (`DENAR_BASE_URL` + `link`).
+- Bot czyta powiadomienia **swojego twórcy** w swoim gospodarstwie (bot ≤ twórca). Bot z listą portfeli nie widzi powiadomień o subskrypcjach płaconych z portfeli spoza listy; powiadomienia bez portfela (subskrypcje bez portfela, koperty) widzi. `unread_count` liczy z tym samym ograniczeniem.
+- Bot nie oznacza powiadomień jako przeczytanych (tylko człowiek w Web UI); stronicowanie jak w `list_charges`.
+
 ## Poza zakresem
 
-- `list_notifications` — dopisze etap 005 (powiadomienia).
-- Usuwanie danych, operacje administracyjne (członkowie, boty, kanały) — tylko w Web UI.
+- Usuwanie danych, operacje administracyjne (członkowie, boty, kanały, preferencje powiadomień) — tylko w Web UI.

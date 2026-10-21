@@ -68,7 +68,7 @@ func TestToolsMatchTheContract(t *testing.T) {
 			t.Errorf("%s of the contract is not served", name)
 		}
 	}
-	if len(contract) != 25 {
+	if len(contract) != 26 {
 		t.Errorf("the contract has %d tools", len(contract))
 	}
 }
