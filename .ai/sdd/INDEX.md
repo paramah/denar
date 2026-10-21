@@ -24,7 +24,7 @@
 | ID | Name | Status | Path |
 |----|------|--------|------|
 | 001 | core | implementation:done (delegated) | `.ai/sdd/specs/001-core/` |
-| 002 | wallets-transactions | — | |
+| 002 | wallets-transactions | implementation:done (delegated) | `.ai/sdd/specs/002-wallets-transactions/` |
 | 003 | envelope-budget | — | |
 | 004 | subscriptions | — | |
 | 005 | notifications | — | |

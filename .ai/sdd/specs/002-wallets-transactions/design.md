@@ -225,3 +225,12 @@ Kody: 200/201/204, 401, 403 (rola/scope/`human-only`/`wallet`), 404 (ukryte), 40
 - Kurs krzyżowy wymaga obu walut w tabeli A NBP (waluty spoza tabeli A tylko przez ręczny kurs).
 - Salda liczone zapytaniem agregującym przy każdym odczycie listy portfeli (bez materializacji) — wystarczy dla gospodarstwa domowego.
 - Zmiana `on_budget` portfela z historią zmienia budżet wstecz (003 liczy z transakcji).
+
+## Dla etapu 003 (koperty)
+
+- **Aktywność koperty w miesiącu** = Σ `base_amount` transakcji z `envelope_id = E` bez splitów **+** Σ `transaction_splits.base_amount` linii z `envelope_id = E`, dla transakcji z datą w miesiącu budżetowym (początek wg `households.month_start_day`). Transakcja ze splitami nie ma własnej koperty (walidacja domeny), więc nie liczy się podwójnie. Uwzględniać tylko portfele `on_budget = 1`.
+- **`rate_pending`**: `base_amount` (i bazy splitów) są `NULL`; 003 musi zdecydować, czy pomija je w obliczeniach i sygnalizuje „niepełne” (zalecane, jak `WalletView.BasePending`), czy blokuje.
+- **Ready-to-Assign — wpływy**: transakcje `kind = income` w portfelach on-budget (zawsze bez koperty; tu także saldo otwarcia — transakcja `income` z notatką „Saldo otwarcia”) oraz wydatki/zwroty bez koperty — zdecydować w 003 (YNAB: „uncategorized”).
+- **Przelewy**: obie nogi `kind = transfer`, ten sam `transfer_pair_id`, `transfer_wallet_id` wskazuje drugą nogę. On-budget ↔ on-budget — poza kopertami i RTA; ale przy różnych walutach Σ `base_amount` obu nóg ≠ 0 (różnica kursowa) — żeby utrzymać inwariant „Σ kopert + RTA = Σ sald on-budget w bazie”, tę różnicę trzeba zaliczyć do RTA. On-budget ↔ off-budget — noga on-budget działa jak wydatek/wpływ: z `envelope_id` (dozwolone tylko w tym przypadku) → aktywność koperty, bez → RTA.
+- **`envelope_id`** to dziś dowolny identyfikator ≤ 64 znaki bez FK; 003 dodaje tabelę `envelopes`, walidację w use case'ach zapisu (Record/Update/CreateTransfer, `payees.default_envelope_id`, splity) i ewentualnie FK (przebudowa tabel albo trigger).
+- Przydatne porty: `TransactionRepository.List` z filtrem `EnvelopeID` (dopasowuje też linie splitu) i zakresem dat; do agregacji miesięcznych lepiej dodać w 003 dedykowaną metodę sumującą w SQL (np. `ActivityByEnvelope(householdID, from, to)`), zamiast stronicować.

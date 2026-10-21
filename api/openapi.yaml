@@ -1190,7 +1190,7 @@ components:
         at: { type: string, format: date-time }
         actor: { $ref: "#/components/schemas/Actor" }
         action: { type: string, description: "np. bot.created, membership.role_changed" }
-        resource_type: { type: string, description: "household, membership, invitation, bot (kolejne etapy dodają własne)" }
+        resource_type: { type: string, description: "household, membership, invitation, bot, wallet, transaction, payee, fx_rate (kolejne etapy dodają własne)" }
         resource_id: { type: string }
         changes:
           type: object

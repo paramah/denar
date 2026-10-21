@@ -346,7 +346,7 @@ type AuditEntry struct {
 	Id         string `json:"id"`
 	ResourceId string `json:"resource_id"`
 
-	// ResourceType household, membership, invitation, bot (kolejne etapy dodają własne)
+	// ResourceType household, membership, invitation, bot, wallet, transaction, payee, fx_rate (kolejne etapy dodają własne)
 	ResourceType string `json:"resource_type"`
 }
 

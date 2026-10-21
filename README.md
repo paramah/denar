@@ -2,7 +2,7 @@
 
 Self-hosted budżet domowy: gospodarstwa, portfele, transakcje, koperty (YNAB), subskrypcje. Jedno binarium Go (Clean Architecture, SQLite), REST + (od etapu 006) MCP, Web UI osadzone w binarium (od etapu 007).
 
-Stan: **etap 001-core** — konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log. Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/001-core/`.
+Stan: **etapy 001-core i 002-wallets-transactions** — konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda. Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
 
 ## Szybki start (lokalnie)
 
@@ -36,7 +36,17 @@ curl -s -b jar -H 'Content-Type: application/json' \
 curl -s -b jar -H 'Content-Type: application/json' \
   -d '{"name":"Claude","scopes":["wallets:read","reports:read"]}' localhost:8080/api/households/<ID>/bots
 curl -s -H 'Authorization: Bearer dnr_…' localhost:8080/api/me
+# portfel z saldem otwarcia i wydatek (kwoty zawsze jako string dziesiętny + waluta)
+curl -s -b jar -H 'Content-Type: application/json' \
+  -d '{"name":"Konto","type":"checking","currency":"PLN","opening_balance":{"amount":"1000.00","currency":"PLN"}}' \
+  localhost:8080/api/households/<ID>/wallets
+curl -s -b jar -H 'Content-Type: application/json' \
+  -d '{"wallet_id":"<WALLET>","amount":{"amount":"-25.99","currency":"PLN"},"payee_name":"Biedronka"}' \
+  localhost:8080/api/households/<ID>/transactions
+curl -s -b jar localhost:8080/api/households/<ID>/wallets
 ```
+
+Transakcja w walucie innej niż bazowa dostaje kwotę bazową po kursie NBP z dnia transakcji. Bez sieci zapisuje się z `rate_pending: true`, a job (co `DENAR_FX_INTERVAL`) uzupełnia ją później; owner/admin może też ustawić kurs ręcznie: `PUT /api/households/<ID>/fx-rates/overrides`.
 
 Token bota z CLI (bez UI): `./denar token create --household <ID> --name cron --scopes reports:read [--as email] [--expires 2027-01-01T00:00:00Z]` — token trafia na stdout.
 
