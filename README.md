@@ -78,7 +78,7 @@ The demo data itself is in Polish.
 
 ### Docker
 
-Images for `linux/amd64` and `linux/arm64` are published to the GitHub Container Registry as `ghcr.io/paramah/denar` (tags: `latest`, `<major>.<minor>`, `<version>`):
+Images for `linux/amd64` and `linux/arm64` are published to the GitHub Container Registry as `ghcr.io/paramah/denar` (tags: `latest`, `<major>.<minor>`, `<version>`). The release workflow can also push them to Quay.io; see [Publishing to Quay.io](#publishing-to-quayio).
 
 ```sh
 docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
@@ -89,6 +89,21 @@ docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
 ```
 
 The image runs as a non-root user, keeps its database in the `/data` volume (`DENAR_DB=/data/denar.db`), listens on port 8080 and has a healthcheck on `/healthz`. Keep the master key: changing it invalidates stored channel secrets.
+
+### Publishing to Quay.io
+
+The release workflow pushes the image to Quay.io as well when the GitHub repository has:
+
+- the variable `QUAY_IMAGE`, the full image name, e.g. `quay.io/<namespace>/denar`;
+- the secrets `QUAY_USERNAME` and `QUAY_PASSWORD`: a Quay robot account with write access to that repository.
+
+```sh
+gh variable set QUAY_IMAGE --body quay.io/<namespace>/denar
+gh secret set QUAY_USERNAME --body '<namespace>+<robot>'
+gh secret set QUAY_PASSWORD   # paste the robot token
+```
+
+Quay gets the same tags as GHCR. Without `QUAY_IMAGE` the workflow publishes to GHCR only.
 
 ### Docker Compose
 
