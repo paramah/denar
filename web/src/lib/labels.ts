@@ -53,6 +53,22 @@ const actionLabels: Record<string, string> = {
   'payee.updated': 'Zmiana kontrahenta',
   'payee.deleted': 'Usunięcie kontrahenta',
   'fx_rate.set': 'Ręczny kurs waluty',
+  'household.deleted': 'Usunięcie gospodarstwa',
+  'envelope_group.created': 'Utworzenie grupy kopert',
+  'envelope_group.updated': 'Zmiana grupy kopert',
+  'envelope_group.deleted': 'Usunięcie grupy kopert',
+  'envelope.created': 'Utworzenie koperty',
+  'envelope.updated': 'Zmiana koperty',
+  'envelope.deleted': 'Usunięcie koperty',
+  'assignment.set': 'Przydział do koperty',
+  'subscription.created': 'Dodanie subskrypcji',
+  'subscription.updated': 'Zmiana subskrypcji',
+  'subscription.deleted': 'Usunięcie subskrypcji',
+  'subscription.price_changed': 'Zmiana ceny subskrypcji',
+  'charge.matched': 'Dopasowanie płatności subskrypcji',
+  'charge.unmatched': 'Cofnięcie dopasowania płatności',
+  'charge.skipped': 'Pominięcie płatności subskrypcji',
+  'charge.posted': 'Zaksięgowanie płatności subskrypcji',
 }
 
 /** Czytelna nazwa akcji audytu; nieznana (z kolejnych etapów) — surowy kod. */
@@ -69,6 +85,11 @@ export const resourceTypeLabels: Record<string, string> = {
   transaction: 'Transakcja',
   payee: 'Kontrahent',
   fx_rate: 'Kurs waluty',
+  envelope_group: 'Grupa kopert',
+  envelope: 'Koperta',
+  assignment: 'Przydział',
+  subscription: 'Subskrypcja',
+  charge: 'Płatność subskrypcji',
 }
 
 export function resourceTypeLabel(type: string): string {
@@ -111,10 +132,60 @@ const fieldLabels: Record<string, string> = {
   to_wallet_id: 'portfel docelowy',
   patterns: 'wzorce',
   rate: 'kurs',
+  base_amount: 'kwota bazowa',
+  count: 'liczba',
+  created_by: 'autor',
+  cycle: 'cykl',
+  fx_rate: 'kurs',
+  goal: 'cel',
+  'goal.type': 'rodzaj celu',
+  'goal.amount': 'kwota celu',
+  'goal.amount.amount': 'kwota celu',
+  'goal.target_date': 'data celu',
+  group_id: 'grupa',
+  hidden: 'ukryta',
+  invitation_id: 'zaproszenie',
+  month: 'miesiąc',
+  position: 'kolejność',
+  price: 'cena',
+  reminder_offsets: 'przypomnienia',
+  score: 'trafność',
+  subscription_id: 'subskrypcja',
+  vendor: 'dostawca',
+  via: 'sposób',
+  gone: 'usunięto',
+  trial_ends_at: 'koniec okresu próbnego',
+  ends_at: 'koniec',
+  manage_url: 'adres zarządzania',
+  'match_rule.payee_pattern': 'wzorzec kontrahenta',
+  'match_rule.amount_tolerance_pct': 'tolerancja kwoty',
+  'match_rule.date_window_days': 'okno dat',
+  'cycle.unit': 'jednostka cyklu',
+  'cycle.every': 'co ile',
+  'cycle.anchor': 'dzień płatności',
+  default_envelope_id: 'domyślna koperta',
+  from_envelope_id: 'koperta źródłowa',
+  to_envelope_id: 'koperta docelowa',
+  transaction_id: 'transakcja',
+  effective_from: 'od dnia',
+  'amount.amount': 'kwota',
+  'to_amount.amount': 'kwota docelowa',
+  'opening_balance.amount': 'saldo otwarcia',
+  'price.amount': 'cena',
+  password: 'hasło',
 }
 
 export function fieldLabel(field: string): string {
-  return fieldLabels[field] ?? field
+  const known = fieldLabels[field]
+  if (known) {
+    return known
+  }
+  // splits[2].amount → „podział 3: kwota”
+  const split = /^splits\[(\d+)\]\.(.+)$/.exec(field)
+  if (split?.[1] && split[2]) {
+    return `podział ${Number(split[1]) + 1}: ${fieldLabel(split[2])}`
+  }
+  return field
 }
 
 export const walletTypeLabels: Record<WalletType, string> = {

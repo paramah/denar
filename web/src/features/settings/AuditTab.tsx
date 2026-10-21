@@ -14,6 +14,8 @@ import { SectionError } from '../../components/QueryState/QueryState.tsx'
 import { Skeleton } from '../../components/Skeleton/Skeleton.tsx'
 import { formatDateTime } from '../../lib/format.ts'
 import { actionLabel, actorKindLabels, fieldLabel, resourceTypeLabel, resourceTypeLabels } from '../../lib/labels.ts'
+import { cycleLabel } from '../../lib/subscriptions.ts'
+import type { Cycle } from '../../api/types.ts'
 import styles from './settings.module.css'
 
 const actorOptions = [
@@ -26,7 +28,14 @@ const resourceOptions = [
   ...Object.entries(resourceTypeLabels).map(([value, label]) => ({ value, label })),
 ]
 
+const auditCycle = /^(\d+) (day|week|month|year) from (\d{4}-\d{2}-\d{2})$/
+
 function showValue(value: unknown): string {
+  // Cykl subskrypcji zapisany przez serwer jako „1 month from 2026-10-21”.
+  const cycle = typeof value === 'string' ? auditCycle.exec(value) : null
+  if (cycle?.[1] && cycle[2] && cycle[3]) {
+    return cycleLabel({ every: Number(cycle[1]), unit: cycle[2] as Cycle['unit'], anchor: cycle[3] })
+  }
   if (value === null || value === undefined || value === '') {
     return '—'
   }
@@ -37,6 +46,11 @@ function showValue(value: unknown): string {
     return value.length ? value.map(showValue).join(', ') : '—'
   }
   if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    // Kwota: { amount: "49.00", currency: "PLN" } → „49.00 PLN”.
+    if (typeof record.amount === 'string' && typeof record.currency === 'string') {
+      return `${record.amount} ${record.currency}`
+    }
     return JSON.stringify(value)
   }
   return String(value)

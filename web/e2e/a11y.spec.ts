@@ -152,6 +152,28 @@ test.describe('signed in', () => {
     await expectAccessible(page, 'dopasowanie płatności')
   })
 
+  test('unknown address inside the household', async ({ page }) => {
+    await page.goto(`${householdPath}/nie-ma-takiej-strony`)
+    await expect(page.getByRole('heading', { level: 1, name: 'Nie ma takiej strony' })).toBeVisible()
+    await expectAccessible(page, 'strona 404 w gospodarstwie')
+    await page.getByRole('link', { name: 'Wróć na pulpit' }).click()
+    await expect(page).toHaveURL(new RegExp(`${householdPath}$`))
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+  })
+
+  test('bot token with the assistant connection', async ({ page }) => {
+    await page.goto(`${householdPath}/settings/bots`)
+    await page.getByRole('button', { name: 'Nowy token dla Raporty' }).click()
+    await page.getByRole('button', { name: 'Wygeneruj nowy token' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Token bota Raporty' })
+    await expect(dialog.getByRole('region', { name: 'Podłącz do asystenta AI' })).toBeVisible()
+    await dialog.getByText('Inne klienty: konfiguracja JSON').click()
+    await expectAccessible(page, 'token i podłączenie asystenta')
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+  })
+
   test('user menu and household switcher', async ({ page, isMobile }) => {
     await page.goto(householdPath)
     if ((page.viewportSize()?.width ?? 1280) < 768 || isMobile) {

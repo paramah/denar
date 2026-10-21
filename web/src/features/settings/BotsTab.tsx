@@ -16,7 +16,8 @@ import { useDocumentTitle } from '../../components/PageHeader/PageHeader.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
 import { useToast } from '../../components/Toast/Toast.tsx'
 import { addDays, endOfLocalDay, formatDate, formatRelative, toDateInput } from '../../lib/format.ts'
-import { allScopes, readScopes, roleAllowsScope, scopeGroups, scopeLabel, toggleScope } from '../../lib/scopes.ts'
+import { allScopes, assistantScopes, readScopes, roleAllowsScope, scopeGroups, scopeLabel, toggleScope } from '../../lib/scopes.ts'
+import { AssistantConnect } from './AssistantConnect.tsx'
 import styles from './settings.module.css'
 import { walletIdsOf, walletScopeError, WalletScopePicker, type WalletScope } from './WalletScopePicker.tsx'
 
@@ -305,6 +306,9 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
           <Button size="sm" onClick={() => setScopes(readScopes)}>
             Tylko odczyt
           </Button>
+          <Button size="sm" onClick={() => setScopes(assistantScopes.filter((s) => roleAllowsScope(role, s)))}>
+            Asystent AI (odczyt + wprowadzanie wydatków)
+          </Button>
           <Button size="sm" onClick={() => setScopes(allScopes.filter((s) => roleAllowsScope(role, s)))}>
             Odczyt i zapis
           </Button>
@@ -401,6 +405,7 @@ function TokenDialog({ result, onClose }: { result: BotWithToken | null; onClose
       open={!!result}
       title={result ? `Token bota ${result.bot.name}` : ''}
       onClose={onClose}
+      size="lg"
       footer={
         <Button variant="primary" onClick={onClose}>
           Zapisałem token
@@ -411,14 +416,15 @@ function TokenDialog({ result, onClose }: { result: BotWithToken | null; onClose
         <>
           <Callout tone="warn" title="Token pokazujemy tylko raz">
             Skopiuj go teraz i zapisz w bezpiecznym miejscu (np. menedżerze haseł). Po zamknięciu okna odzyskać go się
-            nie da — można jedynie wygenerować nowy.
+            nie da — można jedynie wygenerować nowy. Tak samo zniknie z poleceń podłączenia asystenta poniżej.
           </Callout>
           <CopyField
             label="Token"
             value={result.token}
             initialFocus
-            hint="Bot przedstawia się nagłówkiem Authorization: Bearer <token>."
+            hint="Bot przedstawia się nagłówkiem Authorization: Bearer <token> — w REST API i w MCP."
           />
+          <AssistantConnect token={result.token} scopes={result.bot.effective_scopes} />
         </>
       )}
     </Dialog>

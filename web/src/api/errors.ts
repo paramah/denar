@@ -1,3 +1,4 @@
+import { reasonMessages, translateFieldMessage } from './messages.ts'
 import type { components } from './schema.d.ts'
 
 type Problem = components['schemas']['Problem']
@@ -86,14 +87,18 @@ export function classify(err: unknown): ErrorKind {
   return 'server'
 }
 
-/** Błędy pól z problem+json (422) jako mapa pole → komunikat (pierwszy wygrywa). */
+/**
+ * Błędy pól z problem+json (422) jako mapa pole → komunikat po polsku
+ * (pierwszy wygrywa). Serwer pisze komunikaty po angielsku — tłumaczy je
+ * `translateFieldMessage`.
+ */
 export function fieldErrors(err: unknown): Record<string, string> {
   if (!(err instanceof ApiError)) {
     return {}
   }
   const out: Record<string, string> = {}
   for (const { field, message } of err.errors) {
-    out[field] ??= message
+    out[field] ??= translateFieldMessage(message)
   }
   return out
 }
@@ -116,8 +121,13 @@ export function errorMessage(err: unknown, fallback = 'Coś poszło nie tak. Spr
     case 'unauthenticated':
       return 'Sesja wygasła. Zaloguj się ponownie.'
     default: {
+      // Opis z serwera jest po angielsku; po polsku znamy przyczyny (`type`).
       const api = err as ApiError
-      return api.detail || api.title || fallback
+      const first = api.status === 422 ? api.errors[0] : undefined
+      if (first) {
+        return translateFieldMessage(first.message)
+      }
+      return reasonMessages[api.reason] ?? fallback
     }
   }
 }

@@ -72,7 +72,7 @@ export function DashboardPage() {
             to: householdPath(household.id, 'settings/bots'),
             icon: 'bot' as const,
             title: 'Podłącz asystenta AI',
-            text: 'Utwórz bota z tokenem i uprawnieniami tylko do tego, czego potrzebuje.',
+            text: 'Claude lub inny asystent przez MCP: utwórz bota i skopiuj gotowe polecenie podłączenia.',
           },
         ]
       : []),

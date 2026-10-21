@@ -23,7 +23,7 @@ import { WalletPage } from '../features/wallets/WalletPage.tsx'
 import { WalletsPage } from '../features/wallets/WalletsPage.tsx'
 import { HomePage } from './HomePage.tsx'
 import { HouseholdRoute } from './household.tsx'
-import { NotFoundPage } from './NotFoundPage.tsx'
+import { HouseholdNotFoundPage, NotFoundPage } from './NotFoundPage.tsx'
 import { RequireSession } from './RequireSession.tsx'
 
 /**
@@ -95,6 +95,8 @@ export const routes: RouteObject[] = [
               },
             ],
           },
+          // Nieznany adres w gospodarstwie — 404 w powłoce aplikacji.
+          { path: '*', element: <HouseholdNotFoundPage /> },
         ],
       },
     ],

@@ -236,3 +236,36 @@ Część C2 wypełnia sekcję „Subskrypcje” — główną funkcję produktu 
 
 - **NFR-D01** Kwoty wyłącznie przez `lib/money.ts` (`bigint`; szacunek w walucie bazowej przez `convertAmount` z half-even); cykle i terminy przez `lib/subscriptions.ts` (ta sama arytmetyka co 004 FR-302).
 - **NFR-D02** Testy: Vitest + MSW (formularz cyklu i walidacja, edycja tylko zmian, zmiana ceny, akcje obciążeń, kolejka, rejestr, pulpit, lista z filtrami, `lib/subscriptions`, `convertAmount`), Playwright e2e na binarium z atrapą NBP (OpenAI USD, dzień 31. → obciążenia → wydatek → sugestia i potwierdzenie → zmiana ceny → koszt w PLN; kolejka → zaksięgowanie z kwotą PLN), axe w motywie jasnym, ciemnym i na telefonie, brak poziomego przewijania na 390 px.
+
+---
+
+# Część C3a — podłączenie asystenta AI (MCP) i przegląd jakości (F07C3a)
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `api/mcp-tools.md`, `.ai/sdd/specs/006-mcp/`, README (sekcja MCP); przegląd eksploracyjny całej aplikacji
+> Last Updated: 2026-10-21
+
+Część C3a pokazuje, jak podłączyć asystenta AI do serwera MCP etapu 006, i domyka jakość części A–C2 przed ręcznym testem użytkownika. Powiadomienia (005) to część C3b — `ComingSoonPage` dla Powiadomień zostaje.
+
+## Non-Goals (część C3a)
+
+- Zmiany backendu i `api/openapi.yaml`; skrzynka i preferencje powiadomień (C3b).
+- Profil użytkownika (zmiana imienia, hasła): API ma tylko `GET /me` — pominięte (Ograniczenia).
+
+## Requirements (EARS)
+
+### Asystent AI (MCP)
+
+- **FR-E01** Dialog jednorazowego tokenu bota (tworzenie i „Nowy token”) SHALL zawierać sekcję „Podłącz do asystenta AI” z gotowymi do skopiowania: adresem `{origin}/mcp`, nagłówkiem `Authorization: Bearer <token>`, poleceniem `claude mcp add --transport http denar {origin}/mcp --header "Authorization: Bearer <token>"`, konfiguracją JSON klienta zdalnego MCP (HTTP z nagłówkami) i wariantem z mostem `mcp-remote`.
+- **FR-E02** Sekcja SHALL uprzedzać, że token (także w poleceniach) jest pokazywany raz, a przy `http:` poza localhost — że token pójdzie bez szyfrowania.
+- **FR-E03** Sekcja SHALL podpowiadać przykładowe pytania do asystenta dobrane do efektywnych scope'ów bota.
+- **FR-E04** Formularz bota SHALL mieć zestaw scope'ów „Asystent AI (odczyt + wprowadzanie wydatków)”: wszystkie `*:read` i `transactions:write` (z filtrem roli).
+- **FR-E05** Pulpit SHALL mieć w „Następnych krokach” pozycję „Podłącz asystenta AI” dla owner/admin/member, prowadzącą do zakładki botów.
+
+### Jakość
+
+- **FR-E10** Komunikaty walidacji pól (`errors[].message`) i opisy konfliktów z serwera SHALL być pokazywane po polsku; nieznany angielski komunikat — ogólny polski, nigdy angielski `detail`/`title`.
+- **FR-E11** Dziennik zmian SHALL nazywać po polsku akcje i zasoby budżetu (koperty, grupy, przydziały) i subskrypcji (subskrypcje, płatności), a wartości kwot i cykli pokazywać czytelnie.
+- **FR-E12** Nieznany adres w gospodarstwie (`/h/:id/…`) SHALL pokazywać stronę „Nie ma takiej strony” w powłoce aplikacji (z nawigacją i powrotem na pulpit); poza gospodarstwem — osobną stronę z powrotem na start.
+- **FR-E13** WHEN formularz zostanie wysłany z błędami walidacji THE SYSTEM SHALL przenieść focus na pierwsze błędne pole.
+- **NFR-E01** Testy: Vitest (tłumaczenia komunikatów, fragmenty konfiguracji MCP, dialog tokenu, dziennik, 404, focus), Playwright na binarium (token z dialogu działa z `/mcp` — `tools/call whoami`; axe na dialogu tokenu i 404 w motywie jasnym, ciemnym i na telefonie, bez poziomego przewijania).

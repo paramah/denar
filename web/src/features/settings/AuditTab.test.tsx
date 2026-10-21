@@ -45,6 +45,36 @@ describe('AuditTab', () => {
     await waitFor(() => expect(screen.queryByText('Założenie gospodarstwa')).not.toBeInTheDocument())
   })
 
+  it('names budget and subscription actions in Polish and shows their values readably', async () => {
+    server.use(
+      http.get(apiUrl('/households/:hid/audit'), () =>
+        HttpResponse.json({
+          items: [
+            f.auditEntry(5, {
+              action: 'subscription.created',
+              resource_type: 'subscription',
+              changes: {
+                cycle: { from: null, to: '1 month from 2026-01-31' },
+                price: { from: null, to: { amount: '20.00', currency: 'USD' } },
+              },
+            }),
+            f.auditEntry(4, { action: 'assignment.set', resource_type: 'assignment', changes: {} }),
+          ],
+          next_cursor: null,
+        }),
+      ),
+    )
+    const { user } = renderApp('/h/h-dom/settings/audit')
+    const list = await screen.findByRole('list', { name: 'Wpisy dziennika' })
+    expect(within(list).getByText('Dodanie subskrypcji')).toBeInTheDocument()
+    expect(within(list).getByText('Subskrypcja')).toBeInTheDocument()
+    expect(within(list).getByText('Przydział do koperty')).toBeInTheDocument()
+    await user.click(screen.getByText('Zmiany (2)'))
+    expect(within(list).getByText('cykl')).toBeInTheDocument()
+    expect(within(list).getByText(/^co miesiąc/)).toBeInTheDocument()
+    expect(within(list).getByText('20.00 USD')).toBeInTheDocument()
+  })
+
   it('says when nothing matches the filters', async () => {
     const { user } = renderApp('/h/h-dom/settings/audit')
     expect(await screen.findByText('Tu pojawi się każda zmiana w gospodarstwie.')).toBeInTheDocument()

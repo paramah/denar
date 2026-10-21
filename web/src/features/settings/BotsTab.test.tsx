@@ -75,6 +75,36 @@ describe('BotsTab', () => {
     expect(await screen.findByRole('article', { name: 'Bot Claude' })).toBeInTheDocument()
   })
 
+  it('offers the AI assistant preset and shows how to connect the assistant over MCP', async () => {
+    const { user } = renderApp('/h/h-dom/settings/bots')
+    await user.click(await screen.findByRole('button', { name: 'Utwórz pierwszego bota' }))
+    const form = within(screen.getByRole('dialog', { name: 'Nowy bot' }))
+    await user.click(form.getByRole('button', { name: 'Asystent AI (odczyt + wprowadzanie wydatków)' }))
+    expect(form.getByRole('checkbox', { name: 'Transakcje: zapis' })).toBeChecked()
+    expect(form.getByRole('checkbox', { name: 'Budżet: zapis' })).not.toBeChecked()
+    await user.type(form.getByRole('textbox', { name: 'Nazwa' }), 'Claude')
+    await user.click(form.getByRole('button', { name: 'Utwórz bota' }))
+    expect(created?.scopes).toEqual([
+      'wallets:read',
+      'transactions:read',
+      'transactions:write',
+      'budget:read',
+      'subscriptions:read',
+      'reports:read',
+      'notifications:read',
+    ])
+
+    const tokenDialog = within(await screen.findByRole('dialog', { name: 'Token bota Claude' }))
+    const connect = within(tokenDialog.getByRole('region', { name: 'Podłącz do asystenta AI' }))
+    const url = `${window.location.origin}/mcp`
+    expect(connect.getByRole('textbox', { name: 'Adres serwera MCP' })).toHaveValue(url)
+    expect(connect.getByRole('textbox', { name: 'Nagłówek uwierzytelnienia' })).toHaveValue('Authorization: Bearer dnr_sekret_raz')
+    expect(connect.getByText(`claude mcp add --transport http denar ${url} --header "Authorization: Bearer dnr_sekret_raz"`)).toBeInTheDocument()
+    expect(connect.getByText(/"mcp-remote"/)).toBeInTheDocument()
+    expect(connect.getByText(/Wydałem 42,50 zł w Biedronce/)).toBeInTheDocument()
+    expect(connect.getByRole('button', { name: 'Kopiuj: Claude Code — polecenie w terminalu' })).toBeInTheDocument()
+  })
+
   it('creates a bot without expiry and validates the form', async () => {
     const { user } = renderApp('/h/h-dom/settings/bots')
     await user.click(await screen.findByRole('button', { name: 'Utwórz pierwszego bota' }))
