@@ -16,6 +16,10 @@ import (
 // jobBatch bounds how many charges one run of a job looks at.
 const jobBatch = 1000
 
+// missedLookbackDays is how far back the missed job looks for expected
+// charges.
+const missedLookbackDays = 90
+
 // households reads households once per job run.
 type householdCache struct {
 	d    Deps
@@ -92,7 +96,10 @@ func NewMarkMissedCharges(d Deps) *MarkMissedCharges { return &MarkMissedCharges
 func (uc *MarkMissedCharges) Do(ctx context.Context) (int, error) {
 	// Every household's today is at most a day after UTC's.
 	until := domain.DateOf(uc.d.Clock.Now(), time.UTC).AddDays(1)
-	open, err := uc.d.Charges.ListOpen(ctx, "", domain.Date{}, until, jobBatch)
+	// Missed charges stay open; looking back a bounded time keeps them
+	// from crowding out the batch. A charge left expected for longer (the
+	// server was down) stays expected.
+	open, err := uc.d.Charges.ListOpen(ctx, "", until.AddDays(-missedLookbackDays), until, jobBatch)
 	if err != nil {
 		return 0, err
 	}

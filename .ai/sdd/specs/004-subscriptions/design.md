@@ -262,6 +262,7 @@ Nowe powody 409: `charge-state`, `transaction-linked`, `envelope-in-use` (także
 - Przeliczenia kursem przez NBP (tabela A) — waluty spoza tabeli tylko przez ręczny kurs gospodarstwa.
 - Podsumowanie i joby liczą na żądanie (bez materializacji) — wystarczy dla gospodarstwa domowego.
 - Job przetwarza wszystkie subskrypcje instancji w jednym przebiegu (bez stronicowania) — do tysięcy subskrypcji.
+- Job `missed` patrzy 90 dni wstecz (≤ 1000 otwartych obciążeń na przebieg); obciążenie pozostawione `expected` dłużej (np. serwer wyłączony) już nie przejdzie w `missed` samo.
 
 ## Dla etapu 005 (powiadomienia)
 
