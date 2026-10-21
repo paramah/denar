@@ -1,4 +1,5 @@
 import type { Goal, GoalInput, GoalType } from '../../api/types.ts'
+import { tk } from '../../i18n/translate.ts'
 import { formatDay } from '../../lib/format.ts'
 import { amountForInput, formatMoney, parseAmountInput } from '../../lib/money.ts'
 
@@ -32,9 +33,9 @@ export function checkGoal(draft: GoalDraft, currency: string, decimals: number, 
   }
   if (draft.type === 'target_by_date') {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.targetDate)) {
-      errors.target_date = 'Podaj datę, do której chcesz zebrać kwotę.'
+      errors.target_date = tk('budget:goal.dateMissing')
     } else if (today && draft.targetDate < today) {
-      errors.target_date = 'Data celu już minęła — wybierz przyszłą.'
+      errors.target_date = tk('budget:goal.datePast')
     }
   }
   if (errors.amount || errors.target_date || !amount.ok) {
@@ -54,12 +55,11 @@ export function checkGoal(draft: GoalDraft, currency: string, decimals: number, 
 export function describeGoal(goal: Goal): string {
   const amount = formatMoney(goal.amount.amount, goal.amount.currency) ?? goal.amount.amount
   return goal.type === 'monthly'
-    ? `${amount} co miesiąc`
-    : `${amount} do ${goal.target_date ? formatDay(goal.target_date) : '—'}`
+    ? tk('budget:goal.monthly', { amount })
+    : tk('budget:goal.byDate', { amount, date: goal.target_date ? formatDay(goal.target_date) : '—' })
 }
 
-export const goalTypeLabels: Record<GoalChoice, string> = {
-  none: 'Bez celu',
-  monthly: 'Co miesiąc',
-  target_by_date: 'Kwota do daty',
+/** Nazwa rodzaju celu w aktywnym języku. */
+export function goalTypeLabel(type: GoalChoice): string {
+  return tk(`budget:goal.type.${type}`)
 }

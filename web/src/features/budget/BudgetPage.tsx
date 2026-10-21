@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
 import { errorMessage } from '../../api/errors.ts'
 import { reorderPatches, useAutoAssign, useBudgetMonth, useUpdateEnvelope, useUpdateEnvelopeGroup } from '../../api/hooks/budget.ts'
@@ -39,6 +40,7 @@ const hiddenKey = 'denar:budget:hidden'
 
 /** Budżet kopertowy miesiąca: /budget (bieżący miesiąc) i /budget/:month. */
 export function BudgetPage() {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const params = useParams()
   const current = currentBudgetMonth(household.timezone, household.month_start_day)
@@ -47,17 +49,17 @@ export function BudgetPage() {
   if (!isMonth(month)) {
     return (
       <>
-        <PageHeader title="Budżet" />
+        <PageHeader title={t('page.title')} />
         <EmptyState
           icon="budget"
-          title="Nie ma takiego miesiąca"
+          title={t('page.badMonthTitle')}
           action={
             <LinkButton to={householdPath(household.id, 'budget')} variant="primary">
-              Przejdź do bieżącego miesiąca
+              {t('page.badMonthAction')}
             </LinkButton>
           }
         >
-          <p>Adres powinien mieć postać …/budget/2026-10 (miesiące 2000–2100).</p>
+          <p>{t('page.badMonthHint')}</p>
         </EmptyState>
       </>
     )
@@ -66,16 +68,17 @@ export function BudgetPage() {
 }
 
 function MonthNav({ month, current }: { month: string; current: string }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const to = (m: string) => householdPath(household.id, `budget/${m}`)
   const prev = shiftMonth(month, -1)
   const next = shiftMonth(month, 1)
   return (
-    <nav className={styles.monthNav} aria-label="Miesiąc budżetu">
+    <nav className={styles.monthNav} aria-label={t('monthNav.label')}>
       <LinkButton
         to={to(prev)}
         icon="chevronLeft"
-        aria-label={`Poprzedni miesiąc: ${formatMonth(prev)}`}
+        aria-label={t('monthNav.previous', { month: formatMonth(prev) })}
         aria-disabled={month <= firstMonth || undefined}
         onClick={(event) => month <= firstMonth && event.preventDefault()}
       />
@@ -85,13 +88,13 @@ function MonthNav({ month, current }: { month: string; current: string }) {
       <LinkButton
         to={to(next)}
         icon="chevronRight"
-        aria-label={`Następny miesiąc: ${formatMonth(next)}`}
+        aria-label={t('monthNav.next', { month: formatMonth(next) })}
         aria-disabled={month >= lastMonth || undefined}
         onClick={(event) => month >= lastMonth && event.preventDefault()}
       />
       {month !== current && (
         <LinkButton to={householdPath(household.id, 'budget')} size="sm" variant="ghost">
-          Bieżący miesiąc
+          {t('monthNav.current')}
         </LinkButton>
       )}
     </nav>
@@ -99,6 +102,7 @@ function MonthNav({ month, current }: { month: string; current: string }) {
 }
 
 function BudgetMonthView({ month, current }: { month: string; current: string }) {
+  const { t } = useTranslation('budget')
   const { household, role } = useHousehold()
   const budget = useBudgetMonth(household.id, month)
   const canWrite = role !== 'viewer'
@@ -107,11 +111,11 @@ function BudgetMonthView({ month, current }: { month: string; current: string })
   return (
     <>
       <PageHeader
-        title="Budżet"
-        documentTitle={`Budżet — ${formatMonth(month)}`}
+        title={t('page.title')}
+        documentTitle={t('page.documentTitle', { month: formatMonth(month) })}
         description={<MonthNav month={month} current={current} />}
       />
-      <QueryState query={budget} errorTitle="Nie udało się wczytać budżetu" loading={<Skeleton lines={6} />}>
+      <QueryState query={budget} errorTitle={t('page.loadFailed')} loading={<Skeleton lines={6} />}>
         {(data) => <BudgetBody data={data} decimals={decimals} canWrite={canWrite} />}
       </QueryState>
     </>
@@ -119,6 +123,7 @@ function BudgetMonthView({ month, current }: { month: string; current: string })
 }
 
 function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals: number; canWrite: boolean }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const auto = useAutoAssign(household.id)
   const updateGroup = useUpdateEnvelopeGroup(household.id)
@@ -161,7 +166,7 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
         }
       }
     } catch (err) {
-      toast.show({ message: `Nie udało się zmienić kolejności: ${errorMessage(err)}`, kind: 'error' })
+      toast.show({ message: t('toolbar.reorderFailed', { error: errorMessage(err) }), kind: 'error' })
     } finally {
       setReordering(false)
       refocus()
@@ -190,7 +195,7 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
   const runAuto = () =>
     auto.mutate(data.month, {
       onSuccess: (result) => setModal({ kind: 'auto', result }),
-      onError: (err) => toast.show({ message: `Auto-przydział się nie udał: ${errorMessage(err)}`, kind: 'error' }),
+      onError: (err) => toast.show({ message: t('toolbar.autoFailed', { error: errorMessage(err) }), kind: 'error' }),
     })
 
   const details = modal?.kind === 'details' ? envelopesOf(data).find((e) => e.id === modal.envelopeId) : undefined
@@ -201,26 +206,28 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
       <BudgetSummary month={data} />
 
       {canWrite && data.groups.length > 0 && (
-        <div className={styles.toolbar} role="toolbar" aria-label="Akcje budżetu">
+        <div className={styles.toolbar} role="toolbar" aria-label={t('toolbar.label')}>
           <Button icon="transfer" onClick={() => setModal({ kind: 'move' })} disabled={!hasEnvelopes}>
-            Przenieś środki
+            {t('toolbar.move')}
           </Button>
           <Button icon="sparkle" onClick={runAuto} busy={auto.isPending} disabled={!hasEnvelopes} aria-describedby="underfunded-note">
-            Uzupełnij cele
+            {t('toolbar.autoAssign')}
           </Button>
           <span id="underfunded-note" className={styles.underfunded}>
             {underfunded ? (
-              <>
-                Cele potrzebują jeszcze <Money amount={data.underfunded.amount} currency={data.currency} size="sm" />
-              </>
+              <Trans
+                t={t}
+                i18nKey="toolbar.underfunded"
+                components={{ money: <Money amount={data.underfunded.amount} currency={data.currency} size="sm" /> }}
+              />
             ) : (
-              'Cele na ten miesiąc są pokryte'
+              t('toolbar.covered')
             )}
           </span>
           <div className={styles.toolbarEnd}>
             {hiddenCount > 0 && (
               <Checkbox
-                label={`Pokaż ukryte (${hiddenCount})`}
+                label={t('toolbar.showHidden', { n: hiddenCount })}
                 checked={showHidden}
                 onChange={(event) => {
                   setShowHidden(event.target.checked)
@@ -229,10 +236,10 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
               />
             )}
             <Button icon="list" aria-pressed={arranging} onClick={() => setArranging((value) => !value)}>
-              {arranging ? 'Zakończ układanie' : 'Układ'}
+              {arranging ? t('toolbar.arrangeDone') : t('toolbar.arrange')}
             </Button>
             <Button icon="plus" onClick={() => setModal({ kind: 'group' })}>
-              Nowa grupa
+              {t('toolbar.newGroup')}
             </Button>
           </div>
         </div>
@@ -241,19 +248,16 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
       {data.groups.length === 0 ? (
         <EmptyState
           icon="budget"
-          title="Załóż pierwsze koperty"
+          title={t('empty.title')}
           action={
             canWrite && (
               <Button variant="primary" icon="plus" onClick={() => setModal({ kind: 'group' })}>
-                Nowa grupa kopert
+                {t('empty.action')}
               </Button>
             )
           }
         >
-          <p>
-            Koperty to kategorie wydatków (Jedzenie, Czynsz, Wakacje), zebrane w grupy. Każdego miesiąca rozdzielasz na nie
-            pieniądze z kwoty „Do przydzielenia”.
-          </p>
+          <p>{t('empty.body')}</p>
         </EmptyState>
       ) : (
         <BudgetGrid
@@ -317,34 +321,30 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
 
 /** Wynik auto-przydziału: co i ile uzupełniono, ile zostało. */
 function AutoAssignSummary({ result, onClose }: { result: AutoAssignResult; onClose: () => void }) {
+  const { t } = useTranslation('budget')
   const names = new Map(envelopesOf(result.month).map((e) => [e.id, e.name]))
   const month = result.month
   return (
     <Dialog
       open
-      title="Uzupełnianie celów"
+      title={t('auto.title')}
       onClose={onClose}
       size="sm"
       footer={
         <Button variant="primary" onClick={onClose} data-autofocus>
-          Gotowe
+          {t('auto.done')}
         </Button>
       }
     >
       {result.assigned.length === 0 ? (
-        <p>
-          Nic do uzupełnienia —{' '}
-          {toneOf(month.underfunded.amount) === 'inflow'
-            ? 'brakuje pieniędzy do przydzielenia.'
-            : 'cele nieukrytych kopert są w tym miesiącu pokryte.'}
-        </p>
+        <p>{toneOf(month.underfunded.amount) === 'inflow' ? t('auto.nothingNoMoney') : t('auto.nothingCovered')}</p>
       ) : (
         <>
-          <p>Z kwoty do przydzielenia dołożono do kopert z celami:</p>
-          <ul className={styles.resultList} aria-label="Uzupełnione koperty">
+          <p>{t('auto.intro')}</p>
+          <ul className={styles.resultList} aria-label={t('auto.listLabel')}>
             {result.assigned.map((item) => (
               <li key={item.envelope_id}>
-                <span>{names.get(item.envelope_id) ?? 'koperta'}</span>
+                <span>{names.get(item.envelope_id) ?? t('auto.envelopeFallback')}</span>
                 <Money amount={item.amount.amount} currency={item.amount.currency} tone="auto" />
               </li>
             ))}
@@ -352,14 +352,14 @@ function AutoAssignSummary({ result, onClose }: { result: AutoAssignResult; onCl
         </>
       )}
       <p className={styles.muted}>
-        Zostało do przydzielenia: <Money amount={month.ready_to_assign.amount} currency={month.currency} />
-        {toneOf(month.underfunded.amount) === 'inflow' && (
-          <>
-            {' '}
-            · cele potrzebują jeszcze <Money amount={month.underfunded.amount} currency={month.currency} />
-          </>
-        )}
-        .
+        <Trans
+          t={t}
+          i18nKey={toneOf(month.underfunded.amount) === 'inflow' ? 'auto.leftNeeds' : 'auto.left'}
+          components={{
+            rta: <Money amount={month.ready_to_assign.amount} currency={month.currency} />,
+            needed: <Money amount={month.underfunded.amount} currency={month.currency} />,
+          }}
+        />
       </p>
     </Dialog>
   )

@@ -1,1 +1,226 @@
-{}
+{
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "page": {
+    "title": "Budget",
+    "documentTitle": "Budget — {{month}}",
+    "badMonthTitle": "No such month",
+    "badMonthAction": "Go to the current month",
+    "badMonthHint": "The address should look like …/budget/2026-10 (months 2000–2100).",
+    "loadFailed": "Could not load the budget"
+  },
+  "monthNav": {
+    "label": "Budget month",
+    "previous": "Previous month: {{month}}",
+    "next": "Next month: {{month}}",
+    "current": "Current month"
+  },
+  "toolbar": {
+    "label": "Budget actions",
+    "move": "Move money",
+    "autoAssign": "Fund goals",
+    "underfunded": "Goals still need <money/>",
+    "covered": "This month's goals are covered",
+    "showHidden": "Show hidden ({{n}})",
+    "arrangeDone": "Finish arranging",
+    "arrange": "Arrange",
+    "newGroup": "New group",
+    "reorderFailed": "Could not change the order: {{error}}",
+    "autoFailed": "Auto-assign failed: {{error}}"
+  },
+  "empty": {
+    "title": "Create your first envelopes",
+    "action": "New envelope group",
+    "body": "Envelopes are spending categories (Food, Rent, Holidays), collected in groups. Every month you split the money from “Ready to Assign” among them."
+  },
+  "auto": {
+    "title": "Funding goals",
+    "done": "Done",
+    "nothingNoMoney": "Nothing to fund — there is no money left to assign.",
+    "nothingCovered": "Nothing to fund — the goals of visible envelopes are covered this month.",
+    "intro": "From Ready to Assign, money was added to envelopes with goals:",
+    "listLabel": "Funded envelopes",
+    "envelopeFallback": "envelope",
+    "left": "Left to assign: <rta/>.",
+    "leftNeeds": "Left to assign: <rta/> · goals still need <needed/>."
+  },
+  "rta": {
+    "label": "Ready to Assign",
+    "negative": "You assigned more than you have. Reduce assignments by {{amount}}.",
+    "zero": "All your money has a job.",
+    "positive": "Split this money among your envelopes."
+  },
+  "summary": {
+    "label": "Month summary",
+    "assigned": "Assigned",
+    "activity": "Activity",
+    "available": "Available in envelopes",
+    "noticesLabel": "Notes for the month",
+    "overspentLastMonth": "Overspending from {{month}}: <money/> — it reduced Ready to Assign.",
+    "assignedInFuture": "Assigned to future months: <money/> — this money is no longer in Ready to Assign.",
+    "pending_one": "{{count}} transaction is waiting for an exchange rate",
+    "pending_other": "{{count}} transactions are waiting for an exchange rate",
+    "pendingNote": "— they are not counted yet; the amounts will fill in on their own.",
+    "viewTransactions": "View transactions"
+  },
+  "flows": {
+    "title": "Outside envelopes",
+    "income": "Income",
+    "incomeNote": "Income and opening balances of on-budget wallets — they add to Ready to Assign.",
+    "uncategorized": "No envelope",
+    "uncategorizedNote": "Expenses and refunds without an envelope — they come out of Ready to Assign.",
+    "transfers": "Transfers",
+    "transfersNote": "Transfers off budget without an envelope and exchange differences between wallets."
+  },
+  "tile": {
+    "label": "Budget — {{month}}",
+    "overspent": "Overspent envelopes",
+    "envelopes": "Envelopes",
+    "noEnvelopes": "You have no envelopes yet — create some to plan your spending.",
+    "noneOverspent": "No envelope is overspent.",
+    "allOverspent": "All overspending ({{n}}) in the budget",
+    "toBudget": "Go to the budget"
+  },
+  "grid": {
+    "envelope": "Envelope",
+    "assigned": "Assigned",
+    "activity": "Activity",
+    "available": "Available",
+    "hiddenCount": "Hidden: {{n}}",
+    "addEnvelope": "Add an envelope to group {{name}}",
+    "renameGroup": "Rename group {{name}}",
+    "groupUp": "Move group {{name}} up",
+    "groupDown": "Move group {{name}} down",
+    "deleteGroup": "Delete group {{name}}",
+    "groupAssigned": "Assigned in group: ",
+    "groupActivity": "Activity in group: ",
+    "groupAvailable": "Available in group: ",
+    "allHidden": "All envelopes in this group are hidden.",
+    "groupEmpty": "This group has no envelopes yet.",
+    "envelopesOf": "Envelopes: {{name}}",
+    "row": "Envelope {{name}}",
+    "hidden": "Hidden",
+    "envelopeUp": "Move envelope {{name}} up",
+    "envelopeDown": "Move envelope {{name}} down",
+    "overspentNote": " (overspent)",
+    "assignInput": "Assigned: {{name}}",
+    "assignFailed": "Assignment for “{{name}}” was not saved: {{error}}",
+    "state": {
+      "negative": "Overspent — move money to cover the spending",
+      "underfunded": "This month's goal is not covered yet",
+      "zero": "Nothing left",
+      "positive": "Available to spend"
+    }
+  },
+  "goal": {
+    "funded": "Goal covered",
+    "missing": "{{amount}} short",
+    "progress": "Goal progress for {{name}}",
+    "note": " · goal: {{goal}}",
+    "monthly": "{{amount}} every month",
+    "byDate": "{{amount}} by {{date}}",
+    "dateMissing": "Enter the date by which you want to save the amount.",
+    "datePast": "The goal date has passed — choose a future one.",
+    "type": {
+      "none": "No goal",
+      "monthly": "Every month",
+      "target_by_date": "Amount by date"
+    }
+  },
+  "move": {
+    "title": "Move money",
+    "rta": "Ready to Assign",
+    "rtaOption": "Ready to Assign ({{amount}})",
+    "envelopeFallback": "envelope",
+    "sameTarget": "Choose a destination other than the source.",
+    "pickEnvelope": "Choose an envelope.",
+    "done": "Moved {{amount}}: {{from}} → {{to}}.",
+    "from": "From",
+    "to": "To",
+    "amount": "Amount",
+    "source": "Available in the source: <money/>. A move may leave the source in the red — just like with paper envelopes, you will see it right away.",
+    "submit": "Move"
+  },
+  "details": {
+    "statsLabel": "Envelope {{name}} — {{month}}",
+    "carriedOver": "From last month",
+    "assigned": "Assigned",
+    "activity": "Activity",
+    "available": "Available",
+    "goal": "Goal: {{goal}}",
+    "goalNeeded": "Goal: {{goal}} · needed this month <money/>",
+    "noGoal": "This envelope has no goal.",
+    "cover": "Cover overspending",
+    "move": "Move money",
+    "edit": "Edit",
+    "show": "Show envelope",
+    "hide": "Hide",
+    "delete": "Delete",
+    "restored": "Envelope {{name}} restored.",
+    "hidden": "Envelope {{name}} hidden.",
+    "activityTitle": "Transactions this month",
+    "showInRegister": "Show in the register",
+    "activityLoadFailed": "Could not load the envelope's transactions",
+    "activityLabel": "Envelope transactions",
+    "activityEmptyTitle": "No transactions this month",
+    "activityEmptyBody": "Expenses with this envelope will show up here.",
+    "splitPart": " · part of a transaction of {{amount}}",
+    "ratePending": " · waiting for a rate"
+  },
+  "group": {
+    "titleRename": "Rename group {{name}}",
+    "titleNew": "New envelope group",
+    "formRename": "Rename group",
+    "nameMissing": "Enter a group name.",
+    "renamed": "Group renamed to {{name}}.",
+    "added": "Group {{name}} added.",
+    "name": "Group name",
+    "duplicate": "A group with this name already exists.",
+    "hint": "E.g. Bills, Everyday, Goals",
+    "add": "Add group"
+  },
+  "envelope": {
+    "titleEdit": "Edit envelope {{name}}",
+    "titleNew": "New envelope",
+    "formEdit": "Edit envelope",
+    "nameMissing": "Enter an envelope name.",
+    "groupMissing": "Choose a group.",
+    "saved": "Envelope {{name}} saved.",
+    "added": "Envelope {{name}} added.",
+    "name": "Envelope name",
+    "duplicate": "An envelope with this name already exists.",
+    "group": "Group",
+    "goal": "Goal",
+    "monthlyHint": "How much to assign to this envelope every month, e.g. for food or bills.",
+    "byDateHint": "How much to save by the chosen day — we will spread the missing amount evenly over the remaining months.",
+    "amountMonthly": "Monthly amount",
+    "amountTarget": "Goal amount",
+    "targetDate": "By date",
+    "hide": "Hide envelope",
+    "hideHint": "A hidden envelope disappears from the grid, but its amounts still count in the budget and you can still use it in transactions.",
+    "add": "Add envelope"
+  },
+  "deleteEnvelope": {
+    "title": "Delete envelope {{name}}?",
+    "confirm": "Delete envelope",
+    "inUseTitle": "This envelope cannot be deleted",
+    "inUseBody": "It has transactions — the budget history must stay. You can hide it: it will disappear from the grid and the amounts will stay.",
+    "hide": "Hide envelope",
+    "hidden": "Envelope {{name}} hidden.",
+    "deleted": "Envelope {{name}} deleted.",
+    "body": "The envelope's assignments will disappear and their amount will return to “Ready to Assign”. Payees with this envelope as their default will lose that setting."
+  },
+  "deleteGroup": {
+    "title": "Delete group {{name}}?",
+    "confirm": "Delete group",
+    "notEmptyTitle": "The group has envelopes",
+    "notEmptyBody": "Only an empty group can be deleted. Move the envelopes to another group or delete them; you can hide envelopes with transactions.",
+    "hideAll": "Hide the group's envelopes ({{n}})",
+    "hidden": "Envelopes in group {{name}} hidden.",
+    "deleted": "Group {{name}} deleted.",
+    "empty": "The group is empty.",
+    "count": "Envelopes in the group: {{n}}."
+  }
+}

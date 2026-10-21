@@ -1,1 +1,44 @@
-{}
+{
+  "greeting": {
+    "evening": "Dobry wieczór",
+    "day": "Dzień dobry"
+  },
+  "title": "{{greeting}}, {{name}}",
+  "documentTitle": "Pulpit",
+  "addTransaction": "Dodaj transakcję",
+  "walletsLoadFailed": "Nie udało się wczytać portfeli",
+  "firstWallet": {
+    "title": "Dodaj pierwszy portfel",
+    "action": "Dodaj portfel",
+    "body": "Konto, gotówka albo karta — od portfela zaczyna się ewidencja wydatków i budżet."
+  },
+  "wallets": {
+    "title": "Portfele",
+    "all": "Wszystkie portfele",
+    "offBudget": " · poza budżetem"
+  },
+  "recent": {
+    "title": "Ostatnie transakcje",
+    "all": "Cały rejestr",
+    "loadFailed": "Nie udało się wczytać transakcji",
+    "empty": "Nie ma jeszcze transakcji.",
+    "walletFallback": "portfel"
+  },
+  "facts": {
+    "label": "Gospodarstwo",
+    "role": "Twoja rola:",
+    "currency": "Waluta bazowa:",
+    "monthStart": "Miesiąc budżetowy od:",
+    "monthStartDay": "{{day}}. dnia",
+    "timezone": "Strefa:"
+  },
+  "steps": {
+    "title": "Następne kroki",
+    "inviteTitle": "Zaproś domowników",
+    "inviteText": "Wyślij link z zaproszeniem i wybierz, co każdy może robić.",
+    "botTitle": "Podłącz asystenta AI",
+    "botText": "Claude lub inny asystent przez MCP: utwórz bota i skopiuj gotowe polecenie podłączenia.",
+    "settingsTitle": "Sprawdź ustawienia",
+    "settingsText": "Strefa czasowa i dzień, od którego liczysz miesiąc budżetowy."
+  }
+}

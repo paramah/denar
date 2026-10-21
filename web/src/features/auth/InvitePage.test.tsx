@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { setLocale } from '../../i18n/locale.ts'
 import { storageKeys } from '../../lib/storage.ts'
 import * as f from '../../test/msw/fixtures.ts'
 import { problemResponse } from '../../test/msw/handlers.ts'
@@ -101,5 +102,29 @@ describe('InvitePage', () => {
     window.history.replaceState(null, '', '/invite')
     renderApp('/invite')
     expect(await screen.findByRole('heading', { name: 'Brak zaproszenia w linku' })).toBeInTheDocument()
+  })
+
+  it('speaks English after switching the language', async () => {
+    setLocale('en')
+    withToken('dobry')
+    const { user } = renderApp('/invite')
+    expect(await screen.findByRole('heading', { name: 'Join the Dom household' })).toBeInTheDocument()
+    expect(screen.getByText('Invited address')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Create an account' })).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Name'), 'Jan')
+    await user.type(screen.getByLabelText('Password'), 'short')
+    await user.type(screen.getByLabelText('Repeat password'), 'other')
+    await user.click(screen.getByRole('button', { name: 'Create account and join' }))
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(/at least 12 characters/)
+    expect(screen.getByLabelText('Repeat password')).toHaveAccessibleDescription('The passwords do not match.')
+  })
+
+  it('greets a signed-in user in English', async () => {
+    setLocale('en')
+    withToken('dobry')
+    signedIn = true
+    renderApp('/invite')
+    expect(await screen.findByRole('button', { name: 'Accept invitation' })).toBeInTheDocument()
+    expect(screen.getByText(/You are signed in as/)).toHaveTextContent(/^You are signed in as .+@.+\.$/)
   })
 })

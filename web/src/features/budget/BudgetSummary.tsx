@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { BudgetMonth } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
@@ -17,17 +18,18 @@ export function rtaState(month: BudgetMonth): RtaState {
 
 /** Duża kwota „Do przydzielenia” z opisem stanu. */
 export function ReadyToAssign({ month }: { month: BudgetMonth }) {
+  const { t } = useTranslation('budget')
   const state = rtaState(month)
   const amount = month.ready_to_assign
   const text =
     state === 'negative'
-      ? `Przydzielono więcej, niż masz. Zmniejsz przydziały o ${formatMoney(absDecimal(amount.amount), amount.currency) ?? ''}.`
+      ? t('rta.negative', { amount: formatMoney(absDecimal(amount.amount), amount.currency) ?? '' })
       : state === 'zero'
-        ? 'Każda złotówka ma zadanie.'
-        : 'Rozdziel te pieniądze na koperty.'
+        ? t('rta.zero')
+        : t('rta.positive')
   return (
-    <div className={styles.rta} data-state={state} role="group" aria-label="Do przydzielenia">
-      <span className={styles.rtaLabel}>Do przydzielenia</span>
+    <div className={styles.rta} data-state={state} role="group" aria-label={t('rta.label')}>
+      <span className={styles.rtaLabel}>{t('rta.label')}</span>
       <Money amount={amount.amount} currency={amount.currency} size="xl" className={styles.rtaAmount} />
       <p className={styles.rtaText}>
         {state === 'negative' && <Icon name="alert" size={16} />} {text}
@@ -38,28 +40,29 @@ export function ReadyToAssign({ month }: { month: BudgetMonth }) {
 
 /** Nagłówek budżetu: kwota do przydzielenia, sumy miesiąca i uwagi. */
 export function BudgetSummary({ month }: { month: BudgetMonth }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const overspent = toneOf(month.overspent_last_month.amount) === 'outflow'
   const future = toneOf(month.assigned_in_future.amount) === 'inflow'
   return (
     <>
-      <section className={styles.summary} aria-label="Podsumowanie miesiąca">
+      <section className={styles.summary} aria-label={t('summary.label')}>
         <ReadyToAssign month={month} />
         <dl className={styles.totals}>
           <div>
-            <dt>Przydzielono</dt>
+            <dt>{t('summary.assigned')}</dt>
             <dd>
               <Money amount={month.assigned.amount} currency={month.currency} />
             </dd>
           </div>
           <div>
-            <dt>Aktywność</dt>
+            <dt>{t('summary.activity')}</dt>
             <dd>
               <Money amount={month.activity.amount} currency={month.currency} tone="auto" signed={false} />
             </dd>
           </div>
           <div>
-            <dt>Dostępne w kopertach</dt>
+            <dt>{t('summary.available')}</dt>
             <dd>
               <Money amount={month.available.amount} currency={month.currency} />
             </dd>
@@ -67,14 +70,17 @@ export function BudgetSummary({ month }: { month: BudgetMonth }) {
         </dl>
       </section>
       {(overspent || future || month.incomplete) && (
-        <ul className={styles.notices} aria-label="Uwagi do miesiąca">
+        <ul className={styles.notices} aria-label={t('summary.noticesLabel')}>
           {overspent && (
             <li className={styles.notice} data-tone="warn">
               <Icon name="alert" size={16} />
               <span>
-                Przekroczenia z miesiąca {formatMonth(shiftMonth(month.month, -1))}:{' '}
-                <Money amount={month.overspent_last_month.amount} currency={month.currency} /> — pomniejszyły kwotę do
-                przydzielenia.
+                <Trans
+                  t={t}
+                  i18nKey="summary.overspentLastMonth"
+                  values={{ month: formatMonth(shiftMonth(month.month, -1)) }}
+                  components={{ money: <Money amount={month.overspent_last_month.amount} currency={month.currency} /> }}
+                />
               </span>
             </li>
           )}
@@ -82,8 +88,11 @@ export function BudgetSummary({ month }: { month: BudgetMonth }) {
             <li className={styles.notice}>
               <Icon name="clock" size={16} />
               <span>
-                Przydzielono na kolejne miesiące: <Money amount={month.assigned_in_future.amount} currency={month.currency} />{' '}
-                — tych pieniędzy nie ma już w kwocie do przydzielenia.
+                <Trans
+                  t={t}
+                  i18nKey="summary.assignedInFuture"
+                  components={{ money: <Money amount={month.assigned_in_future.amount} currency={month.currency} /> }}
+                />
               </span>
             </li>
           )}
@@ -91,11 +100,8 @@ export function BudgetSummary({ month }: { month: BudgetMonth }) {
             <li className={styles.notice} data-tone="warn">
               <Icon name="clock" size={16} />
               <span>
-                {month.pending_transactions === 1
-                  ? '1 transakcja czeka na kurs waluty'
-                  : `Transakcje czekające na kurs waluty: ${month.pending_transactions}`}{' '}
-                — nie są jeszcze liczone, kwoty uzupełnią się same.{' '}
-                <Link to={`${householdPath(household.id, 'transactions')}?to=${month.end}`}>Zobacz transakcje</Link>
+                {t('summary.pending', { count: month.pending_transactions })} {t('summary.pendingNote')}{' '}
+                <Link to={`${householdPath(household.id, 'transactions')}?to=${month.end}`}>{t('summary.viewTransactions')}</Link>
               </span>
             </li>
           )}
@@ -107,30 +113,31 @@ export function BudgetSummary({ month }: { month: BudgetMonth }) {
 
 /** Przepływy miesiąca poza kopertami: wpływy, wydatki bez koperty, przelewy. */
 export function BudgetFlows({ month }: { month: BudgetMonth }) {
+  const { t } = useTranslation('budget')
   return (
     <section className={styles.flows} aria-labelledby="budget-flows">
-      <h2 id="budget-flows">Poza kopertami</h2>
+      <h2 id="budget-flows">{t('flows.title')}</h2>
       <dl className={styles.flowList}>
         <div>
-          <dt>Wpływy</dt>
+          <dt>{t('flows.income')}</dt>
           <dd>
             <Money amount={month.income.amount} currency={month.currency} tone="auto" />
           </dd>
-          <dd className={styles.flowNote}>Przychody i salda otwarcia portfeli budżetowych — zasilają kwotę do przydzielenia.</dd>
+          <dd className={styles.flowNote}>{t('flows.incomeNote')}</dd>
         </div>
         <div>
-          <dt>Bez koperty</dt>
+          <dt>{t('flows.uncategorized')}</dt>
           <dd>
             <Money amount={month.uncategorized.amount} currency={month.currency} tone="auto" />
           </dd>
-          <dd className={styles.flowNote}>Wydatki i zwroty bez koperty — obciążają kwotę do przydzielenia.</dd>
+          <dd className={styles.flowNote}>{t('flows.uncategorizedNote')}</dd>
         </div>
         <div>
-          <dt>Przelewy</dt>
+          <dt>{t('flows.transfers')}</dt>
           <dd>
             <Money amount={month.transfers.amount} currency={month.currency} tone="auto" />
           </dd>
-          <dd className={styles.flowNote}>Przelewy poza budżet bez koperty i różnice kursowe między portfelami.</dd>
+          <dd className={styles.flowNote}>{t('flows.transfersNote')}</dd>
         </div>
       </dl>
     </section>

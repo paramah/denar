@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useSessionUser } from '../../api/hooks/session.ts'
 import { useRecentTransactions } from '../../api/hooks/transactions.ts'
@@ -26,11 +27,11 @@ import { RecentNotificationsTile } from '../notifications/RecentNotificationsTil
 import placeholder from '../placeholders/placeholders.module.css'
 import styles from './dashboard.module.css'
 
-function greeting(now = new Date()): string {
+function greeting(now = new Date()): 'evening' | 'day' {
   const hour = now.getHours()
-  if (hour < 5) return 'Dobry wieczór'
-  if (hour < 18) return 'Dzień dobry'
-  return 'Dobry wieczór'
+  if (hour < 5) return 'evening'
+  if (hour < 18) return 'day'
+  return 'evening'
 }
 
 type Step = { to: string; icon: IconName; title: string; text: string }
@@ -45,6 +46,7 @@ const recentShown = 5
  * Powiadomienia (część C3b): trzy ostatnie z gospodarstwa.
  */
 export function DashboardPage() {
+  const { t } = useTranslation('dashboard')
   const { household, role } = useHousehold()
   const { user } = useSessionUser()
   const firstName = user.name.split(/\s+/)[0] ?? user.name
@@ -63,8 +65,8 @@ export function DashboardPage() {
           {
             to: householdPath(household.id, 'settings/invitations'),
             icon: 'users' as const,
-            title: 'Zaproś domowników',
-            text: 'Wyślij link z zaproszeniem i wybierz, co każdy może robić.',
+            title: t('steps.inviteTitle'),
+            text: t('steps.inviteText'),
           },
         ]
       : []),
@@ -73,35 +75,35 @@ export function DashboardPage() {
           {
             to: householdPath(household.id, 'settings/bots'),
             icon: 'bot' as const,
-            title: 'Podłącz asystenta AI',
-            text: 'Claude lub inny asystent przez MCP: utwórz bota i skopiuj gotowe polecenie podłączenia.',
+            title: t('steps.botTitle'),
+            text: t('steps.botText'),
           },
         ]
       : []),
     {
       to: householdPath(household.id, 'settings'),
       icon: 'settings',
-      title: 'Sprawdź ustawienia',
-      text: 'Strefa czasowa i dzień, od którego liczysz miesiąc budżetowy.',
+      title: t('steps.settingsTitle'),
+      text: t('steps.settingsText'),
     },
   ]
 
   return (
     <>
       <PageHeader
-        title={`${greeting()}, ${firstName}`}
-        documentTitle="Pulpit"
+        title={t('title', { greeting: t(`greeting.${greeting()}`), name: firstName })}
+        documentTitle={t('documentTitle')}
         actions={
           canWrite &&
           hasWallets && (
             <Button variant="primary" icon="plus" onClick={() => setAdding(true)}>
-              Dodaj transakcję
+              {t('addTransaction')}
             </Button>
           )
         }
       />
       <div className={styles.layout}>
-        <QueryState query={wallets} errorTitle="Nie udało się wczytać portfeli" loading={<Skeleton lines={3} />}>
+        <QueryState query={wallets} errorTitle={t('walletsLoadFailed')} loading={<Skeleton lines={3} />}>
           {(items) =>
             items.length === 0 ? (
               <>
@@ -111,16 +113,16 @@ export function DashboardPage() {
                 />
                 <EmptyState
                   icon="wallet"
-                  title="Dodaj pierwszy portfel"
+                  title={t('firstWallet.title')}
                   action={
                     canWrite && (
                       <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-                        Dodaj portfel
+                        {t('firstWallet.action')}
                       </Button>
                     )
                   }
                 >
-                  <p>Konto, gotówka albo karta — od portfela zaczyna się ewidencja wydatków i budżet.</p>
+                  <p>{t('firstWallet.body')}</p>
                 </EmptyState>
               </>
             ) : (
@@ -134,8 +136,8 @@ export function DashboardPage() {
                 <div className={styles.columns}>
                   <section className={styles.panel} aria-labelledby="dash-wallets">
                     <div className={styles.panelHead}>
-                      <h2 id="dash-wallets">Portfele</h2>
-                      <Link to={householdPath(household.id, 'wallets')}>Wszystkie portfele</Link>
+                      <h2 id="dash-wallets">{t('wallets.title')}</h2>
+                      <Link to={householdPath(household.id, 'wallets')}>{t('wallets.all')}</Link>
                     </div>
                     <ul className={styles.wallets}>
                       {items.slice(0, walletsShown).map((wallet) => (
@@ -152,7 +154,7 @@ export function DashboardPage() {
                             </span>
                             <span className={styles.walletMeta}>
                               {walletTypeLabels[wallet.type]}
-                              {!wallet.on_budget && ' · poza budżetem'}
+                              {!wallet.on_budget && t('wallets.offBudget')}
                             </span>
                           </Link>
                         </li>
@@ -161,21 +163,21 @@ export function DashboardPage() {
                   </section>
                   <section className={styles.panel} aria-labelledby="dash-recent">
                     <div className={styles.panelHead}>
-                      <h2 id="dash-recent">Ostatnie transakcje</h2>
-                      <Link to={householdPath(household.id, 'transactions')}>Cały rejestr</Link>
+                      <h2 id="dash-recent">{t('recent.title')}</h2>
+                      <Link to={householdPath(household.id, 'transactions')}>{t('recent.all')}</Link>
                     </div>
-                    <QueryState query={recent} errorTitle="Nie udało się wczytać transakcji" loading={<Skeleton lines={3} />}>
+                    <QueryState query={recent} errorTitle={t('recent.loadFailed')} loading={<Skeleton lines={3} />}>
                       {(transactions) =>
                         transactions.length === 0 ? (
-                          <p className={styles.walletMeta}>Nie ma jeszcze transakcji.</p>
+                          <p className={styles.walletMeta}>{t('recent.empty')}</p>
                         ) : (
-                          <ul className={styles.recent} aria-label="Ostatnie transakcje">
-                            {transactions.map((t) => (
-                              <li key={t.id}>
-                                <span className={styles.recentTitle}>{transactionTitle(t, walletMap)}</span>
-                                <Money amount={t.amount.amount} currency={t.amount.currency} tone="auto" />
+                          <ul className={styles.recent} aria-label={t('recent.title')}>
+                            {transactions.map((tx) => (
+                              <li key={tx.id}>
+                                <span className={styles.recentTitle}>{transactionTitle(tx, walletMap)}</span>
+                                <Money amount={tx.amount.amount} currency={tx.amount.currency} tone="auto" />
                                 <span className={styles.walletMeta}>
-                                  {formatDay(t.date)} · {walletMap.get(t.wallet_id)?.name ?? 'portfel'}
+                                  {formatDay(tx.date)} · {walletMap.get(tx.wallet_id)?.name ?? t('recent.walletFallback')}
                                 </span>
                               </li>
                             ))}
@@ -192,27 +194,27 @@ export function DashboardPage() {
 
         <RecentNotificationsTile />
 
-        <dl className={styles.facts} aria-label="Gospodarstwo">
+        <dl className={styles.facts} aria-label={t('facts.label')}>
           <div>
-            <dt>Twoja rola:</dt>
+            <dt>{t('facts.role')}</dt>
             <dd>{roleLabels[role]}</dd>
           </div>
           <div>
-            <dt>Waluta bazowa:</dt>
+            <dt>{t('facts.currency')}</dt>
             <dd>{household.base_currency}</dd>
           </div>
           <div>
-            <dt>Miesiąc budżetowy od:</dt>
-            <dd>{household.month_start_day}. dnia</dd>
+            <dt>{t('facts.monthStart')}</dt>
+            <dd>{t('facts.monthStartDay', { day: household.month_start_day })}</dd>
           </div>
           <div>
-            <dt>Strefa:</dt>
+            <dt>{t('facts.timezone')}</dt>
             <dd>{household.timezone}</dd>
           </div>
         </dl>
 
         <section className={placeholder.steps} aria-labelledby="next-steps">
-          <h2 id="next-steps">Następne kroki</h2>
+          <h2 id="next-steps">{t('steps.title')}</h2>
           <ul>
             {steps.map((step) => (
               <li key={step.to}>

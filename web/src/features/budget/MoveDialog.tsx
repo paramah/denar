@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { fieldErrors } from '../../api/errors.ts'
 import { useMoveBetweenEnvelopes, useSetAssignment } from '../../api/hooks/budget.ts'
 import type { BudgetMonth } from '../../api/types.ts'
@@ -33,14 +34,16 @@ type Props = {
  * przydzielenia do koperty albo z koperty z powrotem (zmiana przydziału).
  */
 export function MoveDialog({ open, onClose, month, decimals, preset }: Props) {
+  const { t } = useTranslation('budget')
   return (
-    <Dialog open={open} title="Przenieś środki" onClose={onClose} size="md">
+    <Dialog open={open} title={t('move.title')} onClose={onClose} size="md">
       <MoveForm onClose={onClose} month={month} decimals={decimals} preset={preset} />
     </Dialog>
   )
 }
 
 function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>) {
+  const { t } = useTranslation(['budget', 'common'])
   const { household } = useHousehold()
   const move = useMoveBetweenEnvelopes(household.id)
   const assign = useSetAssignment(household.id)
@@ -55,12 +58,12 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
   const mutation = from === readyToAssign || to === readyToAssign ? assign : move
   const server = fieldErrors(mutation.error)
   const available = (id: string) => (id === readyToAssign ? month.ready_to_assign : byId.get(id)?.available)
-  const nameOf = (id: string) => (id === readyToAssign ? 'Do przydzielenia' : (byId.get(id)?.name ?? 'koperta'))
+  const nameOf = (id: string) => (id === readyToAssign ? t('move.rta') : (byId.get(id)?.name ?? t('move.envelopeFallback')))
 
   const options = (selected: string) => [
     {
       value: readyToAssign,
-      label: `Do przydzielenia (${formatMoney(month.ready_to_assign.amount, month.currency) ?? ''})`,
+      label: t('move.rtaOption', { amount: formatMoney(month.ready_to_assign.amount, month.currency) ?? '' }),
     },
     ...envelopes
       .filter((e) => !e.hidden || e.id === selected)
@@ -77,10 +80,10 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
       next.amount = parsed.error
     }
     if (from === to) {
-      next.to = 'Wybierz inne miejsce docelowe niż źródło.'
+      next.to = t('move.sameTarget')
     }
     if (from === readyToAssign && to === readyToAssign) {
-      next.to = 'Wybierz kopertę.'
+      next.to = t('move.pickEnvelope')
     }
     setErrors(next)
     if (Object.values(next).some(Boolean) || !parsed.ok) {
@@ -92,7 +95,7 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
         const target = byId.get(from === readyToAssign ? to : from)!
         const value = shiftAssigned(target.assigned.amount, parsed.value, decimals, to === readyToAssign)
         if (value === null) {
-          setErrors({ amount: 'Wpisz poprawną kwotę.' })
+          setErrors({ amount: t('common:amount.invalid') })
           return
         }
         await assign.mutateAsync({
@@ -111,7 +114,11 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
         })
       }
       toast.show({
-        message: `Przeniesiono ${formatMoney(parsed.value, month.currency) ?? parsed.value}: ${nameOf(from)} → ${nameOf(to)}.`,
+        message: t('move.done', {
+          amount: formatMoney(parsed.value, month.currency) ?? parsed.value,
+          from: nameOf(from),
+          to: nameOf(to),
+        }),
       })
       onClose()
     } catch {
@@ -123,7 +130,7 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
   return (
     <form
       noValidate
-      aria-label="Przenieś środki"
+      aria-label={t('move.title')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -133,14 +140,14 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
       <FormAlert error={mutation.error} shownFields={['amount', 'amount.amount', 'from_envelope_id', 'to_envelope_id']} />
       <div className={styles.pair}>
         <SelectField
-          label="Z"
+          label={t('move.from')}
           value={from}
           onChange={(event) => setFrom(event.target.value)}
           options={options(from)}
           error={server.from_envelope_id}
         />
         <SelectField
-          label="Do"
+          label={t('move.to')}
           value={to}
           onChange={(event) => setTo(event.target.value)}
           options={options(to)}
@@ -148,7 +155,7 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
         />
       </div>
       <AmountField
-        label="Kwota"
+        label={t('move.amount')}
         value={amount}
         onChange={setAmount}
         currency={month.currency}
@@ -158,14 +165,13 @@ function MoveForm({ onClose, month, decimals, preset = {} }: Omit<Props, 'open'>
       />
       {source && (
         <p className={styles.muted}>
-          Dostępne w źródle: <Money amount={source.amount} currency={month.currency} />. Przeniesienie może zostawić
-          źródło na minusie — tak jak w kopertach na papierze, zobaczysz to od razu.
+          <Trans t={t} i18nKey="move.source" components={{ money: <Money amount={source.amount} currency={month.currency} /> }} />
         </p>
       )}
       <div className={styles.actions}>
-        <Button onClick={onClose}>Anuluj</Button>
+        <Button onClick={onClose}>{t('actions.cancel')}</Button>
         <Button type="submit" variant="primary" icon="transfer" busy={mutation.isPending}>
-          Przenieś
+          {t('move.submit')}
         </Button>
       </div>
     </form>

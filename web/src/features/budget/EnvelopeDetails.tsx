@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useEnvelopeActivity, useUpdateEnvelope } from '../../api/hooks/budget.ts'
 import { useWallets } from '../../api/hooks/wallets.ts'
 import type { BudgetEnvelope, BudgetMonth, Transaction } from '../../api/types.ts'
@@ -32,6 +33,7 @@ type Props = {
 
 /** Szczegóły koperty: kwoty miesiąca, cel, akcje i transakcje koperty w miesiącu. */
 export function EnvelopeDetails({ envelope, month, canWrite, onClose, onEdit, onMove, onDelete }: Props) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const update = useUpdateEnvelope(household.id)
   const toast = useToast()
@@ -40,27 +42,27 @@ export function EnvelopeDetails({ envelope, month, canWrite, onClose, onEdit, on
   return (
     <Dialog open title={envelope.name} onClose={onClose} size="lg">
       <div className={styles.form}>
-        <dl className={styles.stats} aria-label={`Koperta ${envelope.name} — ${formatMonth(month.month)}`}>
+        <dl className={styles.stats} aria-label={t('details.statsLabel', { name: envelope.name, month: formatMonth(month.month) })}>
           <div>
-            <dt>Z poprzedniego miesiąca</dt>
+            <dt>{t('details.carriedOver')}</dt>
             <dd>
               <Money amount={envelope.carried_over.amount} currency={month.currency} />
             </dd>
           </div>
           <div>
-            <dt>Przydzielono</dt>
+            <dt>{t('details.assigned')}</dt>
             <dd>
               <Money amount={envelope.assigned.amount} currency={month.currency} />
             </dd>
           </div>
           <div>
-            <dt>Aktywność</dt>
+            <dt>{t('details.activity')}</dt>
             <dd>
               <Money amount={envelope.activity.amount} currency={month.currency} tone="auto" signed={false} />
             </dd>
           </div>
           <div>
-            <dt>Dostępne</dt>
+            <dt>{t('details.available')}</dt>
             <dd>
               <Money amount={envelope.available.amount} currency={month.currency} size="lg" />
             </dd>
@@ -69,27 +71,29 @@ export function EnvelopeDetails({ envelope, month, canWrite, onClose, onEdit, on
         {envelope.goal ? (
           <div className={styles.nameCell}>
             <p className={styles.muted}>
-              Cel: {describeGoal(envelope.goal)}
-              {envelope.goal_status && (
-                <>
-                  {' '}
-                  · w tym miesiącu potrzeba{' '}
-                  <Money amount={envelope.goal_status.needed.amount} currency={month.currency} size="sm" />
-                </>
+              {envelope.goal_status ? (
+                <Trans
+                  t={t}
+                  i18nKey="details.goalNeeded"
+                  values={{ goal: describeGoal(envelope.goal) }}
+                  components={{ money: <Money amount={envelope.goal_status.needed.amount} currency={month.currency} size="sm" /> }}
+                />
+              ) : (
+                t('details.goal', { goal: describeGoal(envelope.goal) })
               )}
             </p>
             <GoalProgress envelope={envelope} currency={month.currency} />
           </div>
         ) : (
-          <p className={styles.muted}>Koperta nie ma celu.</p>
+          <p className={styles.muted}>{t('details.noGoal')}</p>
         )}
         {canWrite && (
           <div className={styles.detailActions}>
             <Button icon="transfer" onClick={onMove}>
-              {toneOf(envelope.available.amount) === 'outflow' ? 'Pokryj przekroczenie' : 'Przenieś środki'}
+              {toneOf(envelope.available.amount) === 'outflow' ? t('details.cover') : t('details.move')}
             </Button>
             <Button icon="edit" onClick={onEdit}>
-              Edytuj
+              {t('details.edit')}
             </Button>
             <Button
               icon={envelope.hidden ? 'eye' : 'eyeOff'}
@@ -99,24 +103,28 @@ export function EnvelopeDetails({ envelope, month, canWrite, onClose, onEdit, on
                   { envelopeId: envelope.id, body: { hidden: !envelope.hidden } },
                   {
                     onSuccess: () =>
-                      toast.show({ message: envelope.hidden ? `Przywrócono kopertę ${envelope.name}.` : `Ukryto kopertę ${envelope.name}.` }),
+                      toast.show({
+                        message: envelope.hidden
+                          ? t('details.restored', { name: envelope.name })
+                          : t('details.hidden', { name: envelope.name }),
+                      }),
                   },
                 )
               }
             >
-              {envelope.hidden ? 'Pokaż kopertę' : 'Ukryj'}
+              {envelope.hidden ? t('details.show') : t('details.hide')}
             </Button>
             <Button icon="trash" variant="danger" onClick={onDelete}>
-              Usuń
+              {t('details.delete')}
             </Button>
           </div>
         )}
         <section className={styles.flows} aria-labelledby="envelope-activity">
           <div className={styles.toolbar}>
-            <h2 id="envelope-activity">Transakcje w miesiącu</h2>
+            <h2 id="envelope-activity">{t('details.activityTitle')}</h2>
             <div className={styles.toolbarEnd}>
               <LinkButton to={register} size="sm" icon="list">
-                Pokaż w rejestrze
+                {t('details.showInRegister')}
               </LinkButton>
             </div>
           </div>
@@ -128,28 +136,34 @@ export function EnvelopeDetails({ envelope, month, canWrite, onClose, onEdit, on
 }
 
 function ActivityList({ envelopeId, month }: { envelopeId: string; month: BudgetMonth }) {
+  const { t } = useTranslation('budget')
   const { household } = useHousehold()
   const activity = useEnvelopeActivity(household.id, month.month, envelopeId)
   const wallets = useWallets(household.id, { includeArchived: true })
   const walletMap = useMemo(() => new Map((wallets.data ?? []).map((w) => [w.id, w])), [wallets.data])
 
   return (
-    <QueryState query={activity} errorTitle="Nie udało się wczytać transakcji koperty" loading={<Skeleton lines={3} />}>
+    <QueryState query={activity} errorTitle={t('details.activityLoadFailed')} loading={<Skeleton lines={3} />}>
       {(data) => (
         <DataList
-          label="Transakcje koperty"
+          label={t('details.activityLabel')}
           items={data.pages.flatMap((page) => page.items)}
-          getKey={(t) => t.id}
+          getKey={(tx) => tx.id}
           hasMore={activity.hasNextPage}
           onLoadMore={() => void activity.fetchNextPage()}
           loadingMore={activity.isFetchingNextPage}
           empty={
-            <EmptyState icon="list" title="Brak transakcji w tym miesiącu" headingLevel={3}>
-              <p>Wydatki z tą kopertą pojawią się tutaj.</p>
+            <EmptyState icon="list" title={t('details.activityEmptyTitle')} headingLevel={3}>
+              <p>{t('details.activityEmptyBody')}</p>
             </EmptyState>
           }
-          renderItem={(t) => (
-            <ActivityItem transaction={t} envelopeId={envelopeId} title={transactionTitle(t, walletMap)} wallet={walletMap.get(t.wallet_id)?.name} />
+          renderItem={(tx) => (
+            <ActivityItem
+              transaction={tx}
+              envelopeId={envelopeId}
+              title={transactionTitle(tx, walletMap)}
+              wallet={walletMap.get(tx.wallet_id)?.name}
+            />
           )}
         />
       )}
@@ -168,6 +182,7 @@ function ActivityItem({
   title: string
   wallet?: string
 }) {
+  const { t } = useTranslation('budget')
   // Przy splicie liczy się tylko część przypisana do tej koperty (kwota bazowa).
   const parts = transaction.splits.filter((split) => split.envelope_id === envelopeId)
   const amount = parts.length === 1 ? (parts[0]!.base_amount ?? parts[0]!.amount) : (transaction.base_amount ?? transaction.amount)
@@ -179,8 +194,10 @@ function ActivityItem({
         <span className={styles.activityMeta}>
           {wallet}
           {parts.length > 0 &&
-            ` · część transakcji na ${formatMoney(absDecimal(transaction.amount.amount), transaction.amount.currency) ?? transaction.amount.amount}`}
-          {transaction.rate_pending && ' · czeka na kurs'}
+            t('details.splitPart', {
+              amount: formatMoney(absDecimal(transaction.amount.amount), transaction.amount.currency) ?? transaction.amount.amount,
+            })}
+          {transaction.rate_pending && t('details.ratePending')}
         </span>
       </span>
       <Money amount={amount.amount} currency={amount.currency} tone="auto" />
