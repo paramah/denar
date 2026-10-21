@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"git.eiac.dev/tools/denar/internal/adapter/mcp"
 	"git.eiac.dev/tools/denar/internal/adapter/nbp"
 	"git.eiac.dev/tools/denar/internal/adapter/oidc"
 	"git.eiac.dev/tools/denar/internal/adapter/rest"
@@ -242,9 +243,19 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		SkipCharge:              usecase.NewSkipCharge(d),
 	})
 
+	assistant := mcp.NewHandler(mcp.Deps{
+		Logger:         log,
+		Clock:          d.Clock,
+		TrustedProxies: cfg.TrustedProxies,
+		RatePerMinute:  cfg.BotRate,
+		Version:        version,
+		Authenticate:   usecase.NewAuthenticateBot(d.Bots, d.Clock, log),
+		UseCases:       d,
+	})
+
 	backgroundCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
 	a := &app{
-		handler:        rootHandler(server.Handler(), spa.Handler(panel, log)),
+		handler:        rootHandler(server.Handler(), assistant, spa.Handler(panel, log)),
 		deps:           d,
 		db:             db,
 		stopBackground: stop,
@@ -269,14 +280,14 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 
 // rootHandler routes between the adapters. The web UI is mounted next to
 // the REST handler, not inside it: that handler asks every route it knows
-// for credentials, and the UI has to load without them. /mcp is kept for
-// the MCP adapter of stage 006 and is not found until then.
-func rootHandler(api, panel http.Handler) http.Handler {
+// for credentials, and the UI has to load without them. /mcp is the MCP
+// adapter (stage 006); nothing lives below it.
+func rootHandler(api, assistant, panel http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
 	mux.Handle("/api", api) // or the mux would redirect it to /api/
 	mux.Handle("/healthz", api)
-	mux.Handle("/mcp", http.NotFoundHandler())
+	mux.Handle("/mcp", assistant)
 	mux.Handle("/mcp/", http.NotFoundHandler())
 	mux.Handle("/", panel)
 	return mux

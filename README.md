@@ -1,8 +1,8 @@
 # Denar
 
-Self-hosted budżet domowy: gospodarstwa, portfele, transakcje, koperty (YNAB), subskrypcje. Jedno binarium Go (Clean Architecture, SQLite), REST + (od etapu 006) MCP, Web UI osadzone w binarium (od etapu 007).
+Self-hosted budżet domowy: gospodarstwa, portfele, transakcje, koperty (YNAB), subskrypcje. Jedno binarium Go (Clean Architecture, SQLite), REST + MCP, Web UI osadzone w binarium (od etapu 007).
 
-Stan: **etapy 001-core, 002-wallets-transactions i 003-envelope-budget** — konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda; budżet kopertowy (grupy, koperty z celami, przydziały, przeniesienia, auto-przydział, Ready-to-Assign z regułą overspendingu YNAB). Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
+Stan: **etapy 001-core, 002-wallets-transactions, 003-envelope-budget, 004-subscriptions i 006-mcp** — serwer MCP dla asystentów AI (sekcja „MCP”); konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda; budżet kopertowy (grupy, koperty z celami, przydziały, przeniesienia, auto-przydział, Ready-to-Assign z regułą overspendingu YNAB). Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
 
 ## Szybki start (lokalnie)
 
@@ -89,6 +89,45 @@ Statusy subskrypcji: `trial` (obciążenia od `trial_ends_at`), `active`, `pause
 Token bota z CLI (bez UI): `./denar token create --household <ID> --name cron --scopes reports:read [--as email] [--expires 2027-01-01T00:00:00Z]` — token trafia na stdout.
 
 Docker: `cp .env.example .env`, ustaw hasło, `task compose:up` (port 8080 na 127.0.0.1, dane w wolumenie `denar-data`).
+
+## MCP (asystenci AI)
+
+Serwer MCP działa pod `http://localhost:8080/mcp` (Streamable HTTP, bez sesji, odpowiedzi JSON). Uwierzytelnia **wyłącznie token bota**: `Authorization: Bearer dnr_…`. Bot należy do jednego gospodarstwa, więc narzędzia nie pytają o nie; widzi i zmienia tylko to, na co pozwalają jego scope'y, bieżąca rola twórcy (bot viewera tylko czyta) i lista portfeli. Zmiany bota trafiają do audytu, a jego transakcje mają `source: bot`. Pełny kontrakt: [`api/mcp-tools.md`](api/mcp-tools.md).
+
+1. Utwórz bota (Ustawienia → Boty w Web UI, `POST /api/households/<ID>/bots` albo CLI) z potrzebnymi scope'ami, np. asystent wydatków:
+   ```sh
+   ./denar token create --household <ID> --name Claude \
+     --scopes wallets:read,transactions:read,transactions:write,budget:read,budget:write,subscriptions:read,subscriptions:write,reports:read
+   ```
+2. Podłącz klienta:
+   - **Claude Code:**
+     ```sh
+     claude mcp add --transport http denar http://localhost:8080/mcp --header "Authorization: Bearer dnr_…"
+     ```
+   - **Claude Desktop / claude.ai i inne klienty z „remote MCP”:** dodaj serwer HTTP o adresie `https://<twoja-instancja>/mcp` z nagłówkiem `Authorization: Bearer dnr_…`. Klient bez obsługi nagłówków może użyć mostu, np. w `claude_desktop_config.json`:
+     ```json
+     { "mcpServers": { "denar": { "command": "npx",
+         "args": ["-y", "mcp-remote", "http://localhost:8080/mcp", "--header", "Authorization: Bearer dnr_…"] } } }
+     ```
+3. Zapytaj np. „co odnawia się w tym tygodniu?” albo „wydałem 42,50 w Biedronce z karty na jedzenie”.
+
+Narzędzia (portfele, koperty, kontrahenci i subskrypcje po id albo nazwie; kwoty jako `"12.34"`, daty `YYYY-MM-DD`, miesiące `YYYY-MM`):
+
+| Narzędzie | Scope |
+|---|---|
+| `whoami`, `list_vendors` | — |
+| `list_wallets`, `get_balances` | `wallets:read` |
+| `search_transactions`, `list_payees` | `transactions:read` |
+| `record_expense`, `record_income`, `transfer` | `transactions:write` (sugestie obciążeń po `record_expense` — także `subscriptions:read`, `transactions:read`) |
+| `list_envelopes`, `budget_overview` | `budget:read` |
+| `assign_to_envelope`, `move_between_envelopes` | `budget:write` |
+| `spending_by` (koperta / kontrahent / dostawca / portfel) | `reports:read` |
+| `list_subscriptions`, `get_subscription`, `upcoming_renewals`, `subscription_costs`, `list_charges` | `subscriptions:read` |
+| `create_subscription`, `update_subscription`, `change_subscription_price`, `skip_charge` | `subscriptions:write` |
+| `confirm_charge_match` | `subscriptions:write` + `transactions:read` |
+| `post_charge` | `subscriptions:write` + `transactions:write` |
+
+Brak scope'u daje błąd `forbidden` z nazwą brakującego scope'u. Limit żądań: `DENAR_BOT_RATE` na minutę (liczony osobno dla MCP i REST).
 
 ## Komendy
 
