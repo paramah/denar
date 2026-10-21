@@ -42,6 +42,9 @@ type Env struct {
 	Channels      usecase.ChannelRepository
 	Preferences   usecase.PreferenceRepository
 	Deliveries    usecase.DeliveryRepository
+	// Stage 008.
+	ImportBatches usecase.ImportBatchRepository
+	Connections   usecase.ConnectionRepository
 	Tx            usecase.TxManager
 	Clock         usecase.Clock
 }

@@ -15,6 +15,7 @@ func newEnv(*testing.T) portstest.Env {
 		EnvelopeGroups: r.EnvelopeGroups, Envelopes: r.Envelopes, Assignments: r.Assignments,
 		Subscriptions: r.Subscriptions, Charges: r.Charges, Events: r.Events,
 		Notifications: r.Notifications, Channels: r.Channels, Preferences: r.Preferences, Deliveries: r.Deliveries,
+		ImportBatches: r.ImportBatches, Connections: r.Connections,
 	}
 }
 
@@ -44,3 +45,5 @@ func TestDeliveryRepositoryContract(t *testing.T)      { portstest.RunDeliverySu
 func TestNotificationHousekeepingContract(t *testing.T) {
 	portstest.RunNotificationHousekeepingSuite(t, newEnv)
 }
+func TestImportBatchRepositoryContract(t *testing.T) { portstest.RunImportBatchSuite(t, newEnv) }
+func TestConnectionRepositoryContract(t *testing.T)  { portstest.RunConnectionSuite(t, newEnv) }

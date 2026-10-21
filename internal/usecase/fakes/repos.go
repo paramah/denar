@@ -36,6 +36,10 @@ type Repos struct {
 	Channels      *ChannelRepository
 	Preferences   *PreferenceRepository
 	Deliveries    *DeliveryRepository
+	// Stage 008.
+	ImportBatches *ImportBatchRepository
+	Connections   *ConnectionRepository
+	CSV           *CSVParser
 	Rates         *RateProvider
 	Tx            *TxManager
 	Clock         *Clock
@@ -79,9 +83,12 @@ func NewRepos() *Repos {
 	r.Deliveries = NewDeliveryRepository(s)
 	r.Channels = NewChannelRepository(s, r.Deliveries)
 	r.Preferences = NewPreferenceRepository(s, r.Households)
+	r.ImportBatches = NewImportBatchRepository(s, r.Transactions)
+	r.Connections = NewConnectionRepository(s)
+	r.CSV = &CSVParser{}
 	r.Households.Cascade(r.Memberships, r.Invitations, r.Bots, r.Audit, r.Wallets, r.Transactions, r.Payees, r.FxOverrides,
 		r.Assignments, r.Envelopes, r.EnvelopeGroups, r.Subscriptions, r.Charges, r.Events,
-		r.Notifications, r.Preferences, r.Deliveries)
+		r.Notifications, r.Preferences, r.Deliveries, r.ImportBatches, r.Connections)
 	return r
 }
 
@@ -94,6 +101,7 @@ func (r *Repos) Deps() usecase.Deps {
 		EnvelopeGroups: r.EnvelopeGroups, Envelopes: r.Envelopes, Assignments: r.Assignments,
 		Subscriptions: r.Subscriptions, Charges: r.Charges, Events: r.Events,
 		Notifications: r.Notifications, Channels: r.Channels, Preferences: r.Preferences, Deliveries: r.Deliveries,
+		ImportBatches: r.ImportBatches, Connections: r.Connections, CSV: r.CSV,
 		Rates: r.Rates,
 		IDs:   r.IDs, Tokens: r.Tokens, Clock: r.Clock, Hasher: r.Hasher, Tx: r.Tx,
 	}

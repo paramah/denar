@@ -300,3 +300,26 @@ func (r *TransactionRepository) CountByEnvelope(ctx context.Context, householdID
 			slices.ContainsFunc(t.Splits, func(s transaction.Split) bool { return s.EnvelopeID == envelopeID }))
 	})), nil
 }
+
+func (r *TransactionRepository) ExternalIDs(ctx context.Context, householdID, walletID domain.ID, externalIDs []string) (map[string]domain.ID, error) {
+	want := map[string]bool{}
+	for _, id := range externalIDs {
+		want[id] = true
+	}
+	out := map[string]domain.ID{}
+	r.store.Do(ctx, func() {
+		for _, t := range r.txs {
+			if t.HouseholdID == householdID && t.WalletID == walletID && t.ExternalID != "" && want[t.ExternalID] {
+				out[t.ExternalID] = t.ID
+			}
+		}
+	})
+	return out, nil
+}
+
+// exists reports whether the transaction is stored; call it while the
+// store is held.
+func (r *TransactionRepository) exists(id domain.ID) bool {
+	_, ok := r.txs[id]
+	return ok
+}

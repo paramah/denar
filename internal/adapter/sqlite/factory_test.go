@@ -42,6 +42,8 @@ func newEnv(t *testing.T) portstest.Env {
 		Channels:      NewChannelRepository(db),
 		Preferences:   NewPreferenceRepository(db),
 		Deliveries:    NewDeliveryRepository(db),
+		ImportBatches: NewImportBatchRepository(db),
+		Connections:   NewConnectionRepository(db),
 		Tx:            db,
 		Clock:         fakes.NewClock(time.Date(2026, 10, 21, 9, 30, 0, 123456789, time.UTC)),
 	}
@@ -86,3 +88,5 @@ func TestDeliveryRepositoryContract(t *testing.T)      { portstest.RunDeliverySu
 func TestNotificationHousekeepingContract(t *testing.T) {
 	portstest.RunNotificationHousekeepingSuite(t, newEnv)
 }
+func TestImportBatchRepositoryContract(t *testing.T) { portstest.RunImportBatchSuite(t, newEnv) }
+func TestConnectionRepositoryContract(t *testing.T)  { portstest.RunConnectionSuite(t, newEnv) }

@@ -450,3 +450,35 @@ func (r *TransactionRepository) CountByEnvelope(ctx context.Context, householdID
 		householdID, envelopeID, envelopeID).Scan(&n)
 	return n, err
 }
+
+func (r *TransactionRepository) ExternalIDs(ctx context.Context, householdID, walletID domain.ID, externalIDs []string) (map[string]domain.ID, error) {
+	out := map[string]domain.ID{}
+	for start := 0; start < len(externalIDs); start += idsChunk {
+		chunk := externalIDs[start:min(start+idsChunk, len(externalIDs))]
+		args := []any{householdID, walletID}
+		for _, id := range chunk {
+			args = append(args, id)
+		}
+		rows, err := r.db.Query(ctx).QueryContext(ctx,
+			`SELECT external_id, id FROM transactions WHERE household_id = ? AND wallet_id = ? AND external_id IN (`+
+				placeholders(len(chunk))+`)`, args...)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var (
+				ext string
+				id  domain.ID
+			)
+			if err := rows.Scan(&ext, &id); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			out[ext] = id
+		}
+		if err := closeRows(rows); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}

@@ -11,8 +11,10 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/audit"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/budget"
+	"git.eiac.dev/tools/denar/internal/domain/connection"
 	"git.eiac.dev/tools/denar/internal/domain/event"
 	"git.eiac.dev/tools/denar/internal/domain/household"
+	"git.eiac.dev/tools/denar/internal/domain/imports"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
@@ -290,6 +292,10 @@ type TransactionRepository interface {
 	// CountByEnvelope counts the household's transactions that have the
 	// envelope, on themselves or on a split line.
 	CountByEnvelope(ctx context.Context, householdID, envelopeID domain.ID) (int, error)
+	// ExternalIDs returns which of the external ids the wallet's
+	// transactions have, with the id of the transaction of each (stage
+	// 008, import deduplication).
+	ExternalIDs(ctx context.Context, householdID, walletID domain.ID, externalIDs []string) (map[string]domain.ID, error)
 }
 
 // BudgetFlow is the sum of base amounts of one day, envelope and kind.
@@ -612,4 +618,170 @@ type Mailer interface {
 type SecretBox interface {
 	Seal(plaintext, aad []byte) ([]byte, error)
 	Open(sealed, aad []byte) ([]byte, error)
+}
+
+// ImportedTransaction is one transaction brought in from outside: a row
+// of a CSV file or what a connector fetched. The amount is in the wallet's
+// currency.
+type ImportedTransaction struct {
+	// Row is the line of the file (1-based), or the position in what a
+	// connector returned; it names the row in errors.
+	Row int
+	// ExternalID identifies the transaction at its source; "" gets a hash
+	// (imports.HashExternalID).
+	ExternalID string
+	Date       domain.Date
+	// Amount is a decimal ("-12.34"): negative pays out, positive comes in.
+	Amount string
+	// Currency is the amount's; "" means the wallet's. Another currency
+	// than the wallet's is a row error.
+	Currency string
+	// PayeeRaw is the counterparty as the source writes it; Memo the rest
+	// of the description.
+	PayeeRaw string
+	Memo     string
+}
+
+// ImportBatchFilter narrows ImportBatchRepository.List: only batches of
+// WalletIDs are listed, and none when it is empty.
+type ImportBatchFilter struct {
+	HouseholdID domain.ID
+	WalletIDs   []domain.ID
+}
+
+// ImportBatchRepository stores import batches and which transactions each
+// created. Lookups by id take the household.
+type ImportBatchRepository interface {
+	Create(ctx context.Context, b imports.Batch) error
+	// Update stores the status, the matched and reverted counters and who
+	// reverted the batch when.
+	Update(ctx context.Context, b imports.Batch) error
+	ByID(ctx context.Context, householdID, id domain.ID) (imports.Batch, error)
+	// List returns the matching batches, newest first (by id descending).
+	List(ctx context.Context, f ImportBatchFilter, p Page) (items []imports.Batch, next string, err error)
+	// AddTransactions links transactions to the batch.
+	AddTransactions(ctx context.Context, batchID domain.ID, transactionIDs []domain.ID) error
+	// TransactionIDs returns the batch's transactions that still exist,
+	// in ascending order; a deleted transaction is no longer linked.
+	TransactionIDs(ctx context.Context, householdID, batchID domain.ID) ([]domain.ID, error)
+}
+
+// CSVColumns maps fields to the columns of a CSV file. Each holds
+// alternatives: a header name (ignoring case and a leading '#') or a
+// 1-based column number. Date, Amount, Debit, Credit, ExternalID,
+// Currency, Fee and State take the first column the file has; Payee the
+// first non-empty value of a row among them; Memo every one, joined.
+type CSVColumns struct {
+	Date, Amount, Debit, Credit, ExternalID, Currency, Fee, State []string
+	Payee, Memo                                                   []string
+}
+
+// CSVOptions says how to read a CSV file. Empty fields take the preset's
+// value; the preset's "" means detect it.
+type CSVOptions struct {
+	Preset string
+	// Delimiter is ";", "," or "tab".
+	Delimiter string
+	// Encoding is "utf-8" or "windows-1250".
+	Encoding string
+	// DateFormat is made of YYYY, MM, DD, M, D (and HH, mm, ss).
+	DateFormat string
+	// Decimal is "," or ".".
+	Decimal      string
+	SkipRows     int
+	HasHeader    *bool
+	InvertAmount *bool
+	// AcceptStates, with a State column, are the states imported.
+	AcceptStates []string
+	// Columns given replace the preset's, field by field.
+	Columns CSVColumns
+}
+
+// CSVParseResult is what a CSV file holds and how it was read.
+type CSVParseResult struct {
+	Rows      []ImportedTransaction
+	Errors    []imports.RowError
+	Delimiter string
+	Encoding  string
+	// HeaderLine is the line of the header, 0 without one.
+	HeaderLine int
+	Headers    []string
+}
+
+// CSVPreset is a known export format: its defaults.
+type CSVPreset struct {
+	Key         string
+	Name        string
+	Description string
+	Options     CSVOptions
+}
+
+// CSVParser reads bank statements in CSV.
+type CSVParser interface {
+	// Presets returns the presets, "generic" first.
+	Presets() []CSVPreset
+	// Parse reads the file. A file it cannot read at all (an unknown
+	// preset or option, no header, no date or amount column) gives a
+	// domain.ValidationError; bad rows are in the result's Errors.
+	Parse(data []byte, opts CSVOptions) (CSVParseResult, error)
+}
+
+// ConnectorAccount is an account a bank connector sees.
+type ConnectorAccount struct {
+	ExternalID string
+	Name       string
+	Currency   string
+}
+
+// BillingCharge is a cost a billing connector reports: a positive amount.
+type BillingCharge struct {
+	ExternalID  string
+	Date        domain.Date
+	Amount      string // decimal, > 0
+	Currency    string
+	Description string
+	// SubscriptionRef is the provider's id of the plan or subscription, to
+	// meet Subscription.ExternalRef later.
+	SubscriptionRef string
+}
+
+// BankConnector reads accounts and transactions of a bank (stage 009).
+// Credentials are what CreateConnection sealed, in the clear. Errors are
+// short and never contain secrets.
+type BankConnector interface {
+	ListAccounts(ctx context.Context, credentials []byte) ([]ConnectorAccount, error)
+	FetchTransactions(ctx context.Context, credentials []byte, accountExternalID string, since domain.Date) ([]ImportedTransaction, error)
+}
+
+// BillingConnector reads the charges of a provider (stages 010, 011).
+type BillingConnector interface {
+	FetchCharges(ctx context.Context, credentials []byte, since domain.Date) ([]BillingCharge, error)
+}
+
+// ConnectorProvider is one provider of the registry: a bank one has Bank,
+// a billing one Billing.
+type ConnectorProvider struct {
+	Key     string
+	Name    string
+	Kind    connection.Kind
+	Bank    BankConnector
+	Billing BillingConnector
+}
+
+// ConnectionRepository stores connections and their accounts. Lookups by
+// id take the household.
+type ConnectionRepository interface {
+	Create(ctx context.Context, c connection.Connection) error
+	// Update stores the status, display name, credentials, last sync, last
+	// error and update time.
+	Update(ctx context.Context, c connection.Connection) error
+	ByID(ctx context.Context, householdID, id domain.ID) (connection.Connection, error)
+	// ListByHousehold returns the connections by display name, then id.
+	ListByHousehold(ctx context.Context, householdID domain.ID) ([]connection.Connection, error)
+	// PutAccount stores the account, replacing the connection's account of
+	// the same external id. The connection must be one of the household
+	// (domain.ErrNotFound otherwise).
+	PutAccount(ctx context.Context, householdID domain.ID, a connection.Account) error
+	// ListAccounts returns the connection's accounts by external id.
+	ListAccounts(ctx context.Context, householdID, connectionID domain.ID) ([]connection.Account, error)
 }

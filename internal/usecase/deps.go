@@ -56,6 +56,14 @@ type Deps struct {
 	Secrets       SecretBox
 	BaseURL       string
 	GoalDueDays   int
+	// ImportBatches and Connections hold the imports and the links to
+	// outside services (stage 008). CSV reads CSV files; nil means CSV
+	// imports are unavailable. Connectors is the registry of providers by
+	// key; nil means none.
+	ImportBatches ImportBatchRepository
+	Connections   ConnectionRepository
+	CSV           CSVParser
+	Connectors    map[string]ConnectorProvider
 	// Rates gives exchange rates against PLN; nil means only the base
 	// currency, overrides and cached rates are known.
 	Rates RateProvider
