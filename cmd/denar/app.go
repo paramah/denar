@@ -11,12 +11,19 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/adapter/mcp"
 	"git.eiac.dev/tools/denar/internal/adapter/nbp"
+	"git.eiac.dev/tools/denar/internal/adapter/notify/matrix"
+	"git.eiac.dev/tools/denar/internal/adapter/notify/ntfy"
+	"git.eiac.dev/tools/denar/internal/adapter/notify/smtp"
+	"git.eiac.dev/tools/denar/internal/adapter/notify/telegram"
+	"git.eiac.dev/tools/denar/internal/adapter/notify/webhook"
 	"git.eiac.dev/tools/denar/internal/adapter/oidc"
 	"git.eiac.dev/tools/denar/internal/adapter/rest"
 	"git.eiac.dev/tools/denar/internal/adapter/spa"
 	"git.eiac.dev/tools/denar/internal/adapter/sqlite"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/platform/clock"
 	"git.eiac.dev/tools/denar/internal/platform/config"
+	"git.eiac.dev/tools/denar/internal/platform/crypto"
 	"git.eiac.dev/tools/denar/internal/platform/id"
 	"git.eiac.dev/tools/denar/internal/platform/password"
 	"git.eiac.dev/tools/denar/internal/platform/token"
@@ -36,6 +43,10 @@ type app struct {
 	fillRates func(ctx context.Context) (int, error)
 	// runSubscriptions runs the subscription jobs once.
 	runSubscriptions func(ctx context.Context) (usecase.SubscriptionJobResult, error)
+	// runNotifications dispatches events and sends deliveries once;
+	// checkBudgets appends the envelope events once.
+	runNotifications func(ctx context.Context) (usecase.NotificationJobResult, error)
+	checkBudgets     func(ctx context.Context) (int, error)
 
 	db             *sqlite.DB
 	stopBackground context.CancelFunc
@@ -53,6 +64,9 @@ type appOptions struct {
 	// noSubscriptionJobs leaves the subscription jobs to the test, which
 	// runs them with app.runSubscriptions.
 	noSubscriptionJobs bool
+	// noNotificationJobs leaves dispatch, deliveries and budget checks to
+	// the test (app.runNotifications, app.checkBudgets).
+	noNotificationJobs bool
 }
 
 func newApp(ctx context.Context, cfg config.Config, log *slog.Logger, panel fs.FS) (*app, error) {
@@ -101,6 +115,11 @@ func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase
 		Charges:       sqlite.NewChargeRepository(db),
 		Events:        sqlite.NewEventOutbox(db),
 
+		Notifications: sqlite.NewNotificationRepository(db),
+		Channels:      sqlite.NewChannelRepository(db),
+		Preferences:   sqlite.NewPreferenceRepository(db),
+		Deliveries:    sqlite.NewDeliveryRepository(db),
+
 		Rates:  rates,
 		IDs:    id.New(),
 		Tokens: token.Generator{},
@@ -128,6 +147,9 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 	}
 	d := useCaseDeps(db, rest.WithRequestID(log), opts.clock, rates)
 	d.ChargeHorizonDays = cfg.ChargeHorizonDays
+	if err := wireNotifications(cfg, log, &d); err != nil {
+		return nil, err
+	}
 	states := sqlite.NewOIDCStateRepository(db)
 	provider := oidc.New(oidc.Config{
 		Issuer:       cfg.OIDCIssuer,
@@ -140,7 +162,7 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		return nil, err
 	}
 
-	inv := usecase.InvitationConfig{TTL: cfg.InviteTTL, SessionTTL: cfg.SessionTTL}
+	inv := usecase.InvitationConfig{TTL: cfg.InviteTTL, SessionTTL: cfg.SessionTTL, BaseURL: cfg.BaseURL}
 	server := rest.NewServer(rest.Deps{
 		BaseURL:        cfg.BaseURL,
 		Logger:         log,
@@ -241,6 +263,20 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		UnmatchCharge:           usecase.NewUnmatchCharge(d),
 		PostCharge:              usecase.NewPostCharge(d),
 		SkipCharge:              usecase.NewSkipCharge(d),
+
+		ListNotifications:          usecase.NewListNotifications(d),
+		CountUnreadNotifications:   usecase.NewCountUnreadNotifications(d),
+		MarkNotificationRead:       usecase.NewMarkNotificationRead(d),
+		MarkAllNotificationsRead:   usecase.NewMarkAllNotificationsRead(d),
+		ListChannelTypes:           usecase.NewListChannelTypes(d),
+		ListChannels:               usecase.NewListChannels(d),
+		CreateChannel:              usecase.NewCreateChannel(d),
+		GetChannel:                 usecase.NewGetChannel(d),
+		UpdateChannel:              usecase.NewUpdateChannel(d),
+		DeleteChannel:              usecase.NewDeleteChannel(d),
+		TestChannel:                usecase.NewTestChannel(d),
+		GetNotificationPreferences: usecase.NewGetNotificationPreferences(d),
+		SetNotificationPreferences: usecase.NewSetNotificationPreferences(d),
 	})
 
 	assistant := mcp.NewHandler(mcp.Deps{
@@ -265,13 +301,27 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 	a.fillRates = func(ctx context.Context) (int, error) { return fill.Do(ctx) }
 	subscriptionJobs := usecase.NewRunSubscriptionJobs(d)
 	a.runSubscriptions = subscriptionJobs.Do
+	notificationJobs := usecase.NewRunNotificationJobs(d)
+	a.runNotifications = notificationJobs.Do
+	budgetChecks := usecase.NewCheckBudgets(d)
+	a.checkBudgets = budgetChecks.Do
+	prune := usecase.NewPruneNotifications(d)
 	go func() {
 		defer close(a.backgroundDone)
 		var wg sync.WaitGroup
 		wg.Go(func() { cleanExpired(backgroundCtx, log, d.Clock, d.Sessions, states) })
 		wg.Go(func() { fillPendingRates(backgroundCtx, log, cfg.FxInterval, fill) })
+		wg.Go(func() { every(backgroundCtx, log, cleanupInterval, "pruning notifications", logPrune(log, prune)) })
 		if !opts.noSubscriptionJobs {
 			wg.Go(func() { runSubscriptionJobs(backgroundCtx, log, cfg.SubscriptionInterval, subscriptionJobs) })
+		}
+		if !opts.noNotificationJobs {
+			wg.Go(func() {
+				every(backgroundCtx, log, cfg.NotifyInterval, "running the notification jobs", logNotifications(log, notificationJobs))
+			})
+			wg.Go(func() {
+				every(backgroundCtx, log, cfg.BudgetCheckInterval, "checking the budgets", logBudgetChecks(log, budgetChecks))
+			})
 		}
 		wg.Wait()
 	}()
@@ -377,6 +427,90 @@ func runSubscriptionJobs(ctx context.Context, log *slog.Logger, interval time.Du
 			return
 		case <-ticker.C:
 		}
+	}
+}
+
+// wireNotifications gives the use cases the channels the server can send
+// over: webhook, ntfy, Telegram and Matrix always, e-mail with SMTP; and
+// the secret box with a master key.
+func wireNotifications(cfg config.Config, log *slog.Logger, d *usecase.Deps) error {
+	d.BaseURL, d.GoalDueDays = cfg.BaseURL, cfg.GoalDueDays
+	d.Notifiers = map[notification.ChannelType]usecase.Notifier{
+		notification.Webhook:  &webhook.Notifier{},
+		notification.Ntfy:     &ntfy.Notifier{},
+		notification.Telegram: &telegram.Notifier{APIURL: cfg.TelegramAPIURL},
+		notification.Matrix:   &matrix.Notifier{},
+	}
+	if cfg.SMTPEnabled() {
+		mailer, err := smtp.New(smtp.Config{Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername,
+			Password: cfg.SMTPPassword.Reveal(), From: cfg.SMTPFrom, TLS: cfg.SMTPTLS})
+		if err != nil {
+			return err
+		}
+		d.Mailer = mailer
+		d.Notifiers[notification.Email] = mailer
+	}
+	if cfg.MasterKey != "" {
+		key, err := crypto.ParseKey(cfg.MasterKey.Reveal())
+		if err != nil {
+			return fmt.Errorf("DENAR_MASTER_KEY: %w", err)
+		}
+		box, err := crypto.NewBox(key)
+		if err != nil {
+			return err
+		}
+		d.Secrets = box
+	} else {
+		log.Info("DENAR_MASTER_KEY is not set: channels with secrets (Telegram, Matrix, signed webhooks, ntfy tokens) are unavailable")
+	}
+	return nil
+}
+
+// every runs job now and once per interval, until ctx is done; an error
+// is logged as what failed.
+func every(ctx context.Context, log *slog.Logger, interval time.Duration, what string, job func(ctx context.Context) error) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		if err := job(ctx); err != nil && ctx.Err() == nil {
+			log.Error(what, "error", err.Error())
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func logNotifications(log *slog.Logger, jobs *usecase.RunNotificationJobs) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		r, err := jobs.Do(ctx)
+		if r != (usecase.NotificationJobResult{}) {
+			log.Info("notification jobs", "events", r.Dispatch.Events, "notifications", r.Dispatch.Notifications,
+				"deliveries", r.Dispatch.Deliveries, "sent", r.Delivery.Sent, "retried", r.Delivery.Retried, "failed", r.Delivery.Failed)
+		}
+		return err
+	}
+}
+
+func logBudgetChecks(log *slog.Logger, checks *usecase.CheckBudgets) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		n, err := checks.Do(ctx)
+		if n > 0 {
+			log.Info("budget events", "events", n)
+		}
+		return err
+	}
+}
+
+func logPrune(log *slog.Logger, prune *usecase.PruneNotifications) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		r, err := prune.Do(ctx)
+		if r != (usecase.PruneResult{}) {
+			log.Info("notifications pruned", "notifications", r.Notifications, "deliveries", r.Deliveries, "events", r.Events)
+		}
+		return err
 	}
 }
 
