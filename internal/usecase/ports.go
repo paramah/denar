@@ -4,6 +4,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"git.eiac.dev/tools/denar/internal/domain"
@@ -11,7 +12,10 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/payee"
+	"git.eiac.dev/tools/denar/internal/domain/transaction"
 	"git.eiac.dev/tools/denar/internal/domain/user"
+	"git.eiac.dev/tools/denar/internal/domain/wallet"
 )
 
 // Repository methods that look up a single entity return domain.ErrNotFound
@@ -137,7 +141,7 @@ type HouseholdRepository interface {
 	// base currency, the creator and the creation time never change.
 	Update(ctx context.Context, h household.Household) error
 	// Delete removes the household with its memberships, invitations,
-	// bots and audit trail.
+	// bots, audit trail, wallets, transactions, payees and rate overrides.
 	Delete(ctx context.Context, id domain.ID) error
 	ByID(ctx context.Context, id domain.ID) (household.Household, error)
 	// ByIDs returns the households that exist; unknown ids are skipped.
@@ -206,13 +210,137 @@ type AuditRepository interface {
 	List(ctx context.Context, f AuditFilter, p Page) (items []audit.Entry, next string, err error)
 }
 
-// WalletDirectory is the extension point of stage 002: it checks that the
-// wallets a bot is limited to exist in the household and are visible to
-// its creator. Stage 001 has no wallets; a nil WalletDirectory accepts any
-// syntactically valid list.
-type WalletDirectory interface {
-	// ValidateWalletIDs returns a domain.ValidationError on the field
-	// "wallet_ids" when one of the wallets is not one the creator sees in
-	// the household.
-	ValidateWalletIDs(ctx context.Context, householdID, creatorID domain.ID, ids []domain.ID) error
+// WalletRepository stores wallets. Lookups by id take the household, so
+// that the id of another household's wallet is not found.
+type WalletRepository interface {
+	// Create returns a domain.ConflictError with ConflictDuplicateName when
+	// the household has a wallet of that name, case-insensitively.
+	Create(ctx context.Context, w wallet.Wallet) error
+	// Update stores the name, type, on-budget flag, visibility, members
+	// and archive time; the currency, creator and creation time never
+	// change.
+	Update(ctx context.Context, w wallet.Wallet) error
+	ByID(ctx context.Context, householdID, id domain.ID) (wallet.Wallet, error)
+	// ListByHousehold returns every wallet, archived ones too, ordered by
+	// name, then id.
+	ListByHousehold(ctx context.Context, householdID domain.ID) ([]wallet.Wallet, error)
+}
+
+// TransactionFilter narrows TransactionRepository.List. Zero fields do not
+// filter, except WalletIDs: only transactions of those wallets are listed,
+// and none when it is empty.
+type TransactionFilter struct {
+	HouseholdID domain.ID
+	WalletIDs   []domain.ID
+	PayeeID     domain.ID
+	// EnvelopeID matches the transaction's envelope or one of its split
+	// lines.
+	EnvelopeID domain.ID
+	From, To   domain.Date // inclusive
+	// Text occurs, ignoring case, in the note or the payee's name.
+	Text   string
+	Kind   transaction.Kind
+	Status transaction.Status
+	Tag    string
+}
+
+// WalletBalance sums the transactions of one wallet.
+type WalletBalance struct {
+	Total   int64 // minor units of the wallet's currency
+	Cleared int64 // cleared and reconciled transactions only
+	Base    int64 // base amounts known so far
+	Pending int   // transactions whose base amount waits for a rate
+}
+
+// TransactionRepository stores transactions with their split lines.
+type TransactionRepository interface {
+	// Create returns a domain.ConflictError with
+	// ConflictDuplicateExternalID when the wallet has a transaction with
+	// that external id.
+	Create(ctx context.Context, t transaction.Transaction) error
+	// Update stores every field except the id, household, wallet, source,
+	// creator and creation time; the splits are replaced.
+	Update(ctx context.Context, t transaction.Transaction) error
+	Delete(ctx context.Context, householdID, id domain.ID) error
+	ByID(ctx context.Context, householdID, id domain.ID) (transaction.Transaction, error)
+	// ByPair returns the legs of a transfer, ordered by id.
+	ByPair(ctx context.Context, householdID, pairID domain.ID) ([]transaction.Transaction, error)
+	// List returns the matching transactions, newest date first, then by
+	// id descending.
+	List(ctx context.Context, f TransactionFilter, p Page) (items []transaction.Transaction, next string, err error)
+	// Balances sums the transactions of the wallets; a wallet without
+	// transactions has a zero balance in the map.
+	Balances(ctx context.Context, householdID domain.ID, walletIDs []domain.ID) (map[domain.ID]WalletBalance, error)
+	// ListRatePending returns up to limit transactions waiting for a rate,
+	// oldest first; an empty householdID means every household.
+	ListRatePending(ctx context.Context, householdID domain.ID, limit int) ([]transaction.Transaction, error)
+}
+
+// PayeeRepository stores payees.
+type PayeeRepository interface {
+	// Create and Update return a domain.ConflictError with
+	// ConflictDuplicateName when the household has a payee of that name,
+	// case-insensitively.
+	Create(ctx context.Context, p payee.Payee) error
+	// Update stores the name, patterns, default envelope and update time.
+	Update(ctx context.Context, p payee.Payee) error
+	// Delete removes the payee; its transactions keep no payee.
+	Delete(ctx context.Context, householdID, id domain.ID) error
+	ByID(ctx context.Context, householdID, id domain.ID) (payee.Payee, error)
+	// ListByHousehold returns the payees ordered by name, then id.
+	ListByHousehold(ctx context.Context, householdID domain.ID) ([]payee.Payee, error)
+}
+
+// FxRate is a cached rate of NBP table A: how many PLN one unit of the
+// currency cost on RateDate, the business day the rate of Date falls back
+// to.
+type FxRate struct {
+	Currency  string
+	Date      domain.Date
+	RateDate  domain.Date
+	Rate      string // decimal
+	FetchedAt time.Time
+}
+
+// FxRateRepository caches rates of the rate provider for every household.
+type FxRateRepository interface {
+	Get(ctx context.Context, currency string, date domain.Date) (FxRate, error)
+	// Put stores the rate, replacing one of the same currency and date.
+	Put(ctx context.Context, r FxRate) error
+	// Latest returns the cached rate of the currency with the newest
+	// RateDate within [from, to].
+	Latest(ctx context.Context, currency string, from, to domain.Date) (FxRate, error)
+}
+
+// FxOverride is a rate a household set by hand: one unit of Currency is
+// Rate units of the household's base currency on Date.
+type FxOverride struct {
+	HouseholdID domain.ID
+	Currency    string
+	Date        domain.Date
+	Rate        string // decimal
+	CreatedBy   domain.Actor
+	CreatedAt   time.Time
+}
+
+type FxOverrideRepository interface {
+	// Put stores the override, replacing one of the same currency and day.
+	Put(ctx context.Context, o FxOverride) error
+	Get(ctx context.Context, householdID domain.ID, currency string, date domain.Date) (FxOverride, error)
+	// List returns the household's overrides, newest date first, then by
+	// currency.
+	List(ctx context.Context, householdID domain.ID) ([]FxOverride, error)
+}
+
+// ErrRateUnavailable: the rate provider has no rate for the day, or cannot
+// be reached.
+var ErrRateUnavailable = errors.New("exchange rate unavailable")
+
+// RateProvider gives exchange rates against PLN (NBP table A).
+type RateProvider interface {
+	// PLNRate returns how many PLN one unit of the currency costs on the
+	// newest business day within [date-6, date], and that day. It returns
+	// an error matching ErrRateUnavailable when there is none or the
+	// provider cannot be reached.
+	PLNRate(ctx context.Context, currency string, date domain.Date) (rate string, rateDate domain.Date, err error)
 }

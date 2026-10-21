@@ -18,8 +18,17 @@ type Deps struct {
 	Bots        BotRepository
 	Audit       AuditRepository
 	Sessions    SessionRepository
-	// Wallets checks the wallet lists of bots; nil until stage 002.
-	Wallets WalletDirectory
+	// Wallets, Transactions, Payees, FxRates and FxOverrides hold the
+	// finances (stage 002). With Wallets nil the wallet list of a bot is
+	// checked for its form only.
+	Wallets      WalletRepository
+	Transactions TransactionRepository
+	Payees       PayeeRepository
+	FxRates      FxRateRepository
+	FxOverrides  FxOverrideRepository
+	// Rates gives exchange rates against PLN; nil means only the base
+	// currency, overrides and cached rates are known.
+	Rates RateProvider
 
 	IDs    IDGenerator
 	Tokens TokenGenerator
@@ -31,7 +40,7 @@ type Deps struct {
 }
 
 func (d Deps) access() access {
-	return access{households: d.Households, memberships: d.Memberships}
+	return access{households: d.Households, memberships: d.Memberships, bots: d.Bots, clock: d.Clock}
 }
 
 func (d Deps) log() *slog.Logger {

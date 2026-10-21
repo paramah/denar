@@ -98,6 +98,7 @@ func TestWalletAllowed(t *testing.T) {
 	f := newFamily(t)
 	b := f.addBot("b1", "h1", f.member, bot.ScopeWalletsRead)
 	b.WalletIDs = []domain.ID{"w1"}
+	f.must(f.Bots.Update(ctx, b))
 	s, err := usecase.HouseholdScopeOf(f.deps, ctx, asBot(b), "h1")
 	noErr(t, err)
 	if !s.WalletAllowed("w1") || s.WalletAllowed("w2") {

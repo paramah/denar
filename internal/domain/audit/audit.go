@@ -16,6 +16,14 @@ const (
 	ResourceBot        = "bot"
 )
 
+// Resource types of stage 002.
+const (
+	ResourceWallet      = "wallet"
+	ResourceTransaction = "transaction"
+	ResourcePayee       = "payee"
+	ResourceFxRate      = "fx_rate"
+)
+
 // Change is the value of one field before and after. Either side may be
 // nil (created or removed). Values are plain JSON values; secrets never go
 // here.

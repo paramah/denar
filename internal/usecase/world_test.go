@@ -11,6 +11,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/user"
+	"git.eiac.dev/tools/denar/internal/domain/wallet"
 	"git.eiac.dev/tools/denar/internal/usecase"
 	"git.eiac.dev/tools/denar/internal/usecase/fakes"
 )
@@ -69,6 +70,16 @@ func (w *world) addBot(id, householdID domain.ID, creator user.User, scopes ...b
 		CreatedBy: creator.ID, CreatedAt: w.Clock.Now(), TokenHash: usecase.HashToken(botToken(id)), TokenPrefix: "dnr_toke"}
 	w.must(w.Bots.Create(ctx, b))
 	return b
+}
+
+// addWallet adds a PLN checking wallet on budget; a private one is seen by
+// its creator only.
+func (w *world) addWallet(id, householdID domain.ID, creator user.User, v wallet.Visibility, members ...domain.ID) wallet.Wallet {
+	w.t.Helper()
+	wl := wallet.Wallet{ID: id, HouseholdID: householdID, Name: "Wallet " + string(id), Type: wallet.TypeChecking, Currency: "PLN",
+		OnBudget: true, Visibility: v, MemberIDs: members, CreatedBy: creator.ID, CreatedAt: w.Clock.Now()}.Normalize()
+	w.must(w.Wallets.Create(ctx, wl))
+	return wl
 }
 
 func botToken(id domain.ID) string { return "dnr_token-of-" + string(id) }

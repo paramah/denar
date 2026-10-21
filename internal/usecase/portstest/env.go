@@ -23,8 +23,14 @@ type Env struct {
 	Audit       usecase.AuditRepository
 	Sessions    usecase.SessionRepository
 	OIDCStates  usecase.OIDCStateRepository
-	Tx          usecase.TxManager
-	Clock       usecase.Clock
+	// Stage 002.
+	Wallets      usecase.WalletRepository
+	Transactions usecase.TransactionRepository
+	Payees       usecase.PayeeRepository
+	FxRates      usecase.FxRateRepository
+	FxOverrides  usecase.FxOverrideRepository
+	Tx           usecase.TxManager
+	Clock        usecase.Clock
 }
 
 // Factory builds a fresh Env for one test and cleans up through t.

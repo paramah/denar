@@ -9,6 +9,9 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/audit"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/transaction"
+	"git.eiac.dev/tools/denar/internal/domain/wallet"
+	"git.eiac.dev/tools/denar/internal/usecase"
 )
 
 func newHousehold(env Env, id, creator domain.ID) household.Household {
@@ -99,6 +102,17 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 			noError(t, env.Invitations.Create(ctx, newInvitation(env, "i-"+hid, hid, "u1")))
 			noError(t, env.Bots.Create(ctx, newBot(env, "b-"+hid, hid, "u1", "Bot")))
 			noError(t, env.Audit.Append(ctx, newEntry(env, "a-"+hid, hid, domain.Actor{Kind: domain.ActorUser, ID: "u1"}, audit.ResourceHousehold)))
+			if env.Wallets != nil {
+				w := newWallet(env, "w-"+hid, hid, "u1", "Konto")
+				w.Visibility, w.MemberIDs = wallet.Private, []domain.ID{"u1"}
+				noError(t, env.Wallets.Create(ctx, w))
+				noError(t, env.Payees.Create(ctx, newPayee(env, "p-"+hid, hid, "Lidl")))
+				tx := newTransaction(env, "t-"+hid, hid, "w-"+hid, "2026-10-20", -1)
+				tx.PayeeID, tx.Splits = "p-"+hid, []transaction.Split{{Amount: -1, BaseAmount: -1}}
+				noError(t, env.Transactions.Create(ctx, tx))
+				noError(t, env.FxOverrides.Put(ctx, usecase.FxOverride{HouseholdID: hid, Currency: "USD", Date: day("2026-10-20"),
+					Rate: "4", CreatedBy: domain.Actor{Kind: domain.ActorUser, ID: "u1"}, CreatedAt: now(env)}))
+			}
 		}
 
 		noError(t, env.Households.Delete(ctx, "h1"))
@@ -114,6 +128,19 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 		noError(t, err)
 		if len(entries) != 0 {
 			t.Errorf("audit of a deleted household = %v", entries)
+		}
+
+		if env.Wallets != nil {
+			_, err = env.Wallets.ByID(ctx, "h1", "w-h1")
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.Transactions.ByID(ctx, "h1", "t-h1")
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.Payees.ByID(ctx, "h1", "p-h1")
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.FxOverrides.Get(ctx, "h1", "USD", day("2026-10-20"))
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.Transactions.ByID(ctx, "h2", "t-h2")
+			noError(t, err)
 		}
 
 		// The other household is untouched.

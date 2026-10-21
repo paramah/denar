@@ -85,7 +85,7 @@ func checkBotInput(ctx context.Context, d Deps, householdID, creatorID domain.ID
 	if b.WalletIDs, err = bot.ParseWalletIDs("wallet_ids", wallets); err != nil {
 		errs = append(errs, err)
 	} else if d.Wallets != nil && len(b.WalletIDs) > 0 {
-		if err := d.Wallets.ValidateWalletIDs(ctx, householdID, creatorID, b.WalletIDs); err != nil {
+		if err := validateBotWallets(ctx, d, householdID, creatorID, b.WalletIDs); err != nil {
 			errs = append(errs, err)
 		}
 	}

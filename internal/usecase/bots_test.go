@@ -1,7 +1,6 @@
 package usecase_test
 
 import (
-	"context"
 	"slices"
 	"strings"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/wallet"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
 
@@ -19,6 +19,7 @@ func (f *family) createBot(by membership.Role, name string, scopes ...string) (u
 
 func TestCreateBot(t *testing.T) {
 	f := newFamily(t)
+	f.addWallet("w1", "h1", f.owner, wallet.Shared)
 	got, err := usecase.NewCreateBot(f.deps).Do(ctx, human(f.member), "h1", usecase.CreateBotInput{
 		Name: " Claude ", Scopes: []string{"transactions:write", "wallets:read"}, WalletIDs: []string{"w1", "w1"},
 		ExpiresAt: f.Clock.Now().Add(90 * 24 * time.Hour)})
@@ -58,27 +59,23 @@ func TestCreateBot(t *testing.T) {
 	wantForbidden(t, err, domain.ForbiddenHumanOnly)
 }
 
-type walletCheck struct{ called []domain.ID }
-
-func (w *walletCheck) ValidateWalletIDs(_ context.Context, _, _ domain.ID, ids []domain.ID) error {
-	w.called = ids
-	if slices.Contains(ids, "hidden") {
-		return domain.ValidationError{Field: "wallet_ids", Message: "must name wallets you see"}
-	}
-	return nil
-}
-
-func TestCreateBotAsksTheWalletDirectory(t *testing.T) {
+// TestCreateBotChecksWallets: the wallets of a bot must be wallets of the
+// household its creator sees (FR-150).
+func TestCreateBotChecksWallets(t *testing.T) {
 	f := newFamily(t)
-	check := &walletCheck{}
-	f.deps.Wallets = check
-	_, err := usecase.NewCreateBot(f.deps).Do(ctx, human(f.member), "h1", usecase.CreateBotInput{Name: "A", Scopes: []string{"wallets:read"}, WalletIDs: []string{"w1"}})
+	f.addWallet("w1", "h1", f.owner, wallet.Shared)
+	f.addWallet("hidden", "h1", f.owner, wallet.Private)
+	f.addWallet("mine", "h1", f.member, wallet.Private)
+	f.addWallet("foreign", "h2", f.outsider, wallet.Shared)
+	created, err := usecase.NewCreateBot(f.deps).Do(ctx, human(f.member), "h1", usecase.CreateBotInput{Name: "A", Scopes: []string{"wallets:read"}, WalletIDs: []string{"w1", "mine"}})
 	noErr(t, err)
-	if !slices.Equal(check.called, []domain.ID{"w1"}) {
-		t.Errorf("directory got %v", check.called)
+	if !slices.Equal(created.Bot.WalletIDs, []domain.ID{"w1", "mine"}) {
+		t.Errorf("wallets = %v", created.Bot.WalletIDs)
 	}
-	_, err = usecase.NewCreateBot(f.deps).Do(ctx, human(f.member), "h1", usecase.CreateBotInput{Name: "B", Scopes: []string{"wallets:read"}, WalletIDs: []string{"hidden"}})
-	wantErr(t, err, domain.ErrInvalid)
+	for _, id := range []string{"hidden", "foreign", "nope"} {
+		_, err = usecase.NewCreateBot(f.deps).Do(ctx, human(f.member), "h1", usecase.CreateBotInput{Name: "B " + id, Scopes: []string{"wallets:read"}, WalletIDs: []string{id}})
+		wantErr(t, err, domain.ErrInvalid)
+	}
 }
 
 // TestBotManagementByRole is decision D-010: owners and admins manage every
@@ -147,6 +144,7 @@ func asForbidden(err error, fe *domain.ForbiddenError) bool {
 
 func TestUpdateBot(t *testing.T) {
 	f := newFamily(t)
+	f.addWallet("w2", "h1", f.owner, wallet.Shared)
 	created, err := f.createBot(membership.RoleMember, "Bot", "wallets:read")
 	noErr(t, err)
 	uc := usecase.NewUpdateBot(f.deps)

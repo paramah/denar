@@ -41,9 +41,9 @@ func (s HouseholdScope) ActorUserID(p Principal) domain.ID {
 }
 
 // WalletAllowed reports whether the bot's wallet list lets it reach the
-// wallet. It does not check that the creator sees the wallet: stage 002
-// filters by the creator's visible wallets first and asks this second.
-// A person is never limited here.
+// wallet. It does not check that the creator sees the wallet:
+// visibleWallets filters by the creator's visible wallets first and asks
+// this second. A person is never limited here.
 func (s HouseholdScope) WalletAllowed(walletID domain.ID) bool {
 	if !s.IsBot() || len(s.WalletIDs) == 0 {
 		return true
@@ -57,15 +57,29 @@ func (s HouseholdScope) WalletAllowed(walletID domain.ID) bool {
 type access struct {
 	households  HouseholdRepository
 	memberships MembershipRepository
+	// bots and clock, when set, read a bot again for every operation.
+	bots  BotRepository
+	clock Clock
 }
 
 // household returns the scope of the principal in the household. A person
 // needs a membership; a bot sees its own household only. The role of a
 // bot's creator is read here on every call, so a creator who loses their
-// role or membership narrows the bot at once (FR-032).
+// role or membership narrows the bot at once (FR-032). The bot itself is
+// read again too: one disabled, expired, deleted or given a new token
+// since the request was authenticated is refused with
+// domain.ErrUnauthenticated, and its scopes and wallets are the stored ones
+// (FR-151). Called inside a transaction, that is the state the write sees.
 func (a access) household(ctx context.Context, p Principal, householdID domain.ID) (HouseholdScope, error) {
 	if p.IsBot() && p.Bot.HouseholdID != householdID {
 		return HouseholdScope{}, domain.ErrNotFound
+	}
+	if p.IsBot() && a.bots != nil {
+		fresh, err := a.currentBot(ctx, p.Bot)
+		if err != nil {
+			return HouseholdScope{}, err
+		}
+		p.Bot = fresh
 	}
 	h, err := a.households.ByID(ctx, householdID)
 	if err != nil {
@@ -88,6 +102,21 @@ func (a access) household(ctx context.Context, p Principal, householdID domain.I
 	}
 	scope.Scopes = b.EffectiveScopes(scope.Role)
 	return scope, nil
+}
+
+// currentBot reads the bot again and checks it may still act with the
+// token it authenticated with.
+func (a access) currentBot(ctx context.Context, b bot.Bot) (bot.Bot, error) {
+	fresh, err := a.bots.ByID(ctx, b.ID)
+	if found, err := ignoreNotFound(err); err != nil {
+		return bot.Bot{}, err
+	} else if !found {
+		return bot.Bot{}, domain.ErrUnauthenticated
+	}
+	if fresh.TokenHash != b.TokenHash || fresh.HouseholdID != b.HouseholdID || (a.clock != nil && !fresh.Usable(a.clock.Now())) {
+		return bot.Bot{}, domain.ErrUnauthenticated
+	}
+	return fresh, nil
 }
 
 // plainNotFound strips whatever a repository wrapped around

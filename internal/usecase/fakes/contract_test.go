@@ -11,14 +11,20 @@ func newEnv(*testing.T) portstest.Env {
 	return portstest.Env{
 		Users: r.Users, Households: r.Households, Memberships: r.Memberships, Invitations: r.Invitations,
 		Bots: r.Bots, Audit: r.Audit, Sessions: r.Sessions, OIDCStates: r.OIDCStates, Tx: r.Tx, Clock: r.Clock,
+		Wallets: r.Wallets, Transactions: r.Transactions, Payees: r.Payees, FxRates: r.FxRates, FxOverrides: r.FxOverrides,
 	}
 }
 
-func TestUserRepositoryContract(t *testing.T)       { portstest.RunUserSuite(t, newEnv) }
-func TestSessionRepositoryContract(t *testing.T)    { portstest.RunSessionSuite(t, newEnv) }
-func TestOIDCStateRepositoryContract(t *testing.T)  { portstest.RunOIDCStateSuite(t, newEnv) }
-func TestHouseholdRepositoryContract(t *testing.T)  { portstest.RunHouseholdSuite(t, newEnv) }
-func TestMembershipRepositoryContract(t *testing.T) { portstest.RunMembershipSuite(t, newEnv) }
-func TestInvitationRepositoryContract(t *testing.T) { portstest.RunInvitationSuite(t, newEnv) }
-func TestBotRepositoryContract(t *testing.T)        { portstest.RunBotSuite(t, newEnv) }
-func TestAuditRepositoryContract(t *testing.T)      { portstest.RunAuditSuite(t, newEnv) }
+func TestUserRepositoryContract(t *testing.T)        { portstest.RunUserSuite(t, newEnv) }
+func TestSessionRepositoryContract(t *testing.T)     { portstest.RunSessionSuite(t, newEnv) }
+func TestOIDCStateRepositoryContract(t *testing.T)   { portstest.RunOIDCStateSuite(t, newEnv) }
+func TestHouseholdRepositoryContract(t *testing.T)   { portstest.RunHouseholdSuite(t, newEnv) }
+func TestMembershipRepositoryContract(t *testing.T)  { portstest.RunMembershipSuite(t, newEnv) }
+func TestInvitationRepositoryContract(t *testing.T)  { portstest.RunInvitationSuite(t, newEnv) }
+func TestBotRepositoryContract(t *testing.T)         { portstest.RunBotSuite(t, newEnv) }
+func TestAuditRepositoryContract(t *testing.T)       { portstest.RunAuditSuite(t, newEnv) }
+func TestWalletRepositoryContract(t *testing.T)      { portstest.RunWalletSuite(t, newEnv) }
+func TestTransactionRepositoryContract(t *testing.T) { portstest.RunTransactionSuite(t, newEnv) }
+func TestPayeeRepositoryContract(t *testing.T)       { portstest.RunPayeeSuite(t, newEnv) }
+func TestFxRateRepositoryContract(t *testing.T)      { portstest.RunFxRateSuite(t, newEnv) }
+func TestFxOverrideRepositoryContract(t *testing.T)  { portstest.RunFxOverrideSuite(t, newEnv) }
