@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { classify, errorMessage } from '../../api/errors.ts'
 import { useAuthConfig, useLogin, useMe } from '../../api/hooks/session.ts'
@@ -11,12 +12,9 @@ import { safeReturnTo } from '../../lib/returnTo.ts'
 import { AuthLayout } from './AuthLayout.tsx'
 import styles from './auth.module.css'
 
-const oidcErrors: Record<string, string> = {
-  oidc: 'Logowanie przez dostawcę tożsamości nie powiodło się. Spróbuj ponownie.',
-}
-
 export function LoginPage() {
-  useDocumentTitle('Logowanie')
+  const { t } = useTranslation('auth')
+  useDocumentTitle(t('login.documentTitle'))
   const [params] = useSearchParams()
   const returnTo = safeReturnTo(params.get('return_to'))
   const config = useAuthConfig()
@@ -29,11 +27,12 @@ export function LoginPage() {
   return (
     <AuthLayout>
       <div className={styles.heading}>
-        <h1>Zaloguj się</h1>
-        <p>Do swojego budżetu domowego.</p>
+        <h1>{t('login.title')}</h1>
+        <p>{t('login.subtitle')}</p>
       </div>
       {params.get('error') && (
-        <Callout tone="warn">{oidcErrors[params.get('error')!] ?? oidcErrors.oidc}</Callout>
+        // Jedyny znany kod błędu OIDC to `oidc`; każdy inny opisujemy tak samo.
+        <Callout tone="warn">{t('login.oidcFailed')}</Callout>
       )}
       {config.isPending ? (
         <Skeleton lines={4} />
@@ -42,17 +41,17 @@ export function LoginPage() {
           {config.data?.local_login !== false && <LocalLoginForm returnTo={returnTo} />}
           {config.data?.oidc_enabled && (
             <>
-              {config.data.local_login && <p className={styles.divider}>albo</p>}
+              {config.data.local_login && <p className={styles.divider}>{t('login.or')}</p>}
               <a
                 className={buttonClassName('secondary', 'md', styles.wide)}
                 href={`/api/auth/login?return_to=${encodeURIComponent(returnTo)}`}
               >
-                Zaloguj się przez SSO
+                {t('login.sso')}
               </a>
             </>
           )}
           {config.data && !config.data.local_login && !config.data.oidc_enabled && (
-            <Callout tone="warn">Na tej instancji nie włączono żadnej metody logowania.</Callout>
+            <Callout tone="warn">{t('login.noMethod')}</Callout>
           )}
         </>
       )}
@@ -66,11 +65,12 @@ function LocalLoginForm({ returnTo }: { returnTo: string }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [missing, setMissing] = useState<{ email?: string; password?: string }>({})
+  const { t } = useTranslation('auth')
 
   const submit = () => {
     const next = {
-      email: email.trim() ? undefined : 'Podaj adres e-mail.',
-      password: password ? undefined : 'Podaj hasło.',
+      email: email.trim() ? undefined : t('login.emailMissing'),
+      password: password ? undefined : t('login.passwordMissing'),
     }
     setMissing(next)
     if (next.email || next.password) {
@@ -88,7 +88,7 @@ function LocalLoginForm({ returnTo }: { returnTo: string }) {
 
   const failure = login.error
     ? classify(login.error) === 'unauthenticated' || classify(login.error) === 'validation'
-      ? 'Nieprawidłowy e-mail lub hasło.'
+      ? t('login.badCredentials')
       : errorMessage(login.error)
     : null
 
@@ -100,7 +100,7 @@ function LocalLoginForm({ returnTo }: { returnTo: string }) {
         </div>
       )}
       <TextField
-        label="E-mail"
+        label={t('login.email')}
         type="email"
         name="email"
         autoComplete="username"
@@ -110,7 +110,7 @@ function LocalLoginForm({ returnTo }: { returnTo: string }) {
         required
       />
       <TextField
-        label="Hasło"
+        label={t('login.password')}
         type="password"
         name="password"
         autoComplete="current-password"
@@ -120,7 +120,7 @@ function LocalLoginForm({ returnTo }: { returnTo: string }) {
         required
       />
       <Button type="submit" variant="primary" busy={login.isPending} className={styles.wide}>
-        Zaloguj się
+        {t('login.submit')}
       </Button>
     </Form>
   )

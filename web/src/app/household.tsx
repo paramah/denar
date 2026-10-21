@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Outlet, useParams } from 'react-router'
 import { useSessionUser } from '../api/hooks/session.ts'
 import type { Household, Role } from '../api/types.ts'
@@ -55,20 +56,21 @@ export function HouseholdRoute() {
 }
 
 function MissingHousehold() {
-  useDocumentTitle('Nie znaleziono gospodarstwa')
+  const { t } = useTranslation()
+  useDocumentTitle(t('missingHousehold.title'))
   return (
     <main id="main" className="plain-main">
       <EmptyState
         icon="home"
         headingLevel={1}
-        title="Nie znaleziono gospodarstwa"
+        title={t('missingHousehold.title')}
         action={
           <LinkButton to="/" variant="primary">
-            Wróć do swoich gospodarstw
+            {t('missingHousehold.back')}
           </LinkButton>
         }
       >
-        <p>Gospodarstwo nie istnieje albo nie jesteś już jego członkiem.</p>
+        <p>{t('missingHousehold.explanation')}</p>
       </EmptyState>
     </main>
   )

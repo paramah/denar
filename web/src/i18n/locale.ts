@@ -82,17 +82,37 @@ export function syncDocumentLanguage(locale: Locale = currentLocale()): void {
   }
 }
 
-let pendingFocusId: string | null = null
+let pendingFocus: (() => HTMLElement | null) | null = null
 
 /**
- * Identyfikator elementu, który miał fokus w chwili zmiany języka. Zmiana
- * języka montuje drzewo od nowa (LocaleBoundary), więc fokus wraca na element
- * o tym samym `id` — przełączniki języka mają stałe identyfikatory.
+ * Element, który miał fokus w chwili zmiany języka, odszukany w nowym
+ * drzewie. Zmiana języka montuje drzewo od nowa (LocaleBoundary), więc fokus
+ * wraca na element o tym samym `data-focus-key` albo `id` — przełączniki
+ * języka mają stałe klucze.
  */
-export function takePendingFocus(): string | null {
-  const id = pendingFocusId
-  pendingFocusId = null
-  return id
+export function takePendingFocus(): HTMLElement | null {
+  const find = pendingFocus
+  pendingFocus = null
+  return find ? find() : null
+}
+
+function rememberFocus(): void {
+  pendingFocus = null
+  try {
+    const active = document.activeElement
+    if (!(active instanceof HTMLElement)) {
+      return
+    }
+    const key = active.dataset.focusKey
+    if (key) {
+      pendingFocus = () => document.querySelector<HTMLElement>(`[data-focus-key="${key}"]`)
+    } else if (active.id) {
+      const id = active.id
+      pendingFocus = () => document.getElementById(id)
+    }
+  } catch {
+    // Bez dokumentu nie ma fokusu do przywrócenia.
+  }
 }
 
 export type SetLocaleOptions = {
@@ -108,12 +128,7 @@ export function setLocale(locale: Locale, { persist = false }: SetLocaleOptions 
     writeStored(storageKeys.locale, locale)
   }
   if (locale !== currentLocale()) {
-    try {
-      const active = document.activeElement
-      pendingFocusId = active instanceof HTMLElement && active.id ? active.id : null
-    } catch {
-      pendingFocusId = null
-    }
+    rememberFocus()
     // Zasoby są w paczce, więc zmiana jest synchroniczna.
     void i18next.changeLanguage(locale)
   }

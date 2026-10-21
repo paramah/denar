@@ -42,6 +42,8 @@ export const user: User = {
   email: 'ada@example.test',
   name: 'Ada Kowalska',
   instance_admin: true,
+  // Serwer zawsze podaje język (wartość albo null = automatycznie).
+  locale: null,
   created_at: '2026-10-01T10:00:00Z',
 }
 

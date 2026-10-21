@@ -120,7 +120,8 @@
     "tooManyChannels": "Za dużo kanałów dla jednego zdarzenia.",
     "tooLarge": "Za dużo danych.",
     "oneOf": "Wybierz wartość z listy.",
-    "invalid": "Nieprawidłowa wartość."
+    "invalid": "Nieprawidłowa wartość.",
+    "locale": "Wybierz polski albo angielski."
   },
   "reason": {
     "duplicate-name": "Ta nazwa jest już zajęta. Wybierz inną.",
@@ -173,6 +174,8 @@
     "channelDisabled": "kanał jest wyłączony",
     "noMasterKey": "brak klucza DENAR_MASTER_KEY do odczytu sekretów kanału",
     "secretsUnreadable": "nie można odczytać sekretów kanału (zmieniony DENAR_MASTER_KEY?) — ustaw je ponownie",
+    "smtpNotConfigured": "serwer nie ma skonfigurowanego SMTP",
+    "prefixed": "{{prefix}}: {{message}}",
     "unknown": "nieznany błąd"
   }
 }

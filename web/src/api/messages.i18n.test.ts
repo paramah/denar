@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { setLocale } from '../i18n/locale.ts'
 import { ApiError, errorMessage } from './errors.ts'
-import { translateDeliveryError, translateFieldMessage } from './messages.ts'
+import { reasonMessage, translateDeliveryError, translateFieldMessage } from './messages.ts'
 
 afterEach(() => setLocale('pl'))
 
@@ -48,46 +48,60 @@ describe('field messages in English', () => {
 })
 
 describe('translateDeliveryError', () => {
-  // Serwer (013) zapisuje błędy dostarczania po angielsku; po polsku UI pokazuje dawny tekst.
+  // Serwer (013) zapisuje błędy dostarczania po angielsku; po polsku UI pokazuje dawny tekst,
+  // po angielsku — tekst serwera.
   it.each([
-    ['HTTP 503', 'HTTP 503', 'HTTP 503'],
-    ['connection timed out', 'przekroczony czas połączenia', 'connection timed out'],
-    ['connection failed: dial tcp: connection refused', 'błąd połączenia: dial tcp: connection refused', 'connection failed: dial tcp: connection refused'],
-    ['connection failed', 'błąd połączenia', 'connection failed'],
     [
-      'target address not allowed (private network) — see DENAR_NOTIFY_ALLOW_PRIVATE',
+      'target not allowed (private network): see DENAR_NOTIFY_ALLOW_PRIVATE',
       'adres docelowy niedozwolony (sieć prywatna) — zobacz DENAR_NOTIFY_ALLOW_PRIVATE',
-      'target address not allowed (private network) — see DENAR_NOTIFY_ALLOW_PRIVATE',
     ],
-    ['invalid recipient address', 'niepoprawny adres odbiorcy', 'invalid recipient address'],
-    ['SMTP: connection failed: i/o timeout', 'SMTP: połączenie nieudane: i/o timeout', 'SMTP: connection failed: i/o timeout'],
-    ['SMTP: server does not support STARTTLS', 'SMTP: serwer nie obsługuje STARTTLS', 'SMTP: the server does not support STARTTLS'],
-    ['SMTP: server does not support AUTH', 'SMTP: serwer nie obsługuje AUTH', 'SMTP: the server does not support AUTH'],
-    ['SMTP: login failed: 535 bad credentials', 'SMTP: logowanie nieudane: 535 bad credentials', 'SMTP: login failed: 535 bad credentials'],
-    ['invalid Bot API address', 'niepoprawny adres Bot API', 'invalid Bot API address'],
-    ['Telegram: response without ok', 'Telegram: odpowiedź bez ok', 'Telegram: response without ok'],
-    ['invalid Matrix server address', 'niepoprawny adres serwera Matrix', 'invalid Matrix server address'],
-    ['channel is disabled', 'kanał jest wyłączony', 'the channel is disabled'],
+    ['channel is disabled', 'kanał jest wyłączony'],
+    ['DENAR_MASTER_KEY is not set: cannot read the channel secrets', 'brak klucza DENAR_MASTER_KEY do odczytu sekretów kanału'],
     [
-      'DENAR_MASTER_KEY is missing, so the channel secrets cannot be read',
-      'brak klucza DENAR_MASTER_KEY do odczytu sekretów kanału',
-      'DENAR_MASTER_KEY is missing, so the channel secrets cannot be read',
-    ],
-    [
-      'channel secrets cannot be read (was DENAR_MASTER_KEY changed?) — set them again',
+      'cannot read the channel secrets (DENAR_MASTER_KEY changed?): set them again',
       'nie można odczytać sekretów kanału (zmieniony DENAR_MASTER_KEY?) — ustaw je ponownie',
-      'the channel secrets cannot be read (was DENAR_MASTER_KEY changed?) — set them again',
     ],
-  ])('%s', (server, inPolish, inEnglish) => {
+    ['SMTP is not configured on the server', 'serwer nie ma skonfigurowanego SMTP'],
+    ['connection timed out', 'przekroczony czas połączenia'],
+    ['connection failed: dial tcp: connection refused', 'błąd połączenia: dial tcp: connection refused'],
+    ['connection failed', 'błąd połączenia'],
+    ['invalid Bot API URL', 'niepoprawny adres Bot API'],
+    ['Telegram: response without ok', 'Telegram: odpowiedź bez ok'],
+    ['invalid Matrix homeserver URL', 'niepoprawny adres serwera Matrix'],
+    ['invalid recipient address', 'niepoprawny adres odbiorcy'],
+    ['SMTP: connection failed: i/o timeout', 'SMTP: połączenie nieudane: i/o timeout'],
+    ['SMTP: server does not support STARTTLS', 'SMTP: serwer nie obsługuje STARTTLS'],
+    ['SMTP: server does not support AUTH', 'SMTP: serwer nie obsługuje AUTH'],
+    ['SMTP: authentication failed: 535 bad credentials', 'SMTP: logowanie nieudane: 535 bad credentials'],
+    ['Telegram: connection failed: EOF', 'Telegram: błąd połączenia: EOF'],
+    ['Matrix: connection timed out', 'Matrix: przekroczony czas połączenia'],
+  ])('%s', (server, inPolish) => {
     expect(translateDeliveryError(server)).toBe(inPolish)
     setLocale('en')
-    expect(translateDeliveryError(server)).toBe(inEnglish)
+    expect(translateDeliveryError(server)).toBe(server)
   })
 
-  it('passes Polish text from an older server and unknown text through', () => {
-    expect(translateDeliveryError('błąd połączenia: dial tcp')).toBe('błąd połączenia: dial tcp')
+  it('passes server replies, Polish text from an older server and unknown text through', () => {
+    for (const verbatim of ['HTTP 500', 'Telegram: Bad Request: chat not found', 'Matrix: HTTP 403 M_FORBIDDEN', 'błąd połączenia: dial tcp']) {
+      expect(translateDeliveryError(verbatim)).toBe(verbatim)
+    }
+    expect(translateDeliveryError(null)).toBe('nieznany błąd')
     setLocale('en')
-    expect(translateDeliveryError('Telegram: Bad Request: chat not found')).toBe('Telegram: Bad Request: chat not found')
+    expect(translateDeliveryError('HTTP 500')).toBe('HTTP 500')
     expect(translateDeliveryError(null)).toBe('unknown error')
+  })
+
+  it('translates the private-network refusal and the locale error as field messages', () => {
+    expect(translateFieldMessage('target not allowed (private network): see DENAR_NOTIFY_ALLOW_PRIVATE')).toBe(
+      'adres docelowy niedozwolony (sieć prywatna) — zobacz DENAR_NOTIFY_ALLOW_PRIVATE',
+    )
+    expect(translateFieldMessage('must be pl or en')).toBe('Wybierz polski albo angielski.')
+  })
+
+  it('knows the human-only reason in either spelling', () => {
+    const bot = new ApiError({ status: 403, code: 'forbidden', type: 'urn:denar:problem:human_only', title: 'Forbidden' })
+    expect(bot.reason).toBe('human_only')
+    expect(reasonMessage('human_only')).toBe('Tę operację wykonuje tylko człowiek, nie bot.')
+    expect(reasonMessage('human-only')).toBe('Tę operację wykonuje tylko człowiek, nie bot.')
   })
 })

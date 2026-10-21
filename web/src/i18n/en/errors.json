@@ -108,7 +108,8 @@
     "tooManyChannels": "Too many channels for one event.",
     "tooLarge": "Too much data.",
     "oneOf": "Choose a value from the list.",
-    "invalid": "Invalid value."
+    "invalid": "Invalid value.",
+    "locale": "Choose Polish or English."
   },
   "reason": {
     "duplicate-name": "This name is already taken. Choose another one.",
@@ -149,18 +150,20 @@
     "timeout": "connection timed out",
     "connectionFailedWith": "connection failed: {{cause}}",
     "connectionFailed": "connection failed",
-    "targetForbidden": "target address not allowed (private network) — see DENAR_NOTIFY_ALLOW_PRIVATE",
+    "targetForbidden": "target not allowed (private network): see DENAR_NOTIFY_ALLOW_PRIVATE",
     "invalidRecipient": "invalid recipient address",
     "smtpConnect": "SMTP: connection failed: {{cause}}",
-    "smtpNoStarttls": "SMTP: the server does not support STARTTLS",
-    "smtpNoAuth": "SMTP: the server does not support AUTH",
-    "smtpLogin": "SMTP: login failed: {{cause}}",
-    "telegramBadUrl": "invalid Bot API address",
+    "smtpNoStarttls": "SMTP: server does not support STARTTLS",
+    "smtpNoAuth": "SMTP: server does not support AUTH",
+    "smtpLogin": "SMTP: authentication failed: {{cause}}",
+    "telegramBadUrl": "invalid Bot API URL",
     "telegramNotOk": "Telegram: response without ok",
-    "matrixBadUrl": "invalid Matrix server address",
-    "channelDisabled": "the channel is disabled",
-    "noMasterKey": "DENAR_MASTER_KEY is missing, so the channel secrets cannot be read",
-    "secretsUnreadable": "the channel secrets cannot be read (was DENAR_MASTER_KEY changed?) — set them again",
+    "matrixBadUrl": "invalid Matrix homeserver URL",
+    "channelDisabled": "channel is disabled",
+    "noMasterKey": "DENAR_MASTER_KEY is not set: cannot read the channel secrets",
+    "secretsUnreadable": "cannot read the channel secrets (DENAR_MASTER_KEY changed?): set them again",
+    "smtpNotConfigured": "SMTP is not configured on the server",
+    "prefixed": "{{prefix}}: {{message}}",
     "unknown": "unknown error"
   }
 }

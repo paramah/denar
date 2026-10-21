@@ -126,6 +126,8 @@ const rules: Rule[] = [
   [/^is given twice/, 'eventTypeTwice'],
   [/^has too many channels$/, 'tooManyChannels'],
   [/^is too large$/, 'tooLarge'],
+  // Profil (013): PATCH /me.
+  [/^must be pl or en$/, 'locale'],
   [/^must be (?:one of [a-z_]+(?:, [a-z_]+)+|[a-z_]+(?:, [a-z_]+)* or [a-z_]+)$/, 'oneOf'],
 ]
 
@@ -144,6 +146,9 @@ function match(rulesList: Rule[], message: string, prefix: string): Message | nu
 
 /** Klucz i parametry dla komunikatu pola; null — komunikat nie po angielsku (pokazujemy go bez zmian). */
 export function fieldMessage(message: string): Message | null {
+  if (deliveryRules[0]![0].test(message)) {
+    return { key: 'errors:delivery.targetForbidden' }
+  }
   return match(rules, message, 'errors:field.') ?? (english.test(message) ? { key: 'errors:field.invalid' } : null)
 }
 
@@ -155,30 +160,34 @@ export function translateFieldMessage(message: string): string {
 
 /** Opis konfliktu (409) lub odmowy (403) po ostatnim segmencie `type`; undefined dla nieznanego. */
 export function reasonMessage(reason: string): string | undefined {
-  const key = `errors:reason.${reason}`
+  // Serwer pisze przyczyny z myślnikiem (`human-only`); podkreślnik traktujemy tak samo.
+  const key = `errors:reason.${reason.replaceAll('_', '-')}`
   return reason && hasKey(key) ? tk(key) : undefined
 }
 
-// Błędy dostarczania powiadomień (`last_error` kanału, wynik testu). Serwer
-// zapisuje je po angielsku (013); dawne polskie (starszy serwer, zapisane
-// wcześniej w bazie) przechodzą bez zmian, bo żadna reguła ich nie łapie.
+// Błędy dostarczania powiadomień (`last_error` kanału, wynik testu kanału,
+// `email_error` zaproszenia). Serwer zapisuje je po angielsku (013, lista
+// uzgodniona z backendem); po polsku pokazujemy dawne brzmienie. Polskie
+// teksty starszego serwera (i zapisane wcześniej w bazie) przechodzą bez
+// zmian, bo żadna reguła ich nie łapie; tak samo odpowiedzi serwerów
+// (`HTTP 500`, `Telegram: <opis>`, `Matrix: HTTP 4xx M_*`, odpowiedzi SMTP).
 const deliveryRules: Rule[] = [
-  [/^HTTP (\d{3})$/, (_, status) => ({ key: 'http', params: { status: status! } })],
-  [/^connection timed out$/i, 'timeout'],
-  [/^connection failed: (.+)$/i, (_, cause) => ({ key: 'connectionFailedWith', params: { cause: cause! } })],
-  [/^connection failed$/i, 'connectionFailed'],
-  [/^target (?:address )?not allowed \(private network\)/i, 'targetForbidden'],
-  [/^invalid recipient address$/i, 'invalidRecipient'],
-  [/^SMTP: connection failed: (.+)$/i, (_, cause) => ({ key: 'smtpConnect', params: { cause: cause! } })],
-  [/^SMTP: (?:the )?server does not support STARTTLS$/i, 'smtpNoStarttls'],
-  [/^SMTP: (?:the )?server does not support AUTH$/i, 'smtpNoAuth'],
-  [/^SMTP: login failed: (.+)$/i, (_, cause) => ({ key: 'smtpLogin', params: { cause: cause! } })],
-  [/^invalid Bot API address$/i, 'telegramBadUrl'],
-  [/^Telegram: response without ok$/i, 'telegramNotOk'],
-  [/^invalid Matrix server address$/i, 'matrixBadUrl'],
-  [/^(?:the )?channel is disabled$/i, 'channelDisabled'],
-  [/^DENAR_MASTER_KEY is (?:missing|not set)/i, 'noMasterKey'],
-  [/^(?:the )?channel secrets cannot be (?:read|opened)/i, 'secretsUnreadable'],
+  [/^target not allowed \(private network\): see DENAR_NOTIFY_ALLOW_PRIVATE$/, 'targetForbidden'],
+  [/^channel is disabled$/, 'channelDisabled'],
+  [/^DENAR_MASTER_KEY is not set: cannot read the channel secrets$/, 'noMasterKey'],
+  [/^cannot read the channel secrets \(DENAR_MASTER_KEY changed\?\): set them again$/, 'secretsUnreadable'],
+  [/^SMTP is not configured on the server$/, 'smtpNotConfigured'],
+  [/^connection timed out$/, 'timeout'],
+  [/^connection failed: (.*)$/, (_, cause) => ({ key: 'connectionFailedWith', params: { cause: cause! } })],
+  [/^connection failed$/, 'connectionFailed'],
+  [/^invalid Bot API URL$/, 'telegramBadUrl'],
+  [/^Telegram: response without ok$/, 'telegramNotOk'],
+  [/^invalid Matrix homeserver URL$/, 'matrixBadUrl'],
+  [/^invalid recipient address$/, 'invalidRecipient'],
+  [/^SMTP: connection failed: (.*)$/, (_, cause) => ({ key: 'smtpConnect', params: { cause: cause! } })],
+  [/^SMTP: server does not support STARTTLS$/, 'smtpNoStarttls'],
+  [/^SMTP: server does not support AUTH$/, 'smtpNoAuth'],
+  [/^SMTP: authentication failed: (.*)$/, (_, cause) => ({ key: 'smtpLogin', params: { cause: cause! } })],
 ]
 
 /** Błąd dostarczania w języku interfejsu; nieznany tekst (np. opis z Telegrama) bez zmian. */
@@ -187,5 +196,16 @@ export function translateDeliveryError(message: string | null | undefined): stri
     return tk('errors:delivery.unknown')
   }
   const msg = match(deliveryRules, message, 'errors:delivery.')
-  return msg ? tk(msg.key, msg.params) : message
+  if (msg) {
+    return tk(msg.key, msg.params)
+  }
+  // Telegram i Matrix przekazują błędy połączenia z prefiksem („Telegram: connection failed: …”).
+  const prefixed = /^(Telegram|Matrix): (.+)$/.exec(message)
+  if (prefixed) {
+    const inner = match(deliveryRules, prefixed[2]!, 'errors:delivery.')
+    if (inner) {
+      return tk('errors:delivery.prefixed', { prefix: prefixed[1]!, message: tk(inner.key, inner.params) })
+    }
+  }
+  return message
 }
