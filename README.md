@@ -157,6 +157,31 @@ curl -s -b jar 'localhost:8080/api/me/notifications?unread=true'
 
 Weryfikacja podpisu webhooka: `HMAC-SHA256(sekret, surowe body)` w hex, porównane ze stałym czasem z wartością po `sha256=`; `X-Denar-Delivery` to id dostawy (ponowienie ma to samo id).
 
+## Import
+
+Wyciąg z banku (CSV) trafia do portfela przez podgląd i import. Każdy wiersz staje się transakcją `source=import` (ujemna kwota — wydatek, dodatnia — przychód, status `cleared`); kontrahent i koperta przychodzą z reguł kontrahentów (nazwa albo wzorzec w surowym opisie), surowy opis zostaje w notatce, a nowe transakcje są od razu dopasowywane do oczekiwanych obciążeń subskrypcji (próg 80 pkt, jak w sugestiach). Duplikaty są pomijane po `external_id`: z kolumny ID pliku albo — bez niej — hash daty, kwoty, opisu i numeru wystąpienia w pliku, więc ten sam plik wgrany drugi raz nie dodaje niczego. Partię można cofnąć (usuwa jej transakcje i odpina obciążenia).
+
+- **Presety** (`GET /api/import-presets`): `generic` (wykrywa kodowanie, separator, format daty i liczb, kolumny po typowych nazwach), `mbank`, `ing`, `pko`, `revolut`. Presety banków powstały z opisu formatów eksportu i testów na próbkach syntetycznych — jeśli bank zmienił kolumny, nadpisz mapowanie w opcjach (`columns`).
+- **Opcje** (część `options`, JSON): `wallet_id` (wymagany), `preset`, `delimiter` (`;`, `,`, `|`, `tab`), `encoding` (`utf-8`, `windows-1250`), `date_format` (np. `DD.MM.YYYY`), `decimal_separator` (`,`, `.`), `skip_rows`, `has_header`, `invert_amount`, `accept_states`, `columns` (`date`, `amount` albo `debit`/`credit`, `payee`, `memo`, `external_id`, `currency`, `fee`, `state` — listy nazw nagłówka lub numerów kolumn od 1), w podglądzie `preview_limit`.
+- **Limity**: plik do 5 MiB, do 10 000 wierszy; błędne wiersze (zła data, kwota, inna waluta niż portfel) nie przerywają importu — są w `errors` partii.
+- **Uprawnienia**: import i cofnięcie — `transactions:write` (bot też, przez REST); lista partii — `transactions:read`; auto-dopasowanie subskrypcji wymaga dodatkowo `subscriptions:write`. MCP: `list_imports`.
+
+```sh
+# podgląd: pierwsze wiersze, duplikaty, błędy, wykryte kodowanie i nagłówek
+curl -s -b jar localhost:8080/api/households/$H/imports/csv/preview \
+  -F file=@lista_operacji.csv -F 'options={"wallet_id":"<W>","preset":"mbank"};type=application/json'
+# import (201: liczniki created/duplicate/error/matched)
+curl -s -b jar localhost:8080/api/households/$H/imports/csv \
+  -F file=@lista_operacji.csv -F 'options={"wallet_id":"<W>","preset":"mbank"};type=application/json'
+# własne mapowanie pliku bez nagłówka: data w 1. kolumnie, opis w 2., kwota w 4.
+curl -s -b jar localhost:8080/api/households/$H/imports/csv \
+  -F file=@eksport.csv -F 'options={"wallet_id":"<W>","has_header":false,"delimiter":";","date_format":"DD.MM.YYYY","columns":{"date":["1"],"payee":["2"],"amount":["4"]}}'
+curl -s -b jar localhost:8080/api/households/$H/imports            # partie
+curl -s -b jar -X DELETE localhost:8080/api/households/$H/imports/<ID>   # cofnięcie
+```
+
+**Połączenia z bankami i dostawcami** (PSD2, OpenAI, Apple) mają w tym etapie tylko model i porty (`BankConnector`, `BillingConnector`); `GET /api/households/<ID>/connections` i `GET /api/connection-providers` są do odczytu. `DENAR_DEV_FAKE_CONNECTOR=1` dodaje udawany bank `fake` do rozwoju.
+
 ## Komendy
 
 | Komenda | Opis |
@@ -198,6 +223,7 @@ Weryfikacja podpisu webhooka: `HMAC-SHA256(sekret, surowe body)` w hex, porówna
 | `DENAR_BUDGET_CHECK_INTERVAL` | `15m` | co ile sprawdzać koperty (przekroczenia, terminy celów) |
 | `DENAR_GOAL_DUE_DAYS` | `7` | ile dni przed terminem celu koperty przypominać (1–60) |
 | `DENAR_TELEGRAM_API_URL` | `https://api.telegram.org` | adres Bot API Telegrama (np. własny serwer Bot API) |
+| `DENAR_DEV_FAKE_CONNECTOR` | `false` | dodaje udawany bank `fake` do providerów połączeń (tylko do rozwoju) |
 
 ## Rozwój
 
