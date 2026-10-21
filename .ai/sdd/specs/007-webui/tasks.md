@@ -80,3 +80,22 @@ Weryfikacja każdego zadania: `task web:test` (eslint, tsc, vitest); na końcu `
 - T-301…T-307 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 259 testów w 24 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
 - `task web:e2e`: 73 testy Playwright zielone (8 pominiętych — testy telefonu w projektach desktopowych): przepływ subskrypcji na binarium (OpenAI 20 USD, dzień 31. → obciążenia od razu po utworzeniu → wydatek 80,40 zł w rejestrze → „Dopasuj” → sugestia → potwierdzenie → plakietka w rejestrze prowadzi do subskrypcji → zmiana ceny na 25 USD → lista „≈ 100,00 zł” → przegląd 100,00 zł / 1200,00 zł rocznie → pulpit), kolejka dopasowań (płatność EUR z wczoraj → zaksięgowanie 42,17 zł z portfela PLN), axe na przeglądzie, liście, kolejce, stronie subskrypcji i dialogach w motywie jasnym, ciemnym i na telefonie; strony subskrypcji bez poziomego przewijania na 390 px.
 - Obciążenia powstają przy tworzeniu subskrypcji (od dnia utworzenia minus okno dopasowania, 004 FR-304), więc e2e nie czeka na job `DENAR_SUBSCRIPTION_INTERVAL`; płatność „w przeszłości” uzyskuje się terminem wczoraj i oknem ≥ 1 dzień.
+
+## Część C3a — asystent AI (MCP) i przegląd jakości
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+
+- [x] **T-401 Spec części C3a** — sekcje C3a w `requirements.md`, `design.md`, `tasks.md`; `.status`.
+- [x] **T-402 Podłączenie asystenta** — `AssistantConnect.tsx` (+ testy), `CopyBlock`/`useCopy`, `TokenDialog` (rozmiar `lg`), `assistantScopes` i przycisk zestawu, krok na pulpicie. FR-E01…FR-E05.
+- [x] **T-403 Komunikaty serwera po polsku** — `api/messages.ts` (+ testy), `fieldErrors`/`errorMessage`, etykiety pól zagnieżdżonych. FR-E10.
+- [x] **T-404 Dziennik** — akcje i zasoby 003/004, kwoty i cykle w zmianach. Testy. FR-E11.
+- [x] **T-405 404 i focus** — `HouseholdNotFoundPage` w trasie `h/:householdId/*`, `lib/focusInvalid.ts` w `main.tsx`. Testy. FR-E12, FR-E13.
+- [x] **T-406 Przegląd jakości** — skrypt Playwright poza repozytorium na binarium z atrapą NBP, zrzuty obejrzane (desktop ciemny/jasny, telefon, rola „Podgląd”); poprawki T-403…T-405.
+- [x] **T-407 E2E** — `flow.spec.ts` (zestaw, sekcja podłączenia, `/mcp` z tokenem z dialogu), `a11y.spec.ts` (404, dialog tokenu). NFR-E01.
+
+## Wynik części C3a
+
+- T-401…T-407 zakończone; `task verify` zielone: gofmt, go vet, web (eslint, tsc, vite build), Vitest — 283 testy w 27 plikach, `go test -race ./...`, build binarium z osadzonym SPA.
+- `task web:e2e`: 79 testów Playwright zielonych (8 pominiętych — testy telefonu w projektach desktopowych): token z dialogu bota działa z `/mcp` (`tools/call whoami`), axe na dialogu tokenu z podłączeniem asystenta i na 404 w gospodarstwie w motywie jasnym, ciemnym i na telefonie.
+- Przegląd jakości: bez błędów JS w konsoli na całej ścieżce nowego użytkownika; naprawione — angielskie komunikaty serwera, angielskie akcje/zasoby/cykle w dzienniku, 404 bez nawigacji, błąd walidacji poza widokiem w długim formularzu. Pozostałe — „Ograniczenia (część C3a)” w `design.md`.
+- Dla C3b: `ComingSoonPage section="notifications"` nadal w trasie `notifications`; scope `notifications:read` jest w `scopeGroups` i w zestawie „Asystent AI”; nowe komunikaty walidacji backendu 005 dopisz do `api/messages.ts`, akcje audytu do `lib/labels.ts`.

@@ -513,3 +513,57 @@ API transakcji nie zwraca obciążenia (`ChargeRepository.ByTransaction` nie jes
 - **Powiadomienia (005):** zdarzenia `subscription.renewal_upcoming|trial_ending|price_changed|charge_missed` mają `subscription_id` i `charge_id` — linkuj do `/h/:id/subscriptions/:subscriptionId` (harmonogram na stronie) i do kolejki `/h/:id/subscriptions/charges`. Licznik `SubscriptionTabs` (`useOpenCharges`) można pokazać też przy pozycji menu. `ComingSoonPage section="notifications"` czeka na zastąpienie.
 - **MCP (006):** scope'y `subscriptions:read|write` są w `BotsTab`; instrukcja podłączenia bota (URL MCP, nagłówek `Authorization: Bearer dnr_…`, przykładowe pytania „co odnawia się w tym tygodniu?”) pasuje do dialogu z jednorazowym tokenem (`BotsTab`) i kroku „Podłącz asystenta AI” na pulpicie.
 - **Budżet:** `summary.by_envelope` (miesięczny koszt subskrypcji per koperta, 004 FR-330) może podpowiadać cel `monthly` w `EnvelopeDialog`.
+
+---
+
+# Design: część C3a — podłączenie asystenta AI (MCP) i przegląd jakości
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Last Updated: 2026-10-21
+
+## C3a-1. Podłączenie asystenta
+
+`features/settings/AssistantConnect.tsx` — sekcja w `TokenDialog` (`BotsTab`, rozmiar `lg`), widoczna przy tworzeniu bota i po rotacji tokenu. Czyste funkcje (testowane osobno): `mcpUrl(origin)`, `claudeCodeCommand(url, token)`, `remoteHttpConfig` (`{mcpServers: {denar: {type: 'http', url, headers}}}` — format `.mcp.json` Claude Code / Cursor), `mcpRemoteConfig` (`npx -y mcp-remote <url> --header "Authorization: Bearer …"`, jak w README), `examplePrompts(effective_scopes)`. Adres z `window.location.origin` (przeglądarka zna publiczny adres także za reverse proxy). Ostrzeżenie o braku HTTPS, gdy `http:` i host ≠ localhost/127.0.0.1/[::1].
+
+Nowy komponent `CopyBlock` (obok `CopyField`): wielowierszowy `<pre>` (zawijanie, `tabIndex=0` dla przewijania klawiaturą) z przyciskiem „Kopiuj”; wspólny hook `useCopy` (Clipboard API, inaczej zaznaczenie do ręcznego skopiowania). Przyciski kopiowania mają nazwę dostępną „Kopiuj: <etykieta>” (dopisek `visually-hidden`), bo w dialogu jest ich kilka.
+
+`lib/scopes.ts`: `assistantScopes` = `*:read` + `transactions:write`; przycisk zestawu w `CreateBotForm` (filtr `roleAllowsScope`). Pulpit: tekst kroku „Podłącz asystenta AI” wskazuje MCP.
+
+## C3a-2. Komunikaty serwera po polsku
+
+`api/messages.ts`: `translateFieldMessage(message)` — uporządkowana lista wyrażeń regularnych pokrywająca komunikaty `domain.ValidationError` z `internal/domain` i `internal/usecase` (długości, zakresy, kwoty z liczbą miejsc, waluty, daty, listy wartości, przelewy, splity, cele, subskrypcje); nieznany komunikat zaczynający się od angielskiego słowa kluczowego → „Nieprawidłowa wartość.”, inny (np. polski z testów) przechodzi bez zmian. `reasonMessages` — opisy 409/422 po ostatnim segmencie `type`. `fieldErrors` tłumaczy zawsze; `errorMessage` dla 409/422/400 zwraca pierwszy przetłumaczony błąd pola albo opis przyczyny, nigdy angielskie `detail`/`title`. `labels.ts`: etykiety pól zagnieżdżonych (`goal.amount.amount`, `match_rule.*`, `splits[i].amount` → „podział i: kwota”).
+
+## C3a-3. Dziennik, 404, focus
+
+- Dziennik: akcje 003/004 (`envelope_group.*`, `envelope.*`, `assignment.set`, `subscription.*`, `charge.*`, `household.deleted`) i zasoby (`envelope_group`, `envelope`, `assignment`, `subscription`, `charge`) — filtr „Czego dotyczy” bierze je z tej samej mapy. Wartości `{amount, currency}` → „49.00 PLN”; cykl zapisany przez serwer jako `"1 month from 2026-10-21"` → `cycleLabel` po polsku.
+- `HouseholdNotFoundPage` jako dziecko `*` trasy `h/:householdId` (w `AppShell`); `NotFoundPage` zostaje dla adresów spoza gospodarstwa.
+- `lib/focusInvalid.ts`: nasłuch `submit` w fazie przechwytywania na `document` (instalowany w `main.tsx`); w następnej klatce, gdy focus nie stoi już na błędnym polu, przenosi go na pierwsze `[aria-invalid="true"]` w formularzu (działa dla `Form` i surowych `<form>`).
+
+## C3a-4. Przegląd jakości (exploratory QA)
+
+Jednorazowy skrypt Playwright (poza repozytorium) na zbudowanym binarium z atrapą NBP: logowanie (błędne i poprawne) → gospodarstwo (pusta walidacja) → portfele (za dużo miejsc po przecinku, duplikat nazwy, USD) → transakcje (skrót `n`, pusta walidacja, przelew wielowalutowy) → budżet (grupa, koperta z celem, duplikat) → subskrypcje (pusta walidacja, Netflix, przegląd, lista, kolejka) → boty (zestaw „Asystent AI”, token, wywołanie `/mcp`) → wszystkie zakładki ustawień → trasy nieznane i nieistniejące zasoby → kolejność Tab → telefon 390 px w jasnym motywie, menu, rola „Podgląd” z zaproszenia. Zrzuty obejrzane ręcznie; brak błędów JS w konsoli (tylko oczekiwane 401/404/409 z API), brak poziomego przewijania.
+
+Znalezione i naprawione: angielskie nazwy akcji/zasobów 003–004 w dzienniku i angielski cykl w zmianach; angielskie komunikaty serwera (detail/title w `FormAlert`, toastach i `QueryState`, komunikaty walidacji pól); 404 w gospodarstwie bez nawigacji; po wysłaniu długiego formularza (subskrypcja) z błędami komunikat zostawał poza widokiem.
+
+## C3a-5. Strategia testów
+
+Vitest: `api/messages.test.ts`, `features/settings/AssistantConnect.test.ts`, `BotsTab.test.tsx` (zestaw „Asystent AI” → scope'y, sekcja podłączenia z adresem, nagłówkiem, poleceniem, mcp-remote i pytaniami), `AuditTab.test.tsx` (akcje i wartości 003/004), `App.test.tsx` (404 w gospodarstwie i poza nim), `lib/focusInvalid.test.ts`. Playwright: `flow.spec.ts` (zestaw, sekcja podłączenia, `tools/call whoami` na `/mcp` z tokenem z dialogu, axe), `a11y.spec.ts` (404 w gospodarstwie, dialog tokenu z rozwiniętymi konfiguracjami — jasny, ciemny, telefon, bez poziomego przewijania).
+
+## Decyzje autonomiczne (część C3a)
+
+| ID | Decyzja | Uzasadnienie |
+|----|---------|--------------|
+| AD-E01 | Instrukcja MCP tylko w dialogu jednorazowego tokenu, z tokenem wstawionym w polecenia | Token jest znany tylko w tej chwili; gotowe polecenie usuwa najczęstszy błąd (zły nagłówek) |
+| AD-E02 | Konfiguracja „HTTP z nagłówkami” w formacie `mcpServers.denar.{type,url,headers}`; dla klientów bez nagłówków — `mcp-remote` jak w README | Najszerzej obsługiwane formaty; README pozostaje źródłem dla CLI |
+| AD-E03 | Zestaw „Asystent AI” = odczyt wszystkiego + `transactions:write` | Zgodnie z nazwą („wprowadzanie wydatków”); zapis budżetu i subskrypcji wymaga świadomego zaznaczenia |
+| AD-E04 | Tłumaczenie komunikatów serwera po stronie UI (regexy na znanych komunikatach) | Kontrakt i backend bez zmian; angielskie komunikaty zostają dla API/MCP (modele) |
+| AD-E05 | Focus na pierwszym błędnym polu przez globalny nasłuch `submit` zamiast zmian w każdym formularzu | Jedno miejsce dla kilkunastu formularzy; nie zmienia zachowania poprawnych formularzy |
+| AD-E06 | Profil użytkownika pominięty | API ma tylko `GET /me` (bez zmiany imienia/hasła); menu konta już pokazuje imię, e-mail, motyw i wylogowanie |
+
+## Ograniczenia (część C3a)
+
+- Brak strony profilu (zmiana imienia, hasła, e-maila) — brak endpointów; do dodania razem z API.
+- Tłumaczenie komunikatów serwera pokrywa komunikaty istniejące w etapach 001–004 i 006; nowe komunikaty backendu bez reguły dają „Nieprawidłowa wartość.” — przy zmianach walidacji dopisz regułę w `api/messages.ts`.
+- Pola daty (`<input type="date">`) wyświetlają format zależny od języka przeglądarki/systemu, nie od `lang` strony (np. `mm/dd/yyyy` w przeglądarce po angielsku).
+- Pasek zakładek ustawień i subskrypcji na telefonie przewija się poziomo w swoim kontenerze (ostatnia zakładka bywa częściowo ucięta przy krawędzi).
+- Wartości w zmianach dziennika poza kwotami i cyklami (np. scope'y `wallets:read`, `via: auto_assign`) pokazywane są jak zapisał je serwer.
