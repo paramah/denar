@@ -12,9 +12,9 @@ function isEditable(target: EventTarget | null): boolean {
  * edycji, z modyfikatorami ani przy otwartym oknie modalnym.
  */
 export function useHotkey(key: string, handler: () => void, enabled = true) {
-  const latest = useRef(handler)
+  const latestRef = useRef(handler)
   useLayoutEffect(() => {
-    latest.current = handler
+    latestRef.current = handler
   })
   useEffect(() => {
     if (!enabled) {
@@ -28,7 +28,7 @@ export function useHotkey(key: string, handler: () => void, enabled = true) {
         return
       }
       event.preventDefault()
-      latest.current()
+      latestRef.current()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)

@@ -103,12 +103,12 @@ function Wizard({ wallets, presets }: { wallets: Wallet[]; presets: ImportPreset
   const preview = usePreviewCsvImport(household.id)
   const run = useImportCsv(household.id)
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const firstRender = useRef(true)
+  const firstRenderRef = useRef(true)
 
   // Nowy krok: focus na jego nagłówek (czytnik ogłasza, gdzie jesteśmy).
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false
       return
     }
     headingRef.current?.focus()

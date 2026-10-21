@@ -133,15 +133,15 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
   const [arranging, setArranging] = useState(false)
   const [showHidden, setShowHidden] = useState(() => readStored(hiddenKey) === '1')
   const [reordering, setReordering] = useState(false)
-  const focusAfter = useRef<string | null>(null)
+  const focusAfterRef = useRef<string | null>(null)
   const close = () => setModal(null)
   const hiddenCount = envelopesOf(data).filter((e) => e.hidden).length
   const underfunded = toneOf(data.underfunded.amount) === 'inflow'
 
   // Po zmianie kolejności fokus wraca na ten sam przycisk (wiersz zmienił miejsce).
   const refocus = () => {
-    const target = focusAfter.current
-    focusAfter.current = null
+    const target = focusAfterRef.current
+    focusAfterRef.current = null
     if (target) {
       requestAnimationFrame(() => {
         const button = document.querySelector<HTMLButtonElement>(`[data-reorder="${target}"]`)
@@ -156,7 +156,7 @@ function BudgetBody({ data, decimals, canWrite }: { data: BudgetMonth; decimals:
       return
     }
     setReordering(true)
-    focusAfter.current = focus
+    focusAfterRef.current = focus
     try {
       for (const patch of patches) {
         if (kind === 'group') {

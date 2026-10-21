@@ -95,10 +95,10 @@ function TransactionForm({
   const transfer = transaction?.kind === 'transfer'
   const showEnvelopes = envelopesEnabled() && !transfer
 
-  const [mode, setMode] = useState<EntryMode>(transaction ? modeOf(transaction) : 'expense')
-  const [amount, setAmount] = useState(transaction ? amountForInput(transaction.amount.amount) : '')
+  const [mode, setMode] = useState<EntryMode>(() => (transaction ? modeOf(transaction) : 'expense'))
+  const [amount, setAmount] = useState(() => (transaction ? amountForInput(transaction.amount.amount) : ''))
   const [payee, setPayee] = useState(transaction?.payee_name ?? '')
-  const [date, setDate] = useState(transaction?.date ?? todayIn(household.timezone))
+  const [date, setDate] = useState(() => transaction?.date ?? todayIn(household.timezone))
   const [chosenWallet, setChosenWallet] = useState(() => initialWallet(hid, transaction, fixedWalletId))
   const [status, setStatus] = useState<TransactionStatus>(transaction?.status ?? 'cleared')
   const [tags, setTags] = useState(transaction?.tags.join(', ') ?? '')

@@ -29,8 +29,8 @@ export function WalletScopePicker({
   error?: string
 }) {
   const { t } = useTranslation('settings')
-  const name = useId()
-  const errorId = `${name}-error`
+  const fieldId = useId()
+  const errorId = `${fieldId}-error`
   const known = new Set(wallets.map((w) => w.id))
   const hidden = value.ids.filter((id) => !known.has(id))
   return (

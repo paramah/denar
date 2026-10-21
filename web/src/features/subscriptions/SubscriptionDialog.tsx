@@ -147,7 +147,7 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
   const update = useUpdateSubscription(hid)
   const toast = useToast()
   const navigate = useNavigate()
-  const vendorList = useId()
+  const vendorListId = useId()
   const editing = !!subscription
   const { t } = useTranslation('subscriptions')
 
@@ -268,14 +268,14 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
             <>
               <input
                 className={inputClass}
-                list={vendorList}
+                list={vendorListId}
                 value={draft.vendor}
                 onChange={(event) => onVendor(event.target.value)}
                 autoComplete="off"
                 data-autofocus
                 {...control}
               />
-              <datalist id={vendorList}>
+              <datalist id={vendorListId}>
                 {(vendors.data ?? []).map((v) => (
                   <option key={v.key} value={v.name} />
                 ))}
@@ -406,10 +406,10 @@ function SubscriptionForm({ onClose, subscription }: { onClose: () => void; subs
 
       <fieldset className={styles.fieldset}>
         <legend>{t('form.reminders')}</legend>
-        <p className={styles.muted} id={`${vendorList}-rem`}>
+        <p className={styles.muted} id={`${vendorListId}-rem`}>
           {t('form.remindersHint', { max: maxReminders })}
         </p>
-        <div className={styles.chips} role="group" aria-describedby={`${vendorList}-rem`}>
+        <div className={styles.chips} role="group" aria-describedby={`${vendorListId}-rem`}>
           {reminderOptions.map((days) => {
             const checked = draft.reminders.includes(days)
             return (

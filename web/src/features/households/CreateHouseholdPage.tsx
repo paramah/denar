@@ -22,12 +22,12 @@ export function CreateHouseholdPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { households } = useSessionUser()
-  const [values, setValues] = useState<HouseholdValues>({
+  const [values, setValues] = useState<HouseholdValues>(() => ({
     name: '',
     base_currency: 'PLN',
     timezone: browserTimeZone(),
     month_start_day: '1',
-  })
+  }))
   const [localError, setLocalError] = useState<string | undefined>()
   const server = fieldErrors(create.error)
 

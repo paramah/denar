@@ -12,7 +12,8 @@
 
 ## Frontend
 
-- **Framework:** React 19 + Vite + TypeScript (SPA osadzona w binarium).
+- **Framework:** React 19 + Vite + TypeScript 7 (SPA osadzona w binarium).
+- **Lint:** ESLint 10, `typescript-eslint`, `@eslint-react`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y-x`.
 - **State/data:** `@tanstack/react-query`, `openapi-fetch`; typy z `api/openapi.yaml` przez `openapi-typescript`.
 - **UI/Styling:** własne komponenty „Mennica” (007-webui).
 - **i18n:** `i18next` + `react-i18next`, zasoby `web/src/i18n/{pl,en}/*.json` (013-i18n).
@@ -67,6 +68,7 @@
 | TD-008 | Powiadomienia przez transakcyjny outbox | Niezawodna dostawa, retry | PLAN.md |
 | TD-009 | i18n: i18next + react-i18next w web, `Render(locale)` w domenie powiadomień; języki pl/en, preferencja w profilu | UI i powiadomienia po polsku i angielsku | specs/013-i18n |
 | TD-010 | Repozytorium `github.com/paramah/denar`, licencja MIT, GitHub Actions (CI, release: binaria + GHCR), akcje przypięte do SHA | Publikacja open source | README.md |
+| TD-011 | TypeScript 7 obok API TS 6: `tsc` z aliasu `@typescript/native` (TS 7), pakiet `typescript` to `@typescript/typescript6` dla typescript-eslint i openapi-typescript | typescript-eslint nie wspiera jeszcze TS 7 (typescript-eslint#10940); układ zalecany przez typescript-eslint | web/package.json |
 
 ## Open Questions
 

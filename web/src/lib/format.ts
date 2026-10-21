@@ -81,7 +81,7 @@ export function addDays(date: Date, days: number): Date {
 /** Strefy IANA wspierane przez przeglądarkę; strefa przeglądarki pierwsza. */
 export function timeZones(): string[] {
   const own = Intl.DateTimeFormat().resolvedOptions().timeZone
-  let all: string[] = []
+  let all: string[]
   try {
     all = Intl.supportedValuesOf('timeZone')
   } catch {
