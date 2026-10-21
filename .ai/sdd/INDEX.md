@@ -30,4 +30,4 @@
 | 005 | notifications | implementation:done (delegated) | `.ai/sdd/specs/005-notifications/` |
 | 006 | mcp | implementation:done (delegated) | `.ai/sdd/specs/006-mcp/` |
 | 007 | webui | — | |
-| 008 | import | — | |
+| 008 | import | implementation:done (delegated) | `.ai/sdd/specs/008-import/` |

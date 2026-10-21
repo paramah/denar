@@ -187,3 +187,7 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 006-mcp | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 006-mcp | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 006-mcp | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+| 008-import | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 008-import | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 008-import | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 008-import | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
