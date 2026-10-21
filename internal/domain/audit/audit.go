@@ -74,3 +74,9 @@ const (
 	ResourceSubscription = "subscription"
 	ResourceCharge       = "charge"
 )
+
+// Resource types of stage 008.
+const (
+	ResourceImport     = "import"
+	ResourceConnection = "connection"
+)

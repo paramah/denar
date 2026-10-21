@@ -153,3 +153,12 @@ const (
 	// ConflictTooManyChannels: the person has the most channels allowed.
 	ConflictTooManyChannels ConflictReason = "too_many_channels"
 )
+
+// Reasons of stage 008.
+const (
+	// ConflictImportReverted: the import batch is reverted already.
+	ConflictImportReverted ConflictReason = "import_reverted"
+	// ConflictProviderUnavailable: the server has no connector for the
+	// connection's provider.
+	ConflictProviderUnavailable ConflictReason = "provider_unavailable"
+)
