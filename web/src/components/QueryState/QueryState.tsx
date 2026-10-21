@@ -5,6 +5,7 @@ import { Button } from '../Button/Button.tsx'
 import { Icon } from '../Icon/Icon.tsx'
 import { Skeleton } from '../Skeleton/Skeleton.tsx'
 import styles from './QueryState.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type Props<T> = {
   query: Pick<UseQueryResult<T>, 'data' | 'error' | 'isPending' | 'isError' | 'refetch' | 'isFetching'>
@@ -15,7 +16,7 @@ type Props<T> = {
 }
 
 /** Ładowanie, błąd z „Spróbuj ponownie” albo treść z danymi zapytania. */
-export function QueryState<T>({ query, children, loading, errorTitle = 'Nie udało się wczytać danych' }: Props<T>) {
+export function QueryState<T>({ query, children, loading, errorTitle = tk('common:components.loadFailed') }: Props<T>) {
   if (query.isPending) {
     return <>{loading ?? <Skeleton />}</>
   }
@@ -45,7 +46,7 @@ export function SectionError({
       </div>
       {onRetry && (
         <Button size="sm" icon="refresh" onClick={onRetry} busy={busy}>
-          Spróbuj ponownie
+          {tk('common:components.retry')}
         </Button>
       )}
     </div>

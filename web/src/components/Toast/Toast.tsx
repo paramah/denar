@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { IconButton } from '../Button/Button.tsx'
 import { Icon } from '../Icon/Icon.tsx'
 import styles from './Toast.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type ToastInput = {
   message: string
@@ -78,7 +79,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
     >
       <Icon name={isError ? 'alert' : 'check'} className={styles.icon} />
       <span className={styles.message}>{toast.message}</span>
-      <IconButton icon="close" label="Zamknij komunikat" onClick={() => onDismiss(toast.id)} />
+      <IconButton icon="close" label={tk('common:components.dismissToast')} onClick={() => onDismiss(toast.id)} />
     </li>
   )
 }

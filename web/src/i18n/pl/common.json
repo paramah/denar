@@ -74,5 +74,21 @@
     "title": "Witaj, {{name}}",
     "create": "Załóż gospodarstwo",
     "body": "Nie należysz jeszcze do żadnego gospodarstwa. Załóż własne — z walutą, w której prowadzisz budżet — albo poproś domownika o link z zaproszeniem."
+  },
+  "components": {
+    "formInvalid": "Popraw dane formularza.",
+    "loading": "Wczytywanie…",
+    "loadMore": "Pokaż więcej",
+    "dismissToast": "Zamknij komunikat",
+    "close": "Zamknij",
+    "typeToConfirmBefore": "Wpisz ",
+    "typeToConfirmAfter": ", aby potwierdzić",
+    "skipToContent": "Przejdź do treści",
+    "copiedToClipboard": "Skopiowano do schowka",
+    "selectedToCopy": "Zaznaczono — skopiuj skrótem klawiszowym",
+    "copied": "Skopiowano",
+    "copy": "Kopiuj",
+    "loadFailed": "Nie udało się wczytać danych",
+    "retry": "Spróbuj ponownie"
   }
 }

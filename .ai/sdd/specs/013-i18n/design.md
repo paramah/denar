@@ -33,3 +33,14 @@ Po fundamencie: każdy obszar `features/<obszar>` przenosi napisy do `{pl,en}/<o
 - AD-1301: zapisane powiadomienia nie są ponownie renderowane (treść jest w bazie).
 - AD-1302: brak preferencji po stronie serwera = `pl` (serwer nie zna przeglądarki odbiorcy).
 - AD-1303: angielskie formatowanie dat i liczb w UI wg `en-GB` (dzień przed miesiącem, poniedziałek pierwszym dniem tygodnia — bliżej przyzwyczajeń użytkowników w Polsce).
+
+### Web (część B; numeracja od AD-1321, żeby nie zderzyć się z backendem)
+
+- AD-1321: i18next 26.5.3 + react-i18next 17.1.0, klucze tekstowe (bez `enableSelector`), namespace = obszar = para plików `web/src/i18n/{pl,en}/<obszar>.json`; typy z polskich plików (`i18next.d.ts`), zgodność angielskich pilnuje `i18n.test.ts` (klucze, parametry, formy liczby mnogiej). Konwencja w `web/src/i18n/README.md`.
+- AD-1322: zmiana języka montuje drzewo pod `QueryClientProvider`/`ToastProvider` od nowa (`LocaleBoundary`, klucz = język). Dzięki temu teksty spoza `useTranslation` (etykiety, formattery, komunikaty) zmieniają się bez przeładowania; koszt — utrata lokalnego stanu formularzy przy zmianie języka; fokus wraca na element o tym samym `data-focus-key`/`id`.
+- AD-1323: `lib/labels.ts` zachowuje kształt `Record<klucz, string>` — właściwości to gettery czytające `labels.json`; kropki w kodach (`household.created`) zapisane w JSON jako `/`.
+- AD-1324: preferencja z `/me` (nie-null) jest też zapisywana w przeglądarce, żeby ekran logowania po wylogowaniu mówił tym samym językiem; „Automatycznie” czyści zapis i wraca do `navigator.languages`.
+- AD-1325: porównania danych użytkownika (wyszukiwanie kontrahenta/dostawcy po nazwie, inicjały subskrypcji) zostają przy regułach `pl` niezależnie od języka UI — to dane, nie interfejs.
+- AD-1326: separator dziesiętny w polach kwot i kursów (`amountForInput`, `formatRate`) według języka; parser przyjmuje przecinek i kropkę w obu językach.
+- AD-1327: błędy dostarczania (`last_error`, wynik testu kanału, `email_error`) tłumaczy `translateDeliveryError` według listy uzgodnionej z backendem; po polsku dawne brzmienie, po angielsku tekst serwera; polskie teksty starszego serwera i odpowiedzi zewnętrzne (`HTTP 500`, `Telegram: …`) przechodzą bez zmian.
+- AD-1328: komponenty wspólne (`components/`) i powłoka (`app/`) przetłumaczone w części B (`common.json`), żeby ekstrakcja obszarów nie dzieliła plików.

@@ -1,6 +1,7 @@
 import type { Key, ReactNode } from 'react'
 import { Button } from '../Button/Button.tsx'
 import styles from './DataList.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type Props<T> = {
   items: T[]
@@ -32,7 +33,7 @@ export function DataList<T>({
   hasMore,
   onLoadMore,
   loadingMore,
-  loadMoreLabel = 'Pokaż więcej',
+  loadMoreLabel = tk('common:components.loadMore'),
   variant = 'rows',
 }: Props<T>) {
   if (items.length === 0 && empty) {

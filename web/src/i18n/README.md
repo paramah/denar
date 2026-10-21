@@ -26,7 +26,7 @@ Sufiksy i18next z `count`: po polsku `_one`, `_few`, `_many`, `_other` (wszystki
 
 1. Dopisz klucz do `pl/<obszar>.json` z **dokładnie dotychczasowym polskim brzmieniem** (znak w znak: cudzysłowy „”, półpauzy —, wielokropek …, kropka na końcu). Polskich tekstów nie poprawiamy przy ekstrakcji — testy szukają elementów po polskim tekście.
 2. Dopisz ten sam klucz z naturalnym angielskim do `en/<obszar>.json`.
-3. W komponencie: `const { t } = useTranslation('<obszar>')`, potem `t('klucz')`. Klucze są typowane (z polskich plików), literówka to błąd `tsc`.
+3. W komponencie: `const { t } = useTranslation('<obszar>')`, potem `t('klucz')`. Klucze są typowane (z polskich plików), literówka to błąd `tsc`. Klucze z innego pliku: `useTranslation(['<obszar>', 'common'])` i `t('common:components.close')`. Klucz składany w locie (`t(\`nav.${item}\`)`) działa, gdy typ zmiennej to unia znanych kluczy; inaczej `tk()`.
 4. Tekst z elementami w środku: `<Trans>` z react-i18next albo dwa klucze; nie skleja się zdań z kawałków, jeśli szyk w angielskim jest inny.
 
 ## Poza komponentami

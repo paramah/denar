@@ -3,6 +3,7 @@ import { ApiError, errorMessage, fieldErrors } from '../../api/errors.ts'
 import { fieldLabel } from '../../lib/labels.ts'
 import { Icon } from '../Icon/Icon.tsx'
 import styles from './Form.module.css'
+import { tk } from '../../i18n/translate.ts'
 
 type FormProps = {
   onSubmit: FormEventHandler<HTMLFormElement>
@@ -62,7 +63,7 @@ export function FormAlert({ error, shownFields = [], fallback }: FormAlertProps)
     <div role="alert" className={styles.alert}>
       <Icon name="alert" size={18} />
       <div>
-        <p>{other.length > 0 ? 'Popraw dane formularza.' : errorMessage(error, fallback)}</p>
+        <p>{other.length > 0 ? tk('common:components.formInvalid') : errorMessage(error, fallback)}</p>
         {other.length > 0 && (
           <ul>
             {other.map(([field, message]) => (

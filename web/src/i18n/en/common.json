@@ -74,5 +74,21 @@
     "title": "Welcome, {{name}}",
     "create": "Create a household",
     "body": "You do not belong to any household yet. Create your own — in the currency you budget in — or ask a household member for an invitation link."
+  },
+  "components": {
+    "formInvalid": "Correct the form data.",
+    "loading": "Loading…",
+    "loadMore": "Show more",
+    "dismissToast": "Dismiss message",
+    "close": "Close",
+    "typeToConfirmBefore": "Type ",
+    "typeToConfirmAfter": " to confirm",
+    "skipToContent": "Skip to content",
+    "copiedToClipboard": "Copied to the clipboard",
+    "selectedToCopy": "Selected — copy it with a keyboard shortcut",
+    "copied": "Copied",
+    "copy": "Copy",
+    "loadFailed": "Could not load the data",
+    "retry": "Try again"
   }
 }
