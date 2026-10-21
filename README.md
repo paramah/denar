@@ -126,8 +126,36 @@ Narzędzia (portfele, koperty, kontrahenci i subskrypcje po id albo nazwie; kwot
 | `create_subscription`, `update_subscription`, `change_subscription_price`, `skip_charge` | `subscriptions:write` |
 | `confirm_charge_match` | `subscriptions:write` + `transactions:read` |
 | `post_charge` | `subscriptions:write` + `transactions:write` |
+| `list_notifications` (powiadomienia twórcy bota) | `notifications:read` |
 
 Brak scope'u daje błąd `forbidden` z nazwą brakującego scope'u. Limit żądań: `DENAR_BOT_RATE` na minutę (liczony osobno dla MCP i REST).
+
+## Powiadomienia
+
+Zdarzenia (odnowienie za N dni, koniec okresu próbnego, zmiana ceny, przegapiona płatność, przekroczona koperta, zbliżający się termin celu koperty) trafiają do outboxu, a job co `DENAR_NOTIFY_INTERVAL` zamienia je na **powiadomienia w aplikacji** i **dostawy na kanały** wybrane w preferencjach. Odbiorcy: członkowie gospodarstwa (każda rola), którzy widzą portfel zdarzenia — subskrypcja z prywatnego portfela nie trafia do tych, którzy go nie widzą. Treści są po polsku, z linkiem do Web UI (`DENAR_BASE_URL`).
+
+- **Kanały** (per użytkownik, `/api/me/channels`): `email` (adres, domyślnie e-mail konta; wymaga SMTP), `webhook` (POST JSON, opcjonalny sekret HMAC → nagłówek `X-Denar-Signature: sha256=<hex>`), `ntfy` (serwer, temat, opcjonalny token), `telegram` (chat id + token bota), `matrix` (homeserver, id pokoju `!…:serwer`, access token). „Wyślij test”: `POST /api/me/channels/<id>/test`.
+- **Preferencje** (per użytkownik i gospodarstwo, `/api/me/households/<ID>/notification-preferences`): dla każdego typu zdarzenia in-app tak/nie i lista kanałów. Domyślnie: wszystko w aplikacji, żadnych kanałów.
+- **Sekrety** kanałów (tokeny, klucz HMAC) są szyfrowane AES-256-GCM kluczem `DENAR_MASTER_KEY` i nigdy nie wracają w API (`has_secret`). Bez klucza kanały z sekretami są niedostępne; e-mail, in-app, webhook bez podpisu i ntfy bez tokenu działają. Klucz: `openssl rand -base64 32`. Zmiana klucza unieważnia zapisane sekrety (trzeba je ustawić ponownie).
+- **Ponawianie**: nieudana dostawa wraca po 1, 2, 4, 8, 16 min; po 6 próbach jest `failed`, a kanał pokazuje `last_error`.
+- **Retencja**: przeczytane powiadomienia znikają po 180 dniach, zakończone dostawy po 30, zdarzenia po 400.
+- **Zaproszenia e-mailem**: przy skonfigurowanym SMTP `POST /api/households/<ID>/invitations` z `"send_email": true` wysyła link (`email_sent` w odpowiedzi).
+
+```sh
+# ntfy: powiadomienia na telefon (aplikacja ntfy, subskrybuj temat denar-dom-7f3a)
+curl -s -b jar -H 'Content-Type: application/json' localhost:8080/api/me/channels \
+  -d '{"type":"ntfy","name":"Telefon","config":{"topic":"denar-dom-7f3a"}}'
+# Telegram: utwórz bota u @BotFather, napisz do niego, chat_id odczytasz z https://api.telegram.org/bot<TOKEN>/getUpdates
+curl -s -b jar -H 'Content-Type: application/json' localhost:8080/api/me/channels \
+  -d '{"type":"telegram","name":"Telegram","config":{"chat_id":"123456789"},"secrets":{"bot_token":"123:ABC…"}}'
+curl -s -b jar -X POST localhost:8080/api/me/channels/<CH>/test        # {"ok":true,…}
+# odnowienia na Telegram i w aplikacji, reszta tylko w aplikacji
+curl -s -b jar -X PUT -H 'Content-Type: application/json' localhost:8080/api/me/households/$H/notification-preferences \
+  -d '{"items":[{"type":"subscription.renewal_upcoming","in_app":true,"channel_ids":["<CH>"]}]}'
+curl -s -b jar 'localhost:8080/api/me/notifications?unread=true'
+```
+
+Weryfikacja podpisu webhooka: `HMAC-SHA256(sekret, surowe body)` w hex, porównane ze stałym czasem z wartością po `sha256=`; `X-Denar-Delivery` to id dostawy (ponowienie ma to samo id).
 
 ## Komendy
 
@@ -160,6 +188,16 @@ Brak scope'u daje błąd `forbidden` z nazwą brakującego scope'u. Limit żąda
 | `DENAR_CHARGE_HORIZON` | `90` | na ile dni naprzód generować oczekiwane obciążenia subskrypcji (7–730) |
 | `DENAR_SUBSCRIPTION_INTERVAL` | `1h` | co ile uruchamiać joby subskrypcji (obciążenia, przegapione, przypomnienia) |
 | `DENAR_FX_INTERVAL` | `30m` | co ile uzupełniać kwoty bazowe transakcji zapisanych bez kursu |
+| `DENAR_MASTER_KEY` / `DENAR_MASTER_KEY_FILE` | — | klucz szyfrowania sekretów kanałów: 32 bajty w base64 (`openssl rand -base64 32`) |
+| `DENAR_SMTP_HOST` | — | serwer SMTP (włącza kanał e-mail i zaproszenia e-mailem) |
+| `DENAR_SMTP_PORT` | `587` (`465` dla `tls`, `25` dla `none`) | port SMTP |
+| `DENAR_SMTP_USERNAME`, `DENAR_SMTP_PASSWORD` / `DENAR_SMTP_PASSWORD_FILE` | — | logowanie SMTP (AUTH PLAIN, tylko po TLS) |
+| `DENAR_SMTP_FROM` | — | nadawca, np. `Denar <denar@example.com>` (wymagany przy SMTP) |
+| `DENAR_SMTP_TLS` | `starttls` | `starttls`, `tls` (od początku) albo `none` |
+| `DENAR_NOTIFY_INTERVAL` | `30s` | co ile rozsyłać zdarzenia i wysyłać dostawy |
+| `DENAR_BUDGET_CHECK_INTERVAL` | `15m` | co ile sprawdzać koperty (przekroczenia, terminy celów) |
+| `DENAR_GOAL_DUE_DAYS` | `7` | ile dni przed terminem celu koperty przypominać (1–60) |
+| `DENAR_TELEGRAM_API_URL` | `https://api.telegram.org` | adres Bot API Telegrama (np. własny serwer Bot API) |
 
 ## Rozwój
 
