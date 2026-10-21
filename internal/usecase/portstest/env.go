@@ -29,8 +29,12 @@ type Env struct {
 	Payees       usecase.PayeeRepository
 	FxRates      usecase.FxRateRepository
 	FxOverrides  usecase.FxOverrideRepository
-	Tx           usecase.TxManager
-	Clock        usecase.Clock
+	// Stage 003.
+	EnvelopeGroups usecase.EnvelopeGroupRepository
+	Envelopes      usecase.EnvelopeRepository
+	Assignments    usecase.AssignmentRepository
+	Tx             usecase.TxManager
+	Clock          usecase.Clock
 }
 
 // Factory builds a fresh Env for one test and cleans up through t.

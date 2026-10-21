@@ -171,3 +171,7 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 002-wallets-transactions | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 002-wallets-transactions | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 002-wallets-transactions | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+| 003-envelope-budget | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 003-envelope-budget | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 003-envelope-budget | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 003-envelope-budget | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |

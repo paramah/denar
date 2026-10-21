@@ -8,6 +8,7 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"git.eiac.dev/tools/denar/internal/domain/budget"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/user"
@@ -213,4 +214,19 @@ func (w *world) spend(p usecase.Principal, walletID string, amount usecase.Money
 	v, err := usecase.NewRecordTransaction(w.deps).Do(ctx, p, "h1", usecase.RecordTransactionInput{WalletID: walletID, Amount: amount, Date: day(date)})
 	w.must(err)
 	return v
+}
+
+// addEnvelopes adds the envelopes, named after their ids, to a group
+// "g-<household>" of the household, creating the group when needed.
+func (w *world) addEnvelopes(householdID domain.ID, ids ...domain.ID) {
+	w.t.Helper()
+	gid := "g-" + householdID
+	if _, err := w.EnvelopeGroups.ByID(ctx, householdID, gid); err != nil {
+		w.must(w.EnvelopeGroups.Create(ctx, budget.Group{ID: gid, HouseholdID: householdID, Name: "Grupa " + string(householdID),
+			CreatedAt: w.Clock.Now(), UpdatedAt: w.Clock.Now()}))
+	}
+	for _, id := range ids {
+		w.must(w.Envelopes.Create(ctx, budget.Envelope{ID: id, HouseholdID: householdID, GroupID: gid, Name: string(id),
+			CreatedAt: w.Clock.Now(), UpdatedAt: w.Clock.Now()}))
+	}
 }

@@ -59,6 +59,7 @@ func seedTransactions(t *testing.T, env Env) {
 // Households, Wallets and Payees.
 func RunTransactionSuite(t *testing.T, factory Factory) {
 	ctx := context.Background()
+	runBudgetFlowsTests(t, factory)
 
 	t.Run("Create then read back every field", func(t *testing.T) {
 		env := factory(t)

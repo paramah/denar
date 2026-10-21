@@ -26,6 +26,12 @@ type Deps struct {
 	Payees       PayeeRepository
 	FxRates      FxRateRepository
 	FxOverrides  FxOverrideRepository
+	// EnvelopeGroups, Envelopes and Assignments hold the budget (stage
+	// 003). With Envelopes nil the envelope of a transaction or payee is
+	// not checked.
+	EnvelopeGroups EnvelopeGroupRepository
+	Envelopes      EnvelopeRepository
+	Assignments    AssignmentRepository
 	// Rates gives exchange rates against PLN; nil means only the base
 	// currency, overrides and cached rates are known.
 	Rates RateProvider

@@ -260,3 +260,43 @@ func (r *TransactionRepository) ListRatePending(ctx context.Context, householdID
 	}
 	return found, nil
 }
+
+func (r *TransactionRepository) BudgetFlows(ctx context.Context, householdID domain.ID, walletIDs []domain.ID, to domain.Date) (usecase.BudgetFlows, error) {
+	type key struct {
+		date     string
+		envelope domain.ID
+		kind     transaction.Kind
+	}
+	sums := map[key]int64{}
+	out := usecase.BudgetFlows{Flows: []usecase.BudgetFlow{}, Pending: map[domain.Date]int{}}
+	for _, t := range r.find(ctx, func(t transaction.Transaction) bool {
+		return t.HouseholdID == householdID && slices.Contains(walletIDs, t.WalletID) && (to.IsZero() || !t.Date.After(to))
+	}) {
+		if t.RatePending {
+			out.Pending[t.Date]++
+			continue
+		}
+		if len(t.Splits) == 0 {
+			sums[key{t.Date.String(), t.EnvelopeID, t.Kind}] += t.BaseAmount
+			continue
+		}
+		for _, s := range t.Splits {
+			sums[key{t.Date.String(), s.EnvelopeID, t.Kind}] += s.BaseAmount
+		}
+	}
+	for k, sum := range sums {
+		d, _ := domain.ParseDate(k.date)
+		out.Flows = append(out.Flows, usecase.BudgetFlow{Date: d, EnvelopeID: k.envelope, Kind: k.kind, Base: sum})
+	}
+	slices.SortFunc(out.Flows, func(a, b usecase.BudgetFlow) int {
+		return cmp.Or(a.Date.Compare(b.Date), cmp.Compare(a.EnvelopeID, b.EnvelopeID), cmp.Compare(a.Kind, b.Kind))
+	})
+	return out, nil
+}
+
+func (r *TransactionRepository) CountByEnvelope(ctx context.Context, householdID, envelopeID domain.ID) (int, error) {
+	return len(r.find(ctx, func(t transaction.Transaction) bool {
+		return t.HouseholdID == householdID && envelopeID != "" && (t.EnvelopeID == envelopeID ||
+			slices.ContainsFunc(t.Splits, func(s transaction.Split) bool { return s.EnvelopeID == envelopeID }))
+	})), nil
+}

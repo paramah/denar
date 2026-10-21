@@ -131,6 +131,9 @@ func (uc *CreateTransfer) Do(ctx context.Context, p Principal, householdID domai
 				return err
 			}
 		}
+		if err := uc.d.checkEnvelope(ctx, householdID, "envelope_id", envelope); err != nil {
+			return err
+		}
 		for _, l := range legs {
 			if err := insertTransaction(ctx, uc.d, s.Household.BaseCurrency, l, p.Actor()); err != nil {
 				return err

@@ -85,4 +85,19 @@ type Deps struct {
 	QuoteFxRate     *usecase.QuoteFxRate
 	ListFxOverrides *usecase.ListFxOverrides
 	SetFxOverride   *usecase.SetFxOverride
+
+	GetBudgetMonth       *usecase.GetBudgetMonth
+	ListEnvelopeActivity *usecase.ListEnvelopeActivity
+	SetAssignment        *usecase.SetAssignment
+	MoveBetweenEnvelopes *usecase.MoveBetweenEnvelopes
+	AutoAssign           *usecase.AutoAssign
+	ListEnvelopeGroups   *usecase.ListEnvelopeGroups
+	CreateEnvelopeGroup  *usecase.CreateEnvelopeGroup
+	UpdateEnvelopeGroup  *usecase.UpdateEnvelopeGroup
+	DeleteEnvelopeGroup  *usecase.DeleteEnvelopeGroup
+	ListEnvelopes        *usecase.ListEnvelopes
+	CreateEnvelope       *usecase.CreateEnvelope
+	GetEnvelope          *usecase.GetEnvelope
+	UpdateEnvelope       *usecase.UpdateEnvelope
+	DeleteEnvelope       *usecase.DeleteEnvelope
 }

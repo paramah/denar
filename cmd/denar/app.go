@@ -86,13 +86,18 @@ func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase
 		Payees:       sqlite.NewPayeeRepository(db),
 		FxRates:      sqlite.NewFxRateRepository(db),
 		FxOverrides:  sqlite.NewFxOverrideRepository(db),
-		Rates:        rates,
-		IDs:          id.New(),
-		Tokens:       token.Generator{},
-		Clock:        c,
-		Hasher:       password.Hasher{},
-		Tx:           db,
-		Log:          log,
+
+		EnvelopeGroups: sqlite.NewEnvelopeGroupRepository(db),
+		Envelopes:      sqlite.NewEnvelopeRepository(db),
+		Assignments:    sqlite.NewAssignmentRepository(db),
+
+		Rates:  rates,
+		IDs:    id.New(),
+		Tokens: token.Generator{},
+		Clock:  c,
+		Hasher: password.Hasher{},
+		Tx:     db,
+		Log:    log,
 	}
 }
 
@@ -191,6 +196,21 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		QuoteFxRate:     usecase.NewQuoteFxRate(d),
 		ListFxOverrides: usecase.NewListFxOverrides(d),
 		SetFxOverride:   usecase.NewSetFxOverride(d),
+
+		GetBudgetMonth:       usecase.NewGetBudgetMonth(d),
+		ListEnvelopeActivity: usecase.NewListEnvelopeActivity(d),
+		SetAssignment:        usecase.NewSetAssignment(d),
+		MoveBetweenEnvelopes: usecase.NewMoveBetweenEnvelopes(d),
+		AutoAssign:           usecase.NewAutoAssign(d),
+		ListEnvelopeGroups:   usecase.NewListEnvelopeGroups(d),
+		CreateEnvelopeGroup:  usecase.NewCreateEnvelopeGroup(d),
+		UpdateEnvelopeGroup:  usecase.NewUpdateEnvelopeGroup(d),
+		DeleteEnvelopeGroup:  usecase.NewDeleteEnvelopeGroup(d),
+		ListEnvelopes:        usecase.NewListEnvelopes(d),
+		CreateEnvelope:       usecase.NewCreateEnvelope(d),
+		GetEnvelope:          usecase.NewGetEnvelope(d),
+		UpdateEnvelope:       usecase.NewUpdateEnvelope(d),
+		DeleteEnvelope:       usecase.NewDeleteEnvelope(d),
 	})
 
 	backgroundCtx, stop := context.WithCancel(context.WithoutCancel(ctx))

@@ -58,6 +58,9 @@ func (uc *CreatePayee) Do(ctx context.Context, p Principal, householdID domain.I
 		if err := pe.Validate(); err != nil {
 			return err
 		}
+		if err := uc.d.checkEnvelope(ctx, householdID, "default_envelope_id", pe.DefaultEnvelopeID); err != nil {
+			return err
+		}
 		if err := uc.d.Payees.Create(ctx, pe); err != nil {
 			return err
 		}
@@ -105,6 +108,11 @@ func (uc *UpdatePayee) Do(ctx context.Context, p Principal, householdID, id doma
 		pe = pe.Normalize()
 		if err := pe.Validate(); err != nil {
 			return err
+		}
+		if in.DefaultEnvelopeID.Set {
+			if err := uc.d.checkEnvelope(ctx, householdID, "default_envelope_id", pe.DefaultEnvelopeID); err != nil {
+				return err
+			}
 		}
 		out = pe
 		before, after := payeeChanges(old), payeeChanges(pe)

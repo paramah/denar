@@ -29,8 +29,12 @@ func newEnv(t *testing.T) portstest.Env {
 		Payees:       NewPayeeRepository(db),
 		FxRates:      NewFxRateRepository(db),
 		FxOverrides:  NewFxOverrideRepository(db),
-		Tx:           db,
-		Clock:        fakes.NewClock(time.Date(2026, 10, 21, 9, 30, 0, 123456789, time.UTC)),
+
+		EnvelopeGroups: NewEnvelopeGroupRepository(db),
+		Envelopes:      NewEnvelopeRepository(db),
+		Assignments:    NewAssignmentRepository(db),
+		Tx:             db,
+		Clock:          fakes.NewClock(time.Date(2026, 10, 21, 9, 30, 0, 123456789, time.UTC)),
 	}
 }
 
@@ -47,16 +51,19 @@ func openTestDB(t *testing.T) *DB {
 	return db
 }
 
-func TestUserRepositoryContract(t *testing.T)        { portstest.RunUserSuite(t, newEnv) }
-func TestSessionRepositoryContract(t *testing.T)     { portstest.RunSessionSuite(t, newEnv) }
-func TestOIDCStateRepositoryContract(t *testing.T)   { portstest.RunOIDCStateSuite(t, newEnv) }
-func TestHouseholdRepositoryContract(t *testing.T)   { portstest.RunHouseholdSuite(t, newEnv) }
-func TestMembershipRepositoryContract(t *testing.T)  { portstest.RunMembershipSuite(t, newEnv) }
-func TestInvitationRepositoryContract(t *testing.T)  { portstest.RunInvitationSuite(t, newEnv) }
-func TestBotRepositoryContract(t *testing.T)         { portstest.RunBotSuite(t, newEnv) }
-func TestAuditRepositoryContract(t *testing.T)       { portstest.RunAuditSuite(t, newEnv) }
-func TestWalletRepositoryContract(t *testing.T)      { portstest.RunWalletSuite(t, newEnv) }
-func TestTransactionRepositoryContract(t *testing.T) { portstest.RunTransactionSuite(t, newEnv) }
-func TestPayeeRepositoryContract(t *testing.T)       { portstest.RunPayeeSuite(t, newEnv) }
-func TestFxRateRepositoryContract(t *testing.T)      { portstest.RunFxRateSuite(t, newEnv) }
-func TestFxOverrideRepositoryContract(t *testing.T)  { portstest.RunFxOverrideSuite(t, newEnv) }
+func TestUserRepositoryContract(t *testing.T)          { portstest.RunUserSuite(t, newEnv) }
+func TestSessionRepositoryContract(t *testing.T)       { portstest.RunSessionSuite(t, newEnv) }
+func TestOIDCStateRepositoryContract(t *testing.T)     { portstest.RunOIDCStateSuite(t, newEnv) }
+func TestHouseholdRepositoryContract(t *testing.T)     { portstest.RunHouseholdSuite(t, newEnv) }
+func TestMembershipRepositoryContract(t *testing.T)    { portstest.RunMembershipSuite(t, newEnv) }
+func TestInvitationRepositoryContract(t *testing.T)    { portstest.RunInvitationSuite(t, newEnv) }
+func TestBotRepositoryContract(t *testing.T)           { portstest.RunBotSuite(t, newEnv) }
+func TestAuditRepositoryContract(t *testing.T)         { portstest.RunAuditSuite(t, newEnv) }
+func TestWalletRepositoryContract(t *testing.T)        { portstest.RunWalletSuite(t, newEnv) }
+func TestTransactionRepositoryContract(t *testing.T)   { portstest.RunTransactionSuite(t, newEnv) }
+func TestPayeeRepositoryContract(t *testing.T)         { portstest.RunPayeeSuite(t, newEnv) }
+func TestFxRateRepositoryContract(t *testing.T)        { portstest.RunFxRateSuite(t, newEnv) }
+func TestFxOverrideRepositoryContract(t *testing.T)    { portstest.RunFxOverrideSuite(t, newEnv) }
+func TestEnvelopeGroupRepositoryContract(t *testing.T) { portstest.RunEnvelopeGroupSuite(t, newEnv) }
+func TestEnvelopeRepositoryContract(t *testing.T)      { portstest.RunEnvelopeSuite(t, newEnv) }
+func TestAssignmentRepositoryContract(t *testing.T)    { portstest.RunAssignmentSuite(t, newEnv) }

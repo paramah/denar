@@ -95,6 +95,17 @@ func oidcStarted(t *testing.T, w *world, h http.Handler, c *client) {
 
 func ptr[T any](v T) *T { return &v }
 
+// income records 1000 PLN of income in w1, so that auto-assign has money
+// to give.
+func income(t *testing.T, w *world, _ http.Handler, _ *client) {
+	t.Helper()
+	_, err := w.deps.RecordTransaction.Do(context.Background(), usecase.Principal{User: mustUser(t, w, "owner")}, "h1",
+		usecase.RecordTransactionInput{WalletID: "w1", Amount: usecase.MoneyInput{Amount: "1000", Currency: "PLN"}, Kind: "income"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // invited creates an invitation of grace@example.com to h1 as a member:
 // {invitation} is its id and {token} its token.
 func invited(t *testing.T, w *world, _ http.Handler, _ *client) {
@@ -446,6 +457,101 @@ var conformanceCases = map[string][]conformanceCase{
 		{status: 403, as: "member", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"4"}`},
 		{status: 404, as: "outsider", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"4"}`},
 		{status: 422, as: "admin", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"-4"}`},
+	},
+	"getBudgetMonth": {
+		{status: 200, as: "viewer", target: "/api/households/h1/budget/months/2026-10"},
+		{status: 200, as: "bot", target: "/api/households/h1/budget/months/2026-11", setup: botScopes(bot.ScopeBudgetRead)},
+		{status: 403, as: "bot", target: "/api/households/h1/budget/months/2026-10"},
+		{status: 404, as: "outsider", target: "/api/households/h1/budget/months/2026-10"},
+		{status: 422, as: "member", target: "/api/households/h1/budget/months/2026-13"},
+	},
+	"listEnvelopeActivity": {
+		{status: 200, as: "viewer", target: "/api/households/h1/budget/months/2026-10/envelopes/e1/transactions?limit=1"},
+		{status: 403, as: "bot", target: "/api/households/h1/budget/months/2026-10/envelopes/e1/transactions", setup: botScopes(bot.ScopeBudgetRead)},
+		{status: 404, as: "member", target: "/api/households/h1/budget/months/2026-10/envelopes/nope/transactions"},
+		{status: 422, as: "member", target: "/api/households/h1/budget/months/2026-10/envelopes/e1/transactions?cursor=garbage"},
+	},
+	"setAssignment": {
+		{status: 200, as: "member", target: "/api/households/h1/budget/months/2026-10/assignments/e1", body: `{"amount":{"amount":"100.00","currency":"PLN"}}`},
+		{status: 200, as: "bot", target: "/api/households/h1/budget/months/2026-10/assignments/e1", body: `{"amount":{"amount":"0","currency":"PLN"}}`,
+			setup: botScopes(bot.ScopeBudgetWrite)},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/months/2026-10/assignments/e1", body: `{"amount":{"amount":"1","currency":"PLN"}}`},
+		{status: 404, as: "member", target: "/api/households/h1/budget/months/2026-10/assignments/nope", body: `{"amount":{"amount":"1","currency":"PLN"}}`},
+		{status: 422, as: "member", target: "/api/households/h1/budget/months/2026-10/assignments/e1", body: `{"amount":{"amount":"1","currency":"USD"}}`},
+	},
+	"moveBetweenEnvelopes": {
+		{status: 200, as: "member", target: "/api/households/h1/budget/months/2026-10/moves",
+			body: `{"from_envelope_id":"e1","to_envelope_id":"groceries","amount":{"amount":"10.00","currency":"PLN"}}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/months/2026-10/moves",
+			body: `{"from_envelope_id":"e1","to_envelope_id":"groceries","amount":{"amount":"1","currency":"PLN"}}`},
+		{status: 404, as: "member", target: "/api/households/h1/budget/months/2026-10/moves",
+			body: `{"from_envelope_id":"e1","to_envelope_id":"nope","amount":{"amount":"1","currency":"PLN"}}`},
+		{status: 422, as: "member", target: "/api/households/h1/budget/months/2026-10/moves",
+			body: `{"from_envelope_id":"e1","to_envelope_id":"e1","amount":{"amount":"1","currency":"PLN"}}`},
+	},
+	"autoAssign": {
+		{status: 200, as: "member", target: "/api/households/h1/budget/months/2026-10/auto-assign", setup: income},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/months/2026-10/auto-assign"},
+		{status: 404, as: "outsider", target: "/api/households/h1/budget/months/2026-10/auto-assign"},
+		{status: 422, as: "member", target: "/api/households/h1/budget/months/2026-13/auto-assign"},
+	},
+	"listEnvelopeGroups": {
+		{status: 200, as: "viewer", target: "/api/households/h1/budget/envelope-groups"},
+		{status: 403, as: "bot", target: "/api/households/h1/budget/envelope-groups"},
+		{status: 404, as: "outsider", target: "/api/households/h1/budget/envelope-groups"},
+	},
+	"createEnvelopeGroup": {
+		{status: 201, as: "member", target: "/api/households/h1/budget/envelope-groups", body: `{"name":"Rachunki","position":3}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelope-groups", body: `{"name":"X"}`},
+		{status: 404, as: "outsider", target: "/api/households/h1/budget/envelope-groups", body: `{"name":"X"}`},
+		{status: 409, as: "member", target: "/api/households/h1/budget/envelope-groups", body: `{"name":"codzienne"}`},
+		{status: 422, as: "member", target: "/api/households/h1/budget/envelope-groups", body: `{"name":" "}`},
+	},
+	"updateEnvelopeGroup": {
+		{status: 200, as: "member", target: "/api/households/h1/budget/envelope-groups/g1", body: `{"name":"Stałe","position":2}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelope-groups/g1", body: `{"name":"X"}`},
+		{status: 404, as: "member", target: "/api/households/h1/budget/envelope-groups/nope", body: `{"name":"X"}`},
+		{status: 409, as: "member", target: "/api/households/h1/budget/envelope-groups/g1", body: `{"name":"CELE"}`},
+		{status: 422, as: "member", target: "/api/households/h1/budget/envelope-groups/g1", body: `{"position":-1}`},
+	},
+	"deleteEnvelopeGroup": {
+		{status: 204, as: "member", target: "/api/households/h1/budget/envelope-groups/g2"},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelope-groups/g2"},
+		{status: 404, as: "member", target: "/api/households/h1/budget/envelope-groups/nope"},
+		{status: 409, as: "member", target: "/api/households/h1/budget/envelope-groups/g1"},
+	},
+	"listEnvelopes": {
+		{status: 200, as: "viewer", target: "/api/households/h1/budget/envelopes?include_hidden=true"},
+		{status: 200, as: "bot", target: "/api/households/h1/budget/envelopes", setup: botScopes(bot.ScopeBudgetRead)},
+		{status: 403, as: "bot", target: "/api/households/h1/budget/envelopes"},
+		{status: 404, as: "outsider", target: "/api/households/h1/budget/envelopes"},
+	},
+	"createEnvelope": {
+		{status: 201, as: "member", target: "/api/households/h1/budget/envelopes",
+			body: `{"group_id":"g2","name":"Wakacje","position":1,"hidden":false,"goal":{"type":"target_by_date","amount":{"amount":"1200.00","currency":"PLN"},"target_date":"2027-03-15"}}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelopes", body: `{"group_id":"g1","name":"X"}`},
+		{status: 404, as: "outsider", target: "/api/households/h1/budget/envelopes", body: `{"group_id":"g1","name":"X"}`},
+		{status: 409, as: "member", target: "/api/households/h1/budget/envelopes", body: `{"group_id":"g2","name":"jedzenie"}`},
+		{status: 422, as: "member", target: "/api/households/h1/budget/envelopes", body: `{"group_id":"nope","name":"X"}`},
+	},
+	"getEnvelope": {
+		{status: 200, as: "viewer", target: "/api/households/h1/budget/envelopes/e1"},
+		{status: 403, as: "bot", target: "/api/households/h1/budget/envelopes/e1"},
+		{status: 404, as: "member", target: "/api/households/h1/budget/envelopes/nope"},
+	},
+	"updateEnvelope": {
+		{status: 200, as: "member", target: "/api/households/h1/budget/envelopes/e1", body: `{"goal":null,"hidden":true,"group_id":"g2","name":"Jedzenie i chemia","position":4}`},
+		{status: 200, as: "member", target: "/api/households/h1/budget/envelopes/e2", body: `{"goal":{"type":"monthly","amount":{"amount":"50","currency":"PLN"}}}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelopes/e1", body: `{"hidden":true}`},
+		{status: 404, as: "member", target: "/api/households/h1/budget/envelopes/nope", body: `{"hidden":true}`},
+		{status: 409, as: "member", target: "/api/households/h1/budget/envelopes/e1", body: `{"name":"ZAKUPY"}`},
+		{status: 422, as: "member", target: "/api/households/h1/budget/envelopes/e1", body: `{"goal":{"type":"monthly","amount":{"amount":"5","currency":"USD"}}}`},
+	},
+	"deleteEnvelope": {
+		{status: 204, as: "member", target: "/api/households/h1/budget/envelopes/e2"},
+		{status: 403, as: "viewer", target: "/api/households/h1/budget/envelopes/e2"},
+		{status: 404, as: "member", target: "/api/households/h1/budget/envelopes/nope"},
+		{status: 409, as: "member", target: "/api/households/h1/budget/envelopes/e1"},
 	},
 	"listAudit": {
 		{status: 200, as: "admin", target: "/api/households/h1/audit?limit=1&resource_type=invitation", setup: then(invited, invited)},
