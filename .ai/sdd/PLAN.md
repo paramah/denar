@@ -175,3 +175,7 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 003-envelope-budget | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 003-envelope-budget | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 003-envelope-budget | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+| 004-subscriptions | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 004-subscriptions | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 004-subscriptions | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 004-subscriptions | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
