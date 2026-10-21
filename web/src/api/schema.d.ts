@@ -556,6 +556,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/households/{householdId}/budget/months/{month}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+            };
+            cookie?: never;
+        };
+        /** Budżet miesiąca — grupy, koperty, Ready-to-Assign (budget:read) */
+        get: operations["getBudgetMonth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/months/{month}/envelopes/{envelopeId}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        /** Transakcje koperty w miesiącu z widocznych portfeli on-budget (budget:read i transactions:read) */
+        get: operations["listEnvelopeActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/months/{month}/assignments/{envelopeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Ustawia przydział koperty na miesiąc (budget:write); 0 usuwa */
+        put: operations["setAssignment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/months/{month}/moves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Przenosi przydzieloną kwotę między kopertami w miesiącu (budget:write) */
+        post: operations["moveBetweenEnvelopes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/months/{month}/auto-assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Uzupełnia niedofinansowane cele nieukrytych kopert z Ready-to-Assign, w kolejności grup i kopert (budget:write) */
+        post: operations["autoAssign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/envelope-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Grupy kopert w kolejności (budget:read) */
+        get: operations["listEnvelopeGroups"];
+        put?: never;
+        /** Tworzy grupę kopert (budget:write) */
+        post: operations["createEnvelopeGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/envelope-groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Usuwa pustą grupę (z kopertami — 409 group-not-empty) */
+        delete: operations["deleteEnvelopeGroup"];
+        options?: never;
+        head?: never;
+        patch: operations["updateEnvelopeGroup"];
+        trace?: never;
+    };
+    "/households/{householdId}/budget/envelopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Koperty w kolejności (budget:read) */
+        get: operations["listEnvelopes"];
+        put?: never;
+        /** Tworzy kopertę w grupie (budget:write) */
+        post: operations["createEnvelope"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/budget/envelopes/{envelopeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getEnvelope"];
+        put?: never;
+        post?: never;
+        /** Usuwa kopertę bez transakcji (inaczej 409 envelope-in-use — ukryj ją); kasuje jej przydziały i zdejmuje ją z kontrahentów */
+        delete: operations["deleteEnvelope"];
+        options?: never;
+        head?: never;
+        /** Zmienia kopertę; goal=null usuwa cel */
+        patch: operations["updateEnvelope"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -768,7 +956,7 @@ export interface components {
             actor: components["schemas"]["Actor"];
             /** @description np. bot.created, membership.role_changed */
             action: string;
-            /** @description household, membership, invitation, bot, wallet, transaction, payee, fx_rate (kolejne etapy dodają własne) */
+            /** @description household, membership, invitation, bot, wallet, transaction, payee, fx_rate, envelope_group, envelope, assignment (kolejne etapy dodają własne) */
             resource_type: string;
             resource_id: string;
             /** @description Zmienione pola; wartości bez sekretów */
@@ -1022,6 +1210,155 @@ export interface components {
             /** @example 4.2512 */
             rate: string;
         };
+        EnvelopeGroup: {
+            id: string;
+            name: string;
+            position: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EnvelopeGroupList: {
+            items: components["schemas"]["EnvelopeGroup"][];
+        };
+        EnvelopeGroupCreate: {
+            name: string;
+            position?: number;
+        };
+        EnvelopeGroupUpdate: {
+            name?: string;
+            position?: number;
+        };
+        /** @enum {string} */
+        GoalType: "monthly" | "target_by_date";
+        /** @description monthly — przydziel amount co miesiąc; target_by_date — zgromadź amount do target_date */
+        Goal: {
+            type: components["schemas"]["GoalType"];
+            amount: components["schemas"]["Money"];
+            /** Format: date */
+            target_date: string | null;
+        };
+        GoalInput: {
+            type: components["schemas"]["GoalType"];
+            amount: components["schemas"]["MoneyInput"];
+            /**
+             * Format: date
+             * @description Wymagana dla target_by_date
+             */
+            target_date?: string;
+        };
+        Envelope: {
+            id: string;
+            group_id: string;
+            name: string;
+            position: number;
+            hidden: boolean;
+            goal: components["schemas"]["Goal"] | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EnvelopeList: {
+            items: components["schemas"]["Envelope"][];
+        };
+        EnvelopeCreate: {
+            group_id: string;
+            name: string;
+            position?: number;
+            hidden?: boolean;
+            goal?: components["schemas"]["GoalInput"];
+        };
+        EnvelopeUpdate: {
+            group_id?: string;
+            name?: string;
+            position?: number;
+            hidden?: boolean;
+            goal?: components["schemas"]["GoalInput"] | null;
+        };
+        GoalStatus: {
+            /** @description Do przydzielenia w tym miesiącu */
+            needed: components["schemas"]["Money"];
+            /** @description Brakująca część needed */
+            underfunded: components["schemas"]["Money"];
+            funded: boolean;
+            /** @description Postęp w procentach */
+            progress: number;
+        };
+        BudgetEnvelope: {
+            id: string;
+            group_id: string;
+            name: string;
+            position: number;
+            hidden: boolean;
+            goal: components["schemas"]["Goal"] | null;
+            goal_status: components["schemas"]["GoalStatus"] | null;
+            assigned: components["schemas"]["Money"];
+            activity: components["schemas"]["Money"];
+            /** @description Przeniesione z poprzedniego miesiąca (≥ 0; przekroczenie się nie przenosi) */
+            carried_over: components["schemas"]["Money"];
+            /** @description carried_over + assigned + activity; ujemne — przekroczenie */
+            available: components["schemas"]["Money"];
+        };
+        BudgetGroup: {
+            id: string;
+            name: string;
+            position: number;
+            assigned: components["schemas"]["Money"];
+            activity: components["schemas"]["Money"];
+            available: components["schemas"]["Money"];
+            envelopes: components["schemas"]["BudgetEnvelope"][];
+        };
+        /**
+         * @description Inwariant: Σ available wszystkich kopert + ready_to_assign + assigned_in_future = Σ kwot bazowych transakcji
+         *     portfeli on-budget z datą ≤ end (bez rate_pending).
+         */
+        BudgetMonth: {
+            /** @example 2026-10 */
+            month: string;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            /** @description Waluta bazowa gospodarstwa */
+            currency: string;
+            /** @description Już pomniejszone o assigned_in_future */
+            ready_to_assign: components["schemas"]["Money"];
+            assigned_in_future: components["schemas"]["Money"];
+            /** @description Przekroczenia poprzedniego miesiąca (≤ 0), pomniejszające ready_to_assign */
+            overspent_last_month: components["schemas"]["Money"];
+            /** @description Przychody miesiąca (z saldami otwarcia) */
+            income: components["schemas"]["Money"];
+            /** @description Wydatki i zwroty bez koperty — obciążają ready_to_assign */
+            uncategorized: components["schemas"]["Money"];
+            /** @description Nogi przelewów bez koperty (różnice kursowe */
+            transfers: components["schemas"]["Money"];
+            assigned: components["schemas"]["Money"];
+            activity: components["schemas"]["Money"];
+            available: components["schemas"]["Money"];
+            /** @description Suma niedofinansowania celów nieukrytych kopert */
+            underfunded: components["schemas"]["Money"];
+            /** @description Część transakcji do końca miesiąca czeka na kurs i nie jest liczona */
+            incomplete: boolean;
+            pending_transactions: number;
+            groups: components["schemas"]["BudgetGroup"][];
+        };
+        AssignmentSet: {
+            amount: components["schemas"]["MoneyInput"];
+        };
+        BudgetMove: {
+            from_envelope_id: string;
+            to_envelope_id: string;
+            amount: components["schemas"]["MoneyInput"];
+        };
+        AutoAssignResult: {
+            assigned: {
+                envelope_id: string;
+                amount: components["schemas"]["Money"];
+            }[];
+            month: components["schemas"]["BudgetMonth"];
+        };
     };
     responses: {
         /** @description Błąd w formacie RFC 7807 */
@@ -1050,6 +1387,10 @@ export interface components {
         WalletId: string;
         TransactionId: string;
         PayeeId: string;
+        GroupId: string;
+        EnvelopeId: string;
+        /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+        Month: string;
     };
     requestBodies: never;
     headers: never;
@@ -2276,6 +2617,413 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getBudgetMonth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Miesiąc budżetu */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetMonth"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listEnvelopeActivity: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Strona transakcji */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    setAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentSet"];
+            };
+        };
+        responses: {
+            /** @description Miesiąc budżetu po zmianie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetMonth"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    moveBetweenEnvelopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetMove"];
+            };
+        };
+        responses: {
+            /** @description Miesiąc budżetu po zmianie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetMonth"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    autoAssign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
+                month: components["parameters"]["Month"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Przydziały i miesiąc po zmianie */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutoAssignResult"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listEnvelopeGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Grupy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeGroupList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createEnvelopeGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvelopeGroupCreate"];
+            };
+        };
+        responses: {
+            /** @description Grupa */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeGroup"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deleteEnvelopeGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usunięta */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateEnvelopeGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvelopeGroupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zmieniona grupa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeGroup"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listEnvelopes: {
+        parameters: {
+            query?: {
+                include_hidden?: boolean;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Koperty */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvelopeCreate"];
+            };
+        };
+        responses: {
+            /** @description Koperta */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Koperta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    deleteEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usunięta */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    updateEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                envelopeId: components["parameters"]["EnvelopeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvelopeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Zmieniona koperta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
         };
     };
