@@ -229,7 +229,7 @@ Schematy: `Notification{id, household_id, type, title, body, link, resource_type
 
 ## Ograniczenia
 
-- Brak ochrony SSRF: webhook/ntfy/Matrix mogą wskazywać adresy w sieci lokalnej serwera (zaufani członkowie instancji).
+- ~~Brak ochrony SSRF~~ — naprawione w etapie 009-hardening-demo (blokada sieci prywatnych w dialerze, opt-in `DENAR_NOTIFY_ALLOW_PRIVATE` / `DENAR_NOTIFY_ALLOWED_CIDRS`).
 - Overspent wykrywany z opóźnieniem do `DENAR_BUDGET_CHECK_INTERVAL`; po naprawieniu i ponownym przekroczeniu w tym samym miesiącu nie ma drugiego powiadomienia.
 - Jeden worker dostaw na proces; dwie instancje na jednej bazie mogłyby wysłać dostawę dwukrotnie.
 - Brak powiadomień na żywo (UI odpytuje `unread-count`).

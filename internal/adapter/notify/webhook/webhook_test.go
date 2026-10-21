@@ -10,8 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
+
+// local may reach the test server on 127.0.0.1 (the default client may not).
+var local = notifyhttp.NewClient(notification.TargetPolicy{AllowPrivate: true})
 
 var msg = usecase.OutgoingMessage{ID: "d1", Type: "subscription.renewal_upcoming", Title: "Odnowienie: Netflix za 3 dni",
 	Body: "Netflix odnowi się 31.10.2026: 43.00 PLN.", URL: "https://denar.example.com/h/h1/subscriptions/s1", HouseholdID: "h1",
@@ -25,7 +30,7 @@ func TestSendSigned(t *testing.T) {
 		w.WriteHeader(204)
 	}))
 	defer srv.Close()
-	err := (&Notifier{}).Send(context.Background(), usecase.ChannelTarget{Config: map[string]string{"url": srv.URL + "/hook"},
+	err := (&Notifier{Client: local}).Send(context.Background(), usecase.ChannelTarget{Config: map[string]string{"url": srv.URL + "/hook"},
 		Secrets: map[string]string{"secret": "s3cret"}}, msg)
 	if err != nil {
 		t.Fatal(err)
@@ -60,15 +65,15 @@ func TestSendUnsignedAndErrors(t *testing.T) {
 	}))
 	defer srv.Close()
 	target := usecase.ChannelTarget{Config: map[string]string{"url": srv.URL}}
-	if err := (&Notifier{}).Send(context.Background(), target, msg); err != nil || sig != "" {
+	if err := (&Notifier{Client: local}).Send(context.Background(), target, msg); err != nil || sig != "" {
 		t.Fatalf("unsigned = %v, signature %q", err, sig)
 	}
 	status = 500
-	if err := (&Notifier{}).Send(context.Background(), target, msg); err == nil || err.Error() != "HTTP 500: nope" {
+	if err := (&Notifier{Client: local}).Send(context.Background(), target, msg); err == nil || err.Error() != "HTTP 500" {
 		t.Errorf("500 = %v", err)
 	}
 	srv.Close()
-	err := (&Notifier{}).Send(context.Background(), usecase.ChannelTarget{Config: map[string]string{"url": srv.URL + "/secret-path?token=x"}}, msg)
+	err := (&Notifier{Client: local}).Send(context.Background(), usecase.ChannelTarget{Config: map[string]string{"url": srv.URL + "/secret-path?token=x"}}, msg)
 	if err == nil || strings.Contains(err.Error(), "secret-path") || strings.Contains(err.Error(), "token=x") {
 		t.Errorf("closed server = %v", err)
 	}

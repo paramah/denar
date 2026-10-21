@@ -85,6 +85,9 @@ export default defineConfig({
         DENAR_SUBSCRIPTION_INTERVAL: '2s',
         DENAR_NOTIFY_INTERVAL: '2s',
         DENAR_SMTP_HOST: '',
+        // Webhooki trafiają do atrapy na 127.0.0.1 — sieć lokalną otwiera tylko jawna zgoda (009, SSRF).
+        DENAR_NOTIFY_ALLOW_PRIVATE: 'true',
+        DENAR_NOTIFY_ALLOWED_CIDRS: '',
       },
     },
   ],

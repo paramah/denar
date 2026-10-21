@@ -68,6 +68,7 @@ func setEnv(t *testing.T, extra ...string) string {
 		"DENAR_MASTER_KEY": "", "DENAR_MASTER_KEY_FILE": "", "DENAR_SMTP_HOST": "", "DENAR_SMTP_PORT": "", "DENAR_SMTP_USERNAME": "",
 		"DENAR_SMTP_PASSWORD": "", "DENAR_SMTP_PASSWORD_FILE": "", "DENAR_SMTP_FROM": "", "DENAR_SMTP_TLS": "",
 		"DENAR_NOTIFY_INTERVAL": "", "DENAR_BUDGET_CHECK_INTERVAL": "", "DENAR_GOAL_DUE_DAYS": "", "DENAR_TELEGRAM_API_URL": "",
+		"DENAR_NOTIFY_ALLOW_PRIVATE": "", "DENAR_NOTIFY_ALLOWED_CIDRS": "", "DENAR_DEV_FAKE_CONNECTOR": "",
 	}
 	for i := 0; i+1 < len(extra); i += 2 {
 		vars[extra[i]] = extra[i+1]

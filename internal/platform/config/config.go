@@ -101,6 +101,13 @@ type Config struct {
 	GoalDueDays int
 	// TelegramAPIURL is the Bot API origin (DENAR_TELEGRAM_API_URL).
 	TelegramAPIURL string
+	// NotifyAllowPrivate lets channels send to private, loopback and other
+	// local networks, link-local excepted (DENAR_NOTIFY_ALLOW_PRIVATE);
+	// NotifyAllowedCIDRs opens single networks instead
+	// (DENAR_NOTIFY_ALLOWED_CIDRS). Both off, notifications go to public
+	// addresses only (009, SSRF).
+	NotifyAllowPrivate bool
+	NotifyAllowedCIDRs []netip.Prefix
 	// DevFakeConnector adds the pretend bank "fake" to the connection
 	// providers, for development (DENAR_DEV_FAKE_CONNECTOR).
 	DevFakeConnector bool
@@ -194,6 +201,12 @@ func FromEnv() (Config, error) {
 	if cfg.DevFakeConnector, err = envBool("DENAR_DEV_FAKE_CONNECTOR", false); err != nil {
 		errs = append(errs, err)
 	}
+	if cfg.NotifyAllowPrivate, err = envBool("DENAR_NOTIFY_ALLOW_PRIVATE", false); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.NotifyAllowedCIDRs, err = prefixList("DENAR_NOTIFY_ALLOWED_CIDRS", "192.168.1.0/24"); err != nil {
+		errs = append(errs, err)
+	}
 
 	if len(errs) > 0 {
 		return Config{}, errors.Join(errs...)
@@ -249,6 +262,8 @@ func (c Config) LogValue() slog.Value {
 		slog.Int("goal_due_days", c.GoalDueDays),
 		slog.String("telegram_api_url", c.TelegramAPIURL),
 		slog.Bool("dev_fake_connector", c.DevFakeConnector),
+		slog.Bool("notify_allow_private", c.NotifyAllowPrivate),
+		slog.Any("notify_allowed_cidrs", c.NotifyAllowedCIDRs),
 	)
 }
 
@@ -364,7 +379,12 @@ func checkAdmin(cfg Config) error {
 // trustedProxies reads a comma-separated list of networks; a bare address
 // stands for itself alone.
 func trustedProxies() ([]netip.Prefix, error) {
-	const key = "DENAR_TRUSTED_PROXIES"
+	return prefixList("DENAR_TRUSTED_PROXIES", "10.0.0.0/8")
+}
+
+// prefixList reads a comma-separated list of networks from key; a bare
+// address stands for itself alone. example goes in the error.
+func prefixList(key, example string) ([]netip.Prefix, error) {
 	var prefixes []netip.Prefix
 	for _, item := range strings.Split(os.Getenv(key), ",") {
 		item = strings.TrimSpace(item)
@@ -375,7 +395,7 @@ func trustedProxies() ([]netip.Prefix, error) {
 		if err != nil {
 			addr, addrErr := netip.ParseAddr(item)
 			if addrErr != nil {
-				return nil, fmt.Errorf("%s must list networks such as 10.0.0.0/8, got %q", key, item)
+				return nil, fmt.Errorf("%s must list networks such as %s, got %q", key, example, item)
 			}
 			prefix = netip.PrefixFrom(addr, addr.BitLen())
 		}

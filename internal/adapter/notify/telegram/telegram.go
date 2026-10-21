@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -24,6 +25,7 @@ var _ usecase.Notifier = (*Notifier)(nil)
 type Notifier struct {
 	APIURL string
 	Client *http.Client
+	Log    *slog.Logger // nil: errors of the API are not logged
 }
 
 type sendMessage struct {
@@ -52,7 +54,7 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 		return errors.New("niepoprawny adres Bot API")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	raw, err := notifyhttp.Do(n.Client, req)
+	raw, err := notifyhttp.Do(n.Client, n.Log, req)
 	var a answer
 	if json.Unmarshal(raw, &a) == nil && !a.OK && a.Description != "" {
 		return errors.New("Telegram: " + a.Description)

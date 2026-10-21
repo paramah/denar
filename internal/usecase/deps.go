@@ -56,6 +56,9 @@ type Deps struct {
 	Secrets       SecretBox
 	BaseURL       string
 	GoalDueDays   int
+	// NotifyTargets says which addresses channels may send to (stage 009);
+	// the zero value allows public addresses only.
+	NotifyTargets notification.TargetPolicy
 	// ImportBatches and Connections hold the imports and the links to
 	// outside services (stage 008). CSV reads CSV files; nil means CSV
 	// imports are unavailable. Connectors is the registry of providers by

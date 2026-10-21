@@ -139,6 +139,7 @@ Zdarzenia (odnowienie za N dni, koniec okresu próbnego, zmiana ceny, przegapion
 - **Sekrety** kanałów (tokeny, klucz HMAC) są szyfrowane AES-256-GCM kluczem `DENAR_MASTER_KEY` i nigdy nie wracają w API (`has_secret`). Bez klucza kanały z sekretami są niedostępne; e-mail, in-app, webhook bez podpisu i ntfy bez tokenu działają. Klucz: `openssl rand -base64 32`. Zmiana klucza unieważnia zapisane sekrety (trzeba je ustawić ponownie).
 - **Ponawianie**: nieudana dostawa wraca po 1, 2, 4, 8, 16 min; po 6 próbach jest `failed`, a kanał pokazuje `last_error`.
 - **Retencja**: przeczytane powiadomienia znikają po 180 dniach, zakończone dostawy po 30, zdarzenia po 400.
+- **Bezpieczeństwo (SSRF)**: kanały webhook, ntfy i Matrix wysyłają tylko na adresy publiczne. Serwer odrzuca adresy pętli zwrotnej, sieci prywatne (RFC 1918), link-local (w tym `169.254.169.254` — metadane chmury), CGNAT `100.64.0.0/10`, ULA `fc00::/7`, multicast, adresy nieokreślone i IPv4 zapisane w IPv6. Kontrola działa dwa razy: przy zapisie kanału (literalny IP albo `localhost` → 422 „adres docelowy niedozwolony (sieć prywatna) — zobacz DENAR_NOTIFY_ALLOW_PRIVATE”) i przy każdym połączeniu, na adresie po rozwiązaniu DNS, więc nazwa wskazująca na sieć lokalną (także po DNS rebinding) też nie przejdzie. Zmienne proxy (`HTTP(S)_PROXY`) nie są używane przez powiadomienia, przekierowania nie są śledzone. Self-hostowany ntfy, n8n albo Home Assistant w LAN? Otwórz tylko jego sieć: `DENAR_NOTIFY_ALLOWED_CIDRS=192.168.1.0/24` (zalecane) albo wszystkie sieci prywatne: `DENAR_NOTIFY_ALLOW_PRIVATE=true` (link-local zostaje zamknięty; otwiera go tylko jawny CIDR). Pamiętaj, że każdy użytkownik instancji może wtedy wysyłać żądania do tych sieci. Błąd kanału (`last_error`, wynik „Wyślij test”) to tylko `HTTP <kod>` — treść odpowiedzi trafia wyłącznie do logu serwera.
 - **Zaproszenia e-mailem**: przy skonfigurowanym SMTP `POST /api/households/<ID>/invitations` z `"send_email": true` wysyła link (`email_sent` w odpowiedzi).
 
 ```sh
@@ -222,7 +223,9 @@ curl -s -b jar -X DELETE localhost:8080/api/households/$H/imports/<ID>   # cofni
 | `DENAR_NOTIFY_INTERVAL` | `30s` | co ile rozsyłać zdarzenia i wysyłać dostawy |
 | `DENAR_BUDGET_CHECK_INTERVAL` | `15m` | co ile sprawdzać koperty (przekroczenia, terminy celów) |
 | `DENAR_GOAL_DUE_DAYS` | `7` | ile dni przed terminem celu koperty przypominać (1–60) |
-| `DENAR_TELEGRAM_API_URL` | `https://api.telegram.org` | adres Bot API Telegrama (np. własny serwer Bot API) |
+| `DENAR_TELEGRAM_API_URL` | `https://api.telegram.org` | adres Bot API Telegrama (np. własny serwer Bot API; w sieci lokalnej wymaga `DENAR_NOTIFY_ALLOWED_CIDRS`) |
+| `DENAR_NOTIFY_ALLOW_PRIVATE` | `false` | kanały powiadomień mogą wysyłać do sieci prywatnych i pętli zwrotnej (bez link-local) — patrz „Bezpieczeństwo (SSRF)” |
+| `DENAR_NOTIFY_ALLOWED_CIDRS` | — | sieci (CIDR albo adresy, po przecinku), do których kanały mogą wysyłać mimo blokady, np. `192.168.1.0/24` |
 | `DENAR_DEV_FAKE_CONNECTOR` | `false` | dodaje udawany bank `fake` do providerów połączeń (tylko do rozwoju) |
 
 ## Rozwój

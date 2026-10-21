@@ -7,8 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
@@ -17,9 +19,14 @@ import (
 
 var _ usecase.Notifier = (*Notifier)(nil)
 
+var errCode = regexp.MustCompile(`^M_[A-Z_]{1,64}$`)
+
 // Notifier sends m.room.message events. Client nil means
 // notifyhttp.DefaultClient.
-type Notifier struct{ Client *http.Client }
+type Notifier struct {
+	Client *http.Client
+	Log    *slog.Logger // nil: errors of the target are not logged
+}
 
 type message struct {
 	MsgType string `json:"msgtype"`
@@ -46,11 +53,14 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+target.Secrets["access_token"])
-	raw, err := notifyhttp.Do(n.Client, req)
+	raw, err := notifyhttp.Do(n.Client, n.Log, req)
 	if err != nil {
+		// Only the error code, which the specification limits to M_*
+		// names: the homeserver is the person's URL, and free text from
+		// it would tell them what answers there (009).
 		var me matrixError
-		if json.Unmarshal(raw, &me) == nil && me.ErrCode != "" {
-			return errors.New("Matrix: " + me.ErrCode + " " + me.Error)
+		if json.Unmarshal(raw, &me) == nil && errCode.MatchString(me.ErrCode) {
+			return errors.New("Matrix: " + err.Error() + " " + me.ErrCode)
 		}
 	}
 	return err

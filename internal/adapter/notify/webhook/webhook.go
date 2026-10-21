@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -26,7 +27,10 @@ const (
 var _ usecase.Notifier = (*Notifier)(nil)
 
 // Notifier posts to webhooks. Client nil means notifyhttp.DefaultClient.
-type Notifier struct{ Client *http.Client }
+type Notifier struct {
+	Client *http.Client
+	Log    *slog.Logger // nil: errors of the target are not logged
+}
 
 // Payload is the JSON body of a webhook request.
 type Payload struct {
@@ -72,6 +76,6 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 	if secret := target.Secrets["secret"]; secret != "" {
 		req.Header.Set(SignatureHeader, Sign(secret, body))
 	}
-	_, err = notifyhttp.Do(n.Client, req)
+	_, err = notifyhttp.Do(n.Client, n.Log, req)
 	return err
 }

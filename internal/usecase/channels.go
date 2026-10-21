@@ -208,6 +208,9 @@ func (uc *CreateChannel) Do(ctx context.Context, p Principal, in CreateChannelIn
 	}
 	name := strings.TrimSpace(in.Name)
 	config, err := notification.NormalizeConfig(in.Type, in.Config, p.User.Email)
+	if err == nil {
+		err = uc.d.NotifyTargets.CheckTargets(config)
+	}
 	if err = errors.Join(notification.ValidateName("name", name), err); err != nil {
 		return ChannelView{}, err
 	}
@@ -277,6 +280,9 @@ func (uc *UpdateChannel) Do(ctx context.Context, p Principal, id domain.ID, in U
 		}
 		if in.Config.Set {
 			if c.Config, err = notification.NormalizeConfig(c.Type, in.Config.Value, p.User.Email); err != nil {
+				return err
+			}
+			if err := uc.d.NotifyTargets.CheckTargets(c.Config); err != nil {
 				return err
 			}
 			changed = true

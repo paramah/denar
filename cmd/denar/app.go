@@ -14,6 +14,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/adapter/mcp"
 	"git.eiac.dev/tools/denar/internal/adapter/nbp"
 	"git.eiac.dev/tools/denar/internal/adapter/notify/matrix"
+	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
 	"git.eiac.dev/tools/denar/internal/adapter/notify/ntfy"
 	"git.eiac.dev/tools/denar/internal/adapter/notify/smtp"
 	"git.eiac.dev/tools/denar/internal/adapter/notify/telegram"
@@ -451,11 +452,19 @@ func runSubscriptionJobs(ctx context.Context, log *slog.Logger, interval time.Du
 // the secret box with a master key.
 func wireNotifications(cfg config.Config, log *slog.Logger, d *usecase.Deps) error {
 	d.BaseURL, d.GoalDueDays = cfg.BaseURL, cfg.GoalDueDays
+	// Channels send to public addresses only unless the administrator
+	// opened private networks (009, SSRF): checked when a channel is saved
+	// and again on every connection.
+	d.NotifyTargets = notification.TargetPolicy{AllowPrivate: cfg.NotifyAllowPrivate, Allowed: cfg.NotifyAllowedCIDRs}
+	client := notifyhttp.NewClient(d.NotifyTargets)
 	d.Notifiers = map[notification.ChannelType]usecase.Notifier{
-		notification.Webhook:  &webhook.Notifier{},
-		notification.Ntfy:     &ntfy.Notifier{},
-		notification.Telegram: &telegram.Notifier{APIURL: cfg.TelegramAPIURL},
-		notification.Matrix:   &matrix.Notifier{},
+		notification.Webhook:  &webhook.Notifier{Client: client, Log: log},
+		notification.Ntfy:     &ntfy.Notifier{Client: client, Log: log},
+		notification.Telegram: &telegram.Notifier{APIURL: cfg.TelegramAPIURL, Client: client, Log: log},
+		notification.Matrix:   &matrix.Notifier{Client: client, Log: log},
+	}
+	if cfg.NotifyAllowPrivate {
+		log.Warn("DENAR_NOTIFY_ALLOW_PRIVATE is on: notification channels may reach private networks of the server")
 	}
 	if cfg.SMTPEnabled() {
 		mailer, err := smtp.New(smtp.Config{Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername,
@@ -483,7 +492,7 @@ func wireNotifications(cfg config.Config, log *slog.Logger, d *usecase.Deps) err
 }
 
 // connectors is the registry of connection providers (stage 008): none
-// yet but the pretend bank of development. Stages 009-011 add the real
+// yet but the pretend bank of development. Stages 010-012 add the real
 // ones here.
 func connectors(cfg config.Config, c usecase.Clock) map[string]usecase.ConnectorProvider {
 	out := map[string]usecase.ConnectorProvider{}

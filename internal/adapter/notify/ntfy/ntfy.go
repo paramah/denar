@@ -3,6 +3,7 @@ package ntfy
 
 import (
 	"context"
+	"log/slog"
 	"mime"
 	"net/http"
 	"strings"
@@ -14,7 +15,10 @@ import (
 var _ usecase.Notifier = (*Notifier)(nil)
 
 // Notifier publishes to ntfy. Client nil means notifyhttp.DefaultClient.
-type Notifier struct{ Client *http.Client }
+type Notifier struct {
+	Client *http.Client
+	Log    *slog.Logger // nil: errors of the target are not logged
+}
 
 func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg usecase.OutgoingMessage) error {
 	text := msg.Body
@@ -35,6 +39,6 @@ func (n *Notifier) Send(ctx context.Context, target usecase.ChannelTarget, msg u
 	if token := target.Secrets["token"]; token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
-	_, err = notifyhttp.Do(n.Client, req)
+	_, err = notifyhttp.Do(n.Client, n.Log, req)
 	return err
 }

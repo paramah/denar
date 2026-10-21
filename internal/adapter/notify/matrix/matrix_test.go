@@ -7,8 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
+
+// local may reach the test server on 127.0.0.1 (the default client may not).
+var local = notifyhttp.NewClient(notification.TargetPolicy{AllowPrivate: true})
 
 func TestSend(t *testing.T) {
 	var got *http.Request
@@ -24,7 +29,7 @@ func TestSend(t *testing.T) {
 	target := usecase.ChannelTarget{Config: map[string]string{"homeserver": srv.URL + "/", "room_id": "!room:example.org"},
 		Secrets: map[string]string{"access_token": "syt_abc"}}
 	msg := usecase.OutgoingMessage{ID: "d1", Title: "Zmiana ceny: Netflix", Body: "Od 01.11.2026 Netflix kosztuje 49.00 PLN."}
-	if err := (&Notifier{}).Send(context.Background(), target, msg); err != nil {
+	if err := (&Notifier{Client: local}).Send(context.Background(), target, msg); err != nil {
 		t.Fatal(err)
 	}
 	if got.Method != "PUT" || got.URL.EscapedPath() != "/_matrix/client/v3/rooms/%21room:example.org/send/m.room.message/d1" ||
@@ -32,7 +37,7 @@ func TestSend(t *testing.T) {
 		t.Errorf("request = %s %s %v %+v", got.Method, got.URL.EscapedPath(), got.Header, m)
 	}
 	status, answer = 403, `{"errcode":"M_FORBIDDEN","error":"You are not in the room"}`
-	if err := (&Notifier{}).Send(context.Background(), target, msg); err == nil || err.Error() != "Matrix: M_FORBIDDEN You are not in the room" {
+	if err := (&Notifier{Client: local}).Send(context.Background(), target, msg); err == nil || err.Error() != "Matrix: HTTP 403 M_FORBIDDEN" {
 		t.Errorf("forbidden = %v", err)
 	}
 }

@@ -38,6 +38,8 @@ services:
       DENAR_NOTIFY_INTERVAL: ${DENAR_NOTIFY_INTERVAL:-30s}
       DENAR_BUDGET_CHECK_INTERVAL: ${DENAR_BUDGET_CHECK_INTERVAL:-15m}
       DENAR_GOAL_DUE_DAYS: ${DENAR_GOAL_DUE_DAYS:-7}
+      DENAR_NOTIFY_ALLOW_PRIVATE: ${DENAR_NOTIFY_ALLOW_PRIVATE:-false}
+      DENAR_NOTIFY_ALLOWED_CIDRS: ${DENAR_NOTIFY_ALLOWED_CIDRS:-}
     # Domyślnie tylko na pętli zwrotnej: ruch nie jest szyfrowany, więc do
     # sieci wystawia go reverse proxy z TLS, a nie ten port.
     ports:

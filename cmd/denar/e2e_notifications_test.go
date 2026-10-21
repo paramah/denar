@@ -64,8 +64,10 @@ func TestNotificationsEndToEnd(t *testing.T) {
 	hooks := &hookCatcher{failNext: 1}
 	hookServer := httptest.NewServer(hooks)
 	defer hookServer.Close()
+	// The webhook catcher listens on loopback: the administrator opens it
+	// (009); without that the channel would be refused.
 	setEnv(t, "DENAR_AUTO_MIGRATE", "true", "DENAR_BASE_URL", "https://denar.example.com",
-		"DENAR_MASTER_KEY", "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=")
+		"DENAR_MASTER_KEY", "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=", "DENAR_NOTIFY_ALLOWED_CIDRS", "127.0.0.1")
 	clock := fakes.NewClock(time.Date(2026, 10, 21, 9, 30, 0, 0, time.UTC))
 	e := startE2EWith(t, appOptions{clock: clock, noSubscriptionJobs: true, noNotificationJobs: true})
 	ctx := context.Background()
@@ -178,5 +180,62 @@ func TestNotificationsEndToEnd(t *testing.T) {
 	}
 	if r, _ := e.app.runNotifications(ctx); r != (usecase.NotificationJobResult{}) {
 		t.Errorf("nothing left to do, got %+v", r)
+	}
+}
+
+// TestNotificationTargetsEndToEnd: without the administrator's consent a
+// channel aimed at the server's own network is refused with 422, and the
+// error of a failing target shows only its status, never its body (009).
+func TestNotificationTargetsEndToEnd(t *testing.T) {
+	setEnv(t, "DENAR_AUTO_MIGRATE", "true")
+	e := startE2E(t)
+	admin := e.browser()
+	admin.must(200, "POST", "/api/auth/login", `{"email":"`+adminEmail+`","password":"`+adminPassword+`"}`, nil)
+	for _, target := range []string{"http://127.0.0.1:9/hook", "http://localhost:5678/webhook", "http://169.254.169.254/latest/meta-data"} {
+		var problem struct {
+			Detail string `json:"detail"`
+			Errors []struct {
+				Field   string `json:"field"`
+				Message string `json:"message"`
+			} `json:"errors"`
+		}
+		admin.must(422, "POST", "/api/me/channels", `{"type":"webhook","name":"Lokalny","config":{"url":"`+target+`"}}`, &problem)
+		raw, _ := json.Marshal(problem)
+		if !strings.Contains(string(raw), "DENAR_NOTIFY_ALLOW_PRIVATE") {
+			t.Errorf("%s: problem = %s", target, raw)
+		}
+	}
+}
+
+// TestNotificationErrorWithoutBody: a target answering 500 with a body
+// leaves only "HTTP 500" in the result of the test send.
+func TestNotificationErrorWithoutBody(t *testing.T) {
+	leaky := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("SECRET-INTERNAL-BANNER"))
+	}))
+	defer leaky.Close()
+	setEnv(t, "DENAR_AUTO_MIGRATE", "true", "DENAR_NOTIFY_ALLOW_PRIVATE", "true")
+	e := startE2E(t)
+	admin := e.browser()
+	admin.must(200, "POST", "/api/auth/login", `{"email":"`+adminEmail+`","password":"`+adminPassword+`"}`, nil)
+	var ch struct {
+		ID string `json:"id"`
+	}
+	admin.must(201, "POST", "/api/me/channels", `{"type":"webhook","name":"Hook","config":{"url":"`+leaky.URL+`"}}`, &ch)
+	var result struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error"`
+	}
+	admin.must(200, "POST", "/api/me/channels/"+ch.ID+"/test", "", &result)
+	if result.OK || result.Error != "HTTP 500" {
+		t.Errorf("test result = %+v", result)
+	}
+	var channel struct {
+		LastError string `json:"last_error"`
+	}
+	admin.must(200, "GET", "/api/me/channels/"+ch.ID, "", &channel)
+	if strings.Contains(channel.LastError, "SECRET") {
+		t.Errorf("last_error = %q", channel.LastError)
 	}
 }

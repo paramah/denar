@@ -604,3 +604,41 @@ func TestInvitationByEmail(t *testing.T) {
 		usecase.CreateInvitationInput{Email: "y@example.com", Role: membership.RoleMember, SendEmail: true})
 	wantConflict(t, err, domain.ConflictSMTPNotConfigured)
 }
+
+// TestChannelPrivateTargets: channels aimed at localhost or a private
+// literal address are refused unless the administrator opted in (009).
+func TestChannelPrivateTargets(t *testing.T) {
+	f := newNotifyFamily(t)
+	p := human(f.member)
+	create := usecase.NewCreateChannel(f.deps)
+	for _, in := range []usecase.CreateChannelInput{
+		{Type: notification.Webhook, Name: "Lokalny", Config: map[string]string{"url": "http://localhost:5678/webhook"}},
+		{Type: notification.Webhook, Name: "Metadane", Config: map[string]string{"url": "http://169.254.169.254/latest"}},
+		{Type: notification.Ntfy, Name: "LAN", Config: map[string]string{"server": "http://192.168.1.5", "topic": "dom"}},
+		{Type: notification.Matrix, Name: "M", Config: map[string]string{"homeserver": "http://[::1]:8008", "room_id": "!r:x"},
+			Secrets: map[string]string{"access_token": "t"}},
+	} {
+		_, err := create.Do(ctx, p, in)
+		field := "config.url"
+		switch in.Type {
+		case notification.Ntfy:
+			field = "config.server"
+		case notification.Matrix:
+			field = "config.homeserver"
+		}
+		wantField(t, err, field)
+	}
+
+	v, err := create.Do(ctx, p, usecase.CreateChannelInput{Type: notification.Webhook, Name: "Publiczny",
+		Config: map[string]string{"url": "https://hooks.example.com/x"}})
+	noErr(t, err)
+	_, err = usecase.NewUpdateChannel(f.deps).Do(ctx, p, v.ID,
+		usecase.UpdateChannelInput{Config: domain.Some(map[string]string{"url": "http://10.0.0.1/hook"})})
+	wantField(t, err, "config.url")
+
+	open := f.deps
+	open.NotifyTargets = notification.TargetPolicy{AllowPrivate: true}
+	_, err = usecase.NewCreateChannel(open).Do(ctx, p, usecase.CreateChannelInput{Type: notification.Webhook, Name: "n8n",
+		Config: map[string]string{"url": "http://localhost:5678/webhook"}})
+	noErr(t, err)
+}

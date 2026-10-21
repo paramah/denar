@@ -19,6 +19,7 @@ var allKeys = []string{
 	"DENAR_MASTER_KEY", "DENAR_MASTER_KEY_FILE", "DENAR_SMTP_HOST", "DENAR_SMTP_PORT", "DENAR_SMTP_USERNAME",
 	"DENAR_SMTP_PASSWORD", "DENAR_SMTP_PASSWORD_FILE", "DENAR_SMTP_FROM", "DENAR_SMTP_TLS", "DENAR_NOTIFY_INTERVAL",
 	"DENAR_BUDGET_CHECK_INTERVAL", "DENAR_GOAL_DUE_DAYS", "DENAR_TELEGRAM_API_URL", "DENAR_DEV_FAKE_CONNECTOR",
+	"DENAR_NOTIFY_ALLOW_PRIVATE", "DENAR_NOTIFY_ALLOWED_CIDRS",
 }
 
 // clean unsets every variable for the test.
@@ -40,7 +41,7 @@ func TestDefaults(t *testing.T) {
 		cfg.SessionTTL != 168*time.Hour || cfg.InviteTTL != 168*time.Hour || cfg.BaseURL != "http://localhost:8080" ||
 		cfg.InstanceName != "Denar" || cfg.BotRate != 120 || cfg.OIDCAutoCreate || cfg.HasAdmin() || cfg.OIDCEnabled() ||
 		cfg.NBPURL != "https://api.nbp.pl" || cfg.FxInterval != 30*time.Minute || cfg.ChargeHorizonDays != 90 ||
-		cfg.SubscriptionInterval != time.Hour {
+		cfg.SubscriptionInterval != time.Hour || cfg.NotifyAllowPrivate || len(cfg.NotifyAllowedCIDRs) != 0 {
 		t.Errorf("defaults = %+v", cfg)
 	}
 }
@@ -57,12 +58,15 @@ func TestValues(t *testing.T) {
 	t.Setenv("DENAR_TRUSTED_PROXIES", "10.0.0.0/8, 192.168.1.1")
 	t.Setenv("DENAR_INVITE_TTL", "48h")
 	t.Setenv("DENAR_BOT_RATE", "60")
+	t.Setenv("DENAR_NOTIFY_ALLOW_PRIVATE", "true")
+	t.Setenv("DENAR_NOTIFY_ALLOWED_CIDRS", "192.168.1.0/24, 10.0.0.7, fd00::/8")
 	cfg, err := FromEnv()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !cfg.HasAdmin() || !cfg.OIDCEnabled() || !cfg.OIDCAutoCreate || cfg.BaseURL != "https://denar.example.com" ||
-		len(cfg.TrustedProxies) != 2 || cfg.InviteTTL != 48*time.Hour || cfg.BotRate != 60 {
+		len(cfg.TrustedProxies) != 2 || cfg.InviteTTL != 48*time.Hour || cfg.BotRate != 60 ||
+		!cfg.NotifyAllowPrivate || len(cfg.NotifyAllowedCIDRs) != 3 || cfg.NotifyAllowedCIDRs[1].String() != "10.0.0.7/32" {
 		t.Errorf("cfg = %+v", cfg)
 	}
 }
@@ -83,6 +87,8 @@ func TestErrors(t *testing.T) {
 		{map[string]string{"DENAR_TRUSTED_PROXIES": "nope"}, "DENAR_TRUSTED_PROXIES must list networks"},
 		{map[string]string{"DENAR_INSTANCE_NAME": strings.Repeat("x", 65)}, "at most 64"},
 		{map[string]string{"DENAR_BOT_RATE": "5"}, "DENAR_BOT_RATE must be"},
+		{map[string]string{"DENAR_NOTIFY_ALLOW_PRIVATE": "yes please"}, "DENAR_NOTIFY_ALLOW_PRIVATE must be true or false"},
+		{map[string]string{"DENAR_NOTIFY_ALLOWED_CIDRS": "lan"}, "DENAR_NOTIFY_ALLOWED_CIDRS must list networks such as 192.168.1.0/24"},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {

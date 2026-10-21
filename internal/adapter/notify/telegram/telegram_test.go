@@ -8,8 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
+	"git.eiac.dev/tools/denar/internal/domain/notification"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
+
+// local may reach the test server on 127.0.0.1 (the default client may not).
+var local = notifyhttp.NewClient(notification.TargetPolicy{AllowPrivate: true})
 
 func TestSend(t *testing.T) {
 	var path string
@@ -23,7 +28,7 @@ func TestSend(t *testing.T) {
 		w.Write([]byte(answer))
 	}))
 	defer srv.Close()
-	n := &Notifier{APIURL: srv.URL}
+	n := &Notifier{APIURL: srv.URL, Client: local}
 	target := usecase.ChannelTarget{Config: map[string]string{"chat_id": "-100123"}, Secrets: map[string]string{"bot_token": "123:ABC"}}
 	msg := usecase.OutgoingMessage{Title: "Brak płatności: Netflix", Body: "Nie znaleziono płatności.", URL: "https://denar.example.com/h/h1/subscriptions/charges",
 		HouseholdName: "Dom"}
