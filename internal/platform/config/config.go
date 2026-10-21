@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/mail"
 	"net/netip"
 	"net/url"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"git.eiac.dev/tools/denar/internal/platform/crypto"
 )
 
 // minAdminPasswordLen is the shortest bootstrap admin password accepted.
@@ -75,7 +78,33 @@ type Config struct {
 	// SubscriptionInterval is how often the subscription jobs run
 	// (DENAR_SUBSCRIPTION_INTERVAL).
 	SubscriptionInterval time.Duration
+
+	// MasterKey encrypts channel secrets (DENAR_MASTER_KEY or
+	// DENAR_MASTER_KEY_FILE): 32 bytes, base64. Unset, channels with
+	// secrets are unavailable.
+	MasterKey Secret
+	// SMTP sends e-mail; SMTPHost "" means no e-mail (DENAR_SMTP_*).
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword Secret
+	SMTPFrom     string
+	SMTPTLS      string // starttls, tls or none
+	// NotifyInterval is how often events are dispatched and deliveries
+	// sent (DENAR_NOTIFY_INTERVAL).
+	NotifyInterval time.Duration
+	// BudgetCheckInterval is how often envelopes are checked for the
+	// budget events (DENAR_BUDGET_CHECK_INTERVAL).
+	BudgetCheckInterval time.Duration
+	// GoalDueDays is how many days ahead a goal is reminded of
+	// (DENAR_GOAL_DUE_DAYS, 1 to 60).
+	GoalDueDays int
+	// TelegramAPIURL is the Bot API origin (DENAR_TELEGRAM_API_URL).
+	TelegramAPIURL string
 }
+
+// SMTPEnabled reports whether e-mail can be sent.
+func (c Config) SMTPEnabled() bool { return c.SMTPHost != "" }
 
 // FromEnv reads and checks the whole configuration, falling back to
 // defaults for unset variables. The error lists every problem found and
@@ -137,6 +166,28 @@ func FromEnv() (Config, error) {
 	if cfg.SubscriptionInterval, err = duration("DENAR_SUBSCRIPTION_INTERVAL", "1h"); err != nil {
 		errs = append(errs, err)
 	}
+	if cfg.MasterKey, err = secretFromEnv("DENAR_MASTER_KEY"); err != nil {
+		errs = append(errs, err)
+	} else if cfg.MasterKey != "" {
+		if _, err := crypto.ParseKey(cfg.MasterKey.Reveal()); err != nil {
+			errs = append(errs, fmt.Errorf("DENAR_MASTER_KEY: %v (generate one with: openssl rand -base64 32)", err))
+		}
+	}
+	if err := smtpConfig(&cfg); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.NotifyInterval, err = duration("DENAR_NOTIFY_INTERVAL", "30s"); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.BudgetCheckInterval, err = duration("DENAR_BUDGET_CHECK_INTERVAL", "15m"); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.GoalDueDays, err = intBetween("DENAR_GOAL_DUE_DAYS", "7", 1, 60); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.TelegramAPIURL, err = originURL("DENAR_TELEGRAM_API_URL", "https://api.telegram.org"); err != nil {
+		errs = append(errs, err)
+	}
 
 	if len(errs) > 0 {
 		return Config{}, errors.Join(errs...)
@@ -180,6 +231,17 @@ func (c Config) LogValue() slog.Value {
 		slog.Duration("fx_interval", c.FxInterval),
 		slog.Int("charge_horizon_days", c.ChargeHorizonDays),
 		slog.Duration("subscription_interval", c.SubscriptionInterval),
+		slog.Any("master_key", c.MasterKey),
+		slog.String("smtp_host", c.SMTPHost),
+		slog.Int("smtp_port", c.SMTPPort),
+		slog.String("smtp_username", c.SMTPUsername),
+		slog.Any("smtp_password", c.SMTPPassword),
+		slog.String("smtp_from", c.SMTPFrom),
+		slog.String("smtp_tls", c.SMTPTLS),
+		slog.Duration("notify_interval", c.NotifyInterval),
+		slog.Duration("budget_check_interval", c.BudgetCheckInterval),
+		slog.Int("goal_due_days", c.GoalDueDays),
+		slog.String("telegram_api_url", c.TelegramAPIURL),
 	)
 }
 
@@ -259,8 +321,11 @@ func botRate() (int, error) {
 
 // adminPassword takes the password from the variable or from the file the
 // _FILE variant names, as container secrets are mounted.
-func adminPassword() (Secret, error) {
-	const key, fileKey = "DENAR_ADMIN_PASSWORD", "DENAR_ADMIN_PASSWORD_FILE"
+func adminPassword() (Secret, error) { return secretFromEnv("DENAR_ADMIN_PASSWORD") }
+
+// secretFromEnv reads the variable key or the file key_FILE names.
+func secretFromEnv(key string) (Secret, error) {
+	fileKey := key + "_FILE"
 	password, path := os.Getenv(key), os.Getenv(fileKey)
 	if path == "" {
 		return Secret(password), nil
@@ -361,4 +426,59 @@ func nbpURL() (string, error) {
 		return "", fmt.Errorf("%s must be a URL such as https://api.nbp.pl", key)
 	}
 	return strings.TrimRight(u.String(), "/"), nil
+}
+
+func intBetween(key, fallback string, lo, hi int) (int, error) {
+	n, err := strconv.Atoi(env(key, fallback))
+	if err != nil || n < lo || n > hi {
+		return 0, fmt.Errorf("%s must be a number between %d and %d", key, lo, hi)
+	}
+	return n, nil
+}
+
+// originURL returns an http(s) URL without a trailing slash.
+func originURL(key, fallback string) (string, error) {
+	v := env(key, fallback)
+	u, err := url.Parse(v)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		return "", fmt.Errorf("%s must be a URL such as %s", key, fallback)
+	}
+	return strings.TrimRight(u.String(), "/"), nil
+}
+
+// smtpConfig reads DENAR_SMTP_*. Without a host e-mail is off and the
+// other variables are not checked.
+func smtpConfig(cfg *Config) error {
+	cfg.SMTPHost = strings.TrimSpace(os.Getenv("DENAR_SMTP_HOST"))
+	if cfg.SMTPHost == "" {
+		return nil
+	}
+	var errs []error
+	cfg.SMTPUsername = os.Getenv("DENAR_SMTP_USERNAME")
+	cfg.SMTPFrom = strings.TrimSpace(os.Getenv("DENAR_SMTP_FROM"))
+	var err error
+	if cfg.SMTPPassword, err = secretFromEnv("DENAR_SMTP_PASSWORD"); err != nil {
+		errs = append(errs, err)
+	}
+	cfg.SMTPTLS = strings.ToLower(env("DENAR_SMTP_TLS", "starttls"))
+	defaultPort := "587"
+	switch cfg.SMTPTLS {
+	case "starttls":
+	case "tls":
+		defaultPort = "465"
+	case "none":
+		defaultPort = "25"
+	default:
+		errs = append(errs, errors.New("DENAR_SMTP_TLS must be starttls, tls or none"))
+	}
+	if cfg.SMTPPort, err = intBetween("DENAR_SMTP_PORT", defaultPort, 1, 65535); err != nil {
+		errs = append(errs, err)
+	}
+	if a, err := mail.ParseAddress(cfg.SMTPFrom); err != nil || a.Address == "" {
+		errs = append(errs, errors.New("DENAR_SMTP_FROM must be an address such as Denar <denar@example.com> when DENAR_SMTP_HOST is set"))
+	}
+	if cfg.SMTPUsername != "" && cfg.SMTPPassword == "" {
+		errs = append(errs, errors.New("DENAR_SMTP_USERNAME is set, so DENAR_SMTP_PASSWORD must be set too"))
+	}
+	return errors.Join(errs...)
 }

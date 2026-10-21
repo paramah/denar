@@ -16,6 +16,9 @@ var allKeys = []string{
 	"DENAR_OIDC_ISSUER", "DENAR_OIDC_CLIENT_ID", "DENAR_OIDC_CLIENT_SECRET", "DENAR_OIDC_AUTO_CREATE",
 	"DENAR_AUTO_MIGRATE", "DENAR_TRUSTED_PROXIES", "DENAR_INSTANCE_NAME", "DENAR_BOT_RATE",
 	"DENAR_NBP_URL", "DENAR_FX_INTERVAL", "DENAR_CHARGE_HORIZON", "DENAR_SUBSCRIPTION_INTERVAL",
+	"DENAR_MASTER_KEY", "DENAR_MASTER_KEY_FILE", "DENAR_SMTP_HOST", "DENAR_SMTP_PORT", "DENAR_SMTP_USERNAME",
+	"DENAR_SMTP_PASSWORD", "DENAR_SMTP_PASSWORD_FILE", "DENAR_SMTP_FROM", "DENAR_SMTP_TLS", "DENAR_NOTIFY_INTERVAL",
+	"DENAR_BUDGET_CHECK_INTERVAL", "DENAR_GOAL_DUE_DAYS", "DENAR_TELEGRAM_API_URL",
 }
 
 // clean unsets every variable for the test.
@@ -176,5 +179,56 @@ func TestSubscriptions(t *testing.T) {
 	t.Setenv("DENAR_CHARGE_HORIZON", "731")
 	if _, err := FromEnv(); err == nil {
 		t.Error("horizon of 731 days")
+	}
+}
+
+func TestNotificationSettings(t *testing.T) {
+	clean(t)
+	cfg, err := FromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.MasterKey != "" || cfg.SMTPEnabled() || cfg.NotifyInterval != 30*time.Second || cfg.BudgetCheckInterval != 15*time.Minute ||
+		cfg.GoalDueDays != 7 || cfg.TelegramAPIURL != "https://api.telegram.org" {
+		t.Errorf("defaults = %+v", cfg)
+	}
+
+	key := "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="
+	path := filepath.Join(t.TempDir(), "key")
+	if err := os.WriteFile(path, []byte(key+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("DENAR_MASTER_KEY_FILE", path)
+	t.Setenv("DENAR_SMTP_HOST", "smtp.example.com")
+	t.Setenv("DENAR_SMTP_FROM", "Denar <denar@example.com>")
+	t.Setenv("DENAR_SMTP_USERNAME", "denar")
+	t.Setenv("DENAR_SMTP_PASSWORD", "smtp-s3cret")
+	t.Setenv("DENAR_SMTP_TLS", "tls")
+	t.Setenv("DENAR_GOAL_DUE_DAYS", "14")
+	t.Setenv("DENAR_TELEGRAM_API_URL", "http://127.0.0.1:9000/")
+	cfg, err = FromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.MasterKey.Reveal() != key || !cfg.SMTPEnabled() || cfg.SMTPPort != 465 || cfg.SMTPTLS != "tls" || cfg.SMTPPassword.Reveal() != "smtp-s3cret" ||
+		cfg.GoalDueDays != 14 || cfg.TelegramAPIURL != "http://127.0.0.1:9000" {
+		t.Errorf("values = %+v", cfg)
+	}
+	logged := fmt.Sprint(slog.GroupValue(cfg.LogValue().Group()...))
+	if strings.Contains(logged, key) || strings.Contains(logged, "smtp-s3cret") {
+		t.Errorf("a secret is logged: %s", logged)
+	}
+
+	clean(t)
+	t.Setenv("DENAR_MASTER_KEY", "c2hvcnQ=")
+	t.Setenv("DENAR_SMTP_HOST", "smtp.example.com")
+	t.Setenv("DENAR_SMTP_TLS", "ssl")
+	t.Setenv("DENAR_SMTP_USERNAME", "denar")
+	t.Setenv("DENAR_GOAL_DUE_DAYS", "0")
+	_, err = FromEnv()
+	for _, want := range []string{"DENAR_MASTER_KEY", "DENAR_SMTP_TLS", "DENAR_SMTP_FROM", "DENAR_SMTP_PASSWORD", "DENAR_GOAL_DUE_DAYS"} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("error %v does not name %s", err, want)
+		}
 	}
 }
