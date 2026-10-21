@@ -1,0 +1,54 @@
+.points {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--ink);
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.steps ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.step:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.step > svg:first-child {
+  color: var(--patina);
+  flex: none;
+}
+
+.step > span {
+  display: grid;
+  flex: 1;
+}
+
+.stepTitle {
+  font-weight: 650;
+}
+
+.stepText {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}

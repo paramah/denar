@@ -6,6 +6,13 @@ vars:
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
 
+includes:
+  # Web UI (etap 007): web:install, web:types, web:types:check, web:build,
+  # web:test, web:e2e, web:dev.
+  web:
+    taskfile: ./web/Taskfile.yml
+    dir: ./web
+
 tasks:
   build:
     desc: Buduje binarium denar (z osadzonym Web UI, jeśli zbudowane)
@@ -39,30 +46,6 @@ tasks:
     desc: Regeneruje kod z api/openapi.yaml (oapi-codegen)
     cmds:
       - go generate ./...
-
-  # Zadania web:* działają, gdy istnieje web/package.json (etap 007);
-  # do tego czasu są pomijane, a serwer podaje stronę zastępczą.
-  web:build:
-    desc: Buduje Web UI do web/dist (pomijane bez web/package.json)
-    cmds:
-      - cmd: |
-          if [ -f web/package.json ]; then
-            cd web && npm ci && npm run build
-          else
-            echo "web/package.json nie istnieje — pomijam budowanie Web UI"
-          fi
-        silent: true
-
-  web:test:
-    desc: Testy Web UI (pomijane bez web/package.json)
-    cmds:
-      - cmd: |
-          if [ -f web/package.json ]; then
-            cd web && npm test
-          else
-            echo "web/package.json nie istnieje — pomijam testy Web UI"
-          fi
-        silent: true
 
   verify:
     desc: Format, vet, Web UI (build i testy), testy Go i build

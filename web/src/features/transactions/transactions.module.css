@@ -1,0 +1,455 @@
+/* Formularze i rejestr transakcji — styl „Mennica”: cienkie linie, cyfry tabelaryczne. */
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+/* Rodzaj: trzy przyciski radiowe jak jeden przełącznik. */
+.segmented {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.segmented legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.segments {
+  display: flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.segments label {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.segments label + label {
+  border-left: 1px solid var(--line-strong);
+}
+
+.segments input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segments label:has(input:checked) {
+  background: var(--patina-soft);
+  color: var(--ink);
+  box-shadow: inset 0 -3px 0 var(--patina);
+}
+
+.segments label:has(input:checked)[data-tone='outflow'] {
+  background: var(--outflow-soft);
+  box-shadow: inset 0 -3px 0 var(--outflow);
+}
+
+.segments label:has(input:checked)[data-tone='inflow'] {
+  background: var(--inflow-soft);
+  box-shadow: inset 0 -3px 0 var(--inflow);
+}
+
+.segments label:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: -4px;
+}
+
+/* Kwota z walutą jako przyrostkiem. */
+.amount {
+  display: flex;
+  align-items: stretch;
+}
+
+.amount input {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-align: right;
+}
+
+.amountLarge input {
+  min-height: 3.25rem;
+  font-size: var(--text-xl);
+}
+
+.suffix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.sign {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-right: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--surface-sunken);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 650;
+}
+
+.sign[data-tone='outflow'] {
+  color: var(--outflow);
+}
+
+.sign[data-tone='inflow'] {
+  color: var(--inflow);
+}
+
+.sign + input {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.textarea {
+  min-height: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.note {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 0.35em;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+/* Splity */
+.splits {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.splits legend {
+  padding: 0 var(--space-1);
+  font-weight: 650;
+}
+
+.splitLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.splitTotal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.splitTotal[data-balanced='false'] {
+  color: var(--outflow);
+  font-weight: 600;
+}
+
+/* Rejestr */
+.filters {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.filterSearch {
+  grid-column: 1 / -1;
+}
+
+.advanced {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Na komputerze dodatkowe filtry są zawsze widoczne; przełącznik tylko na telefonie. */
+.filterToggle {
+  display: none;
+}
+
+.filterFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.register {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) 8.5rem minmax(8rem, auto) auto;
+  grid-template-areas: 'date main status amount actions';
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.date {
+  grid-area: date;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.main {
+  grid-area: main;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-weight: 640;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+button.title {
+  cursor: pointer;
+}
+
+button.title:hover {
+  color: var(--patina);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.title svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tags li {
+  color: var(--patina);
+}
+
+.statusCell {
+  grid-area: status;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.status[data-status='cleared'] {
+  color: var(--inflow);
+  border-color: var(--inflow-soft);
+  background: var(--inflow-soft);
+}
+
+.status:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.amountCell {
+  grid-area: amount;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.base {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.actions {
+  grid-area: actions;
+  display: flex;
+  gap: var(--space-1);
+}
+
+.pending {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pending a {
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 47.99rem) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filterSearch {
+    grid-column: auto;
+  }
+
+  .filterToggle {
+    display: inline-flex;
+    justify-self: start;
+  }
+
+  .advanced[data-expanded='false'] {
+    display: none;
+  }
+
+  .splitLine {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .splitLine > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'main amount'
+      'date amount'
+      'status actions';
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .actions {
+    justify-content: flex-end;
+  }
+}

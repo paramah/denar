@@ -1,0 +1,91 @@
+version: "3"
+
+# Dołączany z głównego Taskfile.yml jako przestrzeń `web:`; katalog roboczy to web/.
+
+vars:
+  OPENAPI: '{{.OPENAPI | default "../api/openapi.yaml"}}'
+  # Nadpisz, żeby sprawdzić inny plik typów: task web:types:check SCHEMA=/tmp/kopia.d.ts
+  SCHEMA: '{{.SCHEMA | default "src/api/schema.d.ts"}}'
+
+tasks:
+  install:
+    desc: Instaluje zależności z package-lock.json
+    run: once
+    sources:
+      - package.json
+      - package-lock.json
+    generates:
+      - node_modules/.package-lock.json
+      - node_modules/go.mod
+    cmds:
+      - npm ci --no-audit --no-fund
+      # Zagnieżdżony moduł wyklucza node_modules z `go vet ./...` i `go test ./...`.
+      # Robi to też postinstall; tu na wypadek instalacji z --ignore-scripts.
+      - printf 'module node_modules\n' > node_modules/go.mod
+
+  types:
+    desc: Generuje src/api/schema.d.ts z api/openapi.yaml
+    deps: [install]
+    cmds:
+      - npx openapi-typescript {{shellQuote .OPENAPI}} -o {{shellQuote .SCHEMA}}
+
+  types:check:
+    desc: Sprawdza, czy schema.d.ts odpowiada api/openapi.yaml
+    run: once
+    deps: [install]
+    env:
+      OPENAPI: "{{.OPENAPI}}"
+      SCHEMA: "{{.SCHEMA}}"
+    cmds:
+      - cmd: |
+          mkdir -p node_modules/.tmp
+          npx openapi-typescript "$OPENAPI" -o node_modules/.tmp/schema.check.d.ts > /dev/null
+          if ! diff -u "$SCHEMA" node_modules/.tmp/schema.check.d.ts; then
+            echo "$SCHEMA jest nieaktualny względem $OPENAPI; uruchom task web:types"
+            exit 1
+          fi
+        silent: true
+
+  build:
+    desc: Buduje Web UI do web/dist
+    run: once
+    deps: [install, types:check]
+    sources:
+      - src/**/*
+      - public/**/*
+      - index.html
+      - vite.config.ts
+      - tsconfig*.json
+      - package.json
+      - package-lock.json
+    generates:
+      - dist/index.html
+    cmds:
+      - npm run build
+      - du -sh dist
+
+  test:
+    desc: "ESLint, tsc i Vitest; zawężenie testów: task web:test -- <ścieżka>"
+    deps: [install, types:check]
+    cmds:
+      - npm run lint
+      - npm run typecheck
+      - npm run test -- {{.CLI_ARGS}}
+
+  e2e:install:
+    desc: Instaluje przeglądarki Playwright (jednorazowo)
+    deps: [install]
+    cmds:
+      - npx playwright install chromium
+
+  e2e:
+    desc: Buduje binarium z Web UI i uruchamia testy Playwright
+    deps: [":build"]
+    cmds:
+      - npm run e2e -- {{.CLI_ARGS}}
+
+  dev:
+    desc: Serwer deweloperski Vite na :5173 (API przez proxy na :8080, np. task dev:api)
+    deps: [install]
+    cmds:
+      - npm run dev

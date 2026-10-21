@@ -1,0 +1,36 @@
+.wrap {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rows {
+  border-top: 1px solid var(--line);
+}
+
+.rows > .item {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.cards {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cards > .item {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+}

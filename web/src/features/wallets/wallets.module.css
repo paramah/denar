@@ -1,0 +1,261 @@
+/* Portfele: kafelki sum i karty portfeli w stylu „Mennica”. */
+
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.tile {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  min-width: 0;
+}
+
+.tile + .tile {
+  border-left: 1px solid var(--line);
+}
+
+.tileLabel {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tileNote {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Karta portfela: rant z lewej w kolorze typu „budżetowy / poza budżetem”. */
+.card {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-4) var(--space-4) var(--space-4) calc(var(--space-4) + 4px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: -1px auto -1px -1px;
+  width: 4px;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--patina);
+}
+
+.card[data-on-budget='false']::before {
+  background: var(--line-strong);
+}
+
+.card[data-archived='true'] {
+  background: var(--paper);
+  border-style: dashed;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+}
+
+.cardHead {
+  display: grid;
+  gap: 2px;
+}
+
+.cardName {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.cardName::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.cardName:hover {
+  color: var(--patina);
+}
+
+.cardType {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.balances {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.balances div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.balances dt {
+  color: var(--muted);
+}
+
+.balances dd {
+  margin: 0;
+}
+
+.balanceMain {
+  display: grid;
+  gap: 2px;
+}
+
+/* Strona portfela */
+.header {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface);
+}
+
+.facts div {
+  display: grid;
+  gap: 2px;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.fieldset {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.fieldset legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.radio input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.2rem 0 0;
+  accent-color: var(--patina);
+}
+
+.radio span {
+  display: grid;
+}
+
+.radio small {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.members {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 0 var(--space-5);
+  padding: var(--space-3);
+  border-left: 2px solid var(--patina-soft);
+  list-style: none;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 47.99rem) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tile + .tile {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
