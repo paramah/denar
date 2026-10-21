@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  binaries:
+    name: Binaries and GitHub Release
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: go-task/setup-task@v2.2.0
+        with:
+          version: 3.x
+
+      # Built once into web/dist and embedded into every binary below.
+      - name: Build web UI
+        run: task web:build
+
+      - name: Cross-compile and package
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          mkdir -p dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            name="denar_${version}_${os}_${arch}"
+            bin="denar"
+            if [ "$os" = windows ]; then bin="denar.exe"; fi
+            mkdir -p "build/${name}"
+            GOOS="$os" GOARCH="$arch" go build -trimpath \
+              -ldflags "-s -w -X main.version=${tag}" \
+              -o "build/${name}/${bin}" ./cmd/denar
+            cp LICENSE README.md README.pl.md "build/${name}/"
+            if [ "$os" = windows ]; then
+              (cd build && zip -qr "../dist/${name}.zip" "${name}")
+            else
+              tar -C build -czf "dist/${name}.tar.gz" "${name}"
+            fi
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          cat dist/SHA256SUMS
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          flags=(--verify-tag --generate-notes --title "$GITHUB_REF_NAME")
+          # v1.2.3-rc.1 and similar are published as pre-releases.
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "${flags[@]}" dist/*
+
+  image:
+    name: Container image (GHCR)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: docker/setup-qemu-action@v4.4.0
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=false
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+          labels: |
+            org.opencontainers.image.title=Denar
+            org.opencontainers.image.description=Self-hosted household budget: multi-currency wallets, envelopes, subscriptions, REST and MCP.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+          annotations: |
+            org.opencontainers.image.title=Denar
+            org.opencontainers.image.description=Self-hosted household budget: multi-currency wallets, envelopes, subscriptions, REST and MCP.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+
+      - uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ github.ref_name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

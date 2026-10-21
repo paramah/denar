@@ -1,0 +1,43 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      golang-x:
+        patterns: ["golang.org/x/*"]
+      go-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      lint:
+        patterns: ["eslint", "eslint-*", "@eslint/*", "typescript-eslint", "globals"]
+      test:
+        patterns: ["vitest", "@testing-library/*", "jsdom", "msw", "@playwright/test", "@axe-core/*"]
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        patterns: ["*"]

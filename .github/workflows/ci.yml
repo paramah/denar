@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # release.yml runs the same checks before publishing a tag.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: go-task/setup-task@v2.2.0
+        with:
+          version: 3.x
+
+      - name: Install web dependencies
+        run: task web:install
+
+      - name: Check generated API types
+        run: task web:types:check
+
+      # gofmt, go vet, web build + tests, go test -race, go build
+      - name: Verify
+        run: task verify
+
+  e2e:
+    name: E2E (Playwright)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: go-task/setup-task@v2.2.0
+        with:
+          version: 3.x
+
+      - name: Install web dependencies
+        run: task web:install
+
+      - name: Install Playwright Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      # task web:e2e depends on `task build` (web build + go build with the
+      # embedded UI) and runs Playwright against ./denar, so no separate build step.
+      - name: E2E tests
+        run: task web:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            web/node_modules/.e2e/report
+            web/node_modules/.e2e/results
+          include-hidden-files: true
+          retention-days: 14
