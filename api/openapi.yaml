@@ -1936,12 +1936,12 @@ components:
         send_email: { type: boolean, description: "Wyślij link e-mailem (wymaga SMTP; bez — 409 smtp-not-configured)" }
     InvitationCreated:
       type: object
-      required: [invitation, token, url, email_sent]
+      required: [invitation, token, url]
       properties:
         invitation: { $ref: "#/components/schemas/Invitation" }
         token: { type: string, description: Jednorazowy token; tylko w tej odpowiedzi }
         url: { type: string, description: "Link do przekazania: <DENAR_BASE_URL>/invite#<token>" }
-        email_sent: { type: boolean, description: Link wysłany e-mailem }
+        email_sent: { type: boolean, description: "Link wysłany e-mailem (serwer zawsze podaje to pole)" }
         email_error: { type: [string, "null"], description: "Powód, gdy wysłanie e-maila się nie udało (zaproszenie i tak powstało)" }
     InvitationToken:
       type: object

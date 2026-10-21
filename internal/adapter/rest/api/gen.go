@@ -1111,8 +1111,8 @@ type InvitationCreated struct {
 	// EmailError Powód, gdy wysłanie e-maila się nie udało (zaproszenie i tak powstało)
 	EmailError nullable.Nullable[string] `json:"email_error,omitempty"`
 
-	// EmailSent Link wysłany e-mailem
-	EmailSent  bool       `json:"email_sent"`
+	// EmailSent Link wysłany e-mailem (serwer zawsze podaje to pole)
+	EmailSent  *bool      `json:"email_sent,omitempty"`
 	Invitation Invitation `json:"invitation"`
 
 	// Token Jednorazowy token; tylko w tej odpowiedzi

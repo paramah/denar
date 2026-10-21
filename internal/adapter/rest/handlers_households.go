@@ -103,7 +103,7 @@ func (s *Server) CreateInvitation(ctx context.Context, request api.CreateInvitat
 	}
 	body := api.InvitationCreated{
 		Invitation: apiInvitation(inv.InvitationView), Token: inv.Token,
-		Url: s.deps.BaseURL + "/invite#" + inv.Token, EmailSent: inv.EmailSent,
+		Url: s.deps.BaseURL + "/invite#" + inv.Token, EmailSent: &inv.EmailSent,
 	}
 	if inv.EmailError != "" {
 		body.EmailError = nullableString(inv.EmailError)

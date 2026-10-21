@@ -1313,8 +1313,8 @@ export interface components {
             token: string;
             /** @description Link do przekazania: <DENAR_BASE_URL>/invite#<token> */
             url: string;
-            /** @description Link wysłany e-mailem */
-            email_sent: boolean;
+            /** @description Link wysłany e-mailem (serwer zawsze podaje to pole) */
+            email_sent?: boolean;
             /** @description Powód, gdy wysłanie e-maila się nie udało (zaproszenie i tak powstało) */
             email_error?: string | null;
         };
