@@ -141,3 +141,15 @@ const (
 	// ConflictTransactionLinked: the transaction pays another charge.
 	ConflictTransactionLinked ConflictReason = "transaction_linked"
 )
+
+// Reasons of stage 005.
+const (
+	// ConflictSecretsUnavailable: the channel needs secrets and the server
+	// has no master key (DENAR_MASTER_KEY) to encrypt them.
+	ConflictSecretsUnavailable ConflictReason = "secrets_unavailable"
+	// ConflictSMTPNotConfigured: sending e-mail needs SMTP, which the
+	// server does not have.
+	ConflictSMTPNotConfigured ConflictReason = "smtp_not_configured"
+	// ConflictTooManyChannels: the person has the most channels allowed.
+	ConflictTooManyChannels ConflictReason = "too_many_channels"
+)

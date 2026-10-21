@@ -26,11 +26,35 @@ const (
 	SubscriptionChargeMissed Type = "subscription.charge_missed"
 )
 
-// Types are the known event types in a stable order.
-var Types = []Type{SubscriptionRenewalUpcoming, SubscriptionTrialEnding, SubscriptionPriceChanged, SubscriptionChargeMissed}
+// Events of the envelope budget (stage 005). Payload: envelope_id,
+// envelope_name, month (YYYY-MM), available, currency, wallet_id (""); a
+// goal adds target_date, goal_amount, missing and days_left.
+const (
+	// EnvelopeOverspent: the envelope is below zero in the month.
+	EnvelopeOverspent Type = "envelope.overspent"
+	// EnvelopeGoalDue: a target-by-date goal is due soon and not funded.
+	EnvelopeGoalDue Type = "envelope.goal_due"
+)
 
-// ResourceSubscription is the resource type of subscription events.
-const ResourceSubscription = "subscription"
+// Types are the known event types in a stable order.
+var Types = []Type{SubscriptionRenewalUpcoming, SubscriptionTrialEnding, SubscriptionPriceChanged, SubscriptionChargeMissed,
+	EnvelopeOverspent, EnvelopeGoalDue}
+
+// Valid reports whether t is a known event type.
+func (t Type) Valid() bool {
+	for _, k := range Types {
+		if k == t {
+			return true
+		}
+	}
+	return false
+}
+
+// Resource types of events.
+const (
+	ResourceSubscription = "subscription"
+	ResourceEnvelope     = "envelope"
+)
 
 // Event is one fact of a household, waiting in the outbox until it is
 // dispatched.
