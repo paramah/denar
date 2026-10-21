@@ -9,6 +9,19 @@ Self-hosted budżet domowy z portfelami w wielu walutach, kopertami w stylu YNAB
 
 Denar to jedno binarium Go (Clean Architecture, SQLite), które serwuje REST API, serwer MCP i Web UI osadzone w binarium.
 
+## Zrzuty ekranu
+
+![Pulpit: salda, kwota do przydzielenia, przekroczone koperty i nadchodzące odnowienia subskrypcji](docs/screenshots/pl-dashboard.webp)
+
+| | |
+|---|---|
+| ![Budżet kopertowy na miesiąc](docs/screenshots/pl-budget.webp) | ![Przegląd subskrypcji z osią odnowień](docs/screenshots/pl-subscriptions.webp) |
+| **Budżet kopertowy** (w stylu YNAB) | **Subskrypcje** i nadchodzące odnowienia |
+| ![Transakcje ze wszystkich portfeli w jednym rejestrze](docs/screenshots/pl-transactions.webp) | ![Pulpit w ciemnym motywie](docs/screenshots/pl-dashboard-dark.webp) |
+| **Transakcje** ze wszystkich portfeli | **Ciemny motyw** |
+
+Zrzuty pochodzą z lokalnego demo (`task demo`).
+
 ## Funkcje
 
 - **Konta i gospodarstwa:** logowanie hasłem (argon2id) i OIDC z PKCE, sesje, wiele gospodarstw na instancję z rolami `owner/admin/member/viewer`, zaproszenia, audit log.
