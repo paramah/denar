@@ -1,4 +1,4 @@
-// Package money holds currencies and, from stage 002, amounts. Amounts are
+// Package money holds currencies, amounts and exchange rates. Amounts are
 // int64 minor units of a currency; there are no floats anywhere.
 package money
 

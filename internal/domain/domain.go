@@ -105,3 +105,15 @@ type Optional[T any] struct {
 
 // Some returns a set Optional holding v.
 func Some[T any](v T) Optional[T] { return Optional[T]{Set: true, Value: v} }
+
+// Reasons of stage 002.
+const (
+	// ConflictDuplicateExternalID: the wallet has a transaction with that
+	// external id already.
+	ConflictDuplicateExternalID ConflictReason = "duplicate_external_id"
+	// ConflictWalletArchived: the wallet is archived and takes no writes.
+	ConflictWalletArchived ConflictReason = "wallet_archived"
+	// ForbiddenWallet: the operation reaches a wallet the caller does not
+	// see, such as the other leg of a transfer.
+	ForbiddenWallet ForbiddenReason = "wallet"
+)
