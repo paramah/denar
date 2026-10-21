@@ -18,7 +18,7 @@ Serwer MCP pod `/mcp` (Streamable HTTP, bez sesji, odpowiedzi JSON) dla asystent
 ## Goals
 
 - Endpoint `/mcp` z uwierzytelnianiem botów, limitami i ochroną jak w Straylight.
-- 30 narzędzi (odczyt i zapis) na istniejących use case'ach; nowe use case'y tylko tam, gdzie brakuje logiki (raport wydatków, rozpoznawanie nazw, kontekst bota).
+- 25 narzędzi (odczyt i zapis) na istniejących use case'ach; nowe use case'y tylko tam, gdzie brakuje logiki (raport wydatków, rozpoznawanie nazw, kontekst bota).
 - Kontrakt `api/mcp-tools.md` (po polsku), opisy narzędzi i pól po angielsku.
 - README: podłączenie klientów.
 
