@@ -75,7 +75,9 @@ func (uc *ListNotifications) Do(ctx context.Context, p Principal, in ListNotific
 // or all.
 type CountUnreadNotifications struct{ d Deps }
 
-func NewCountUnreadNotifications(d Deps) *CountUnreadNotifications { return &CountUnreadNotifications{d: d} }
+func NewCountUnreadNotifications(d Deps) *CountUnreadNotifications {
+	return &CountUnreadNotifications{d: d}
+}
 
 func (uc *CountUnreadNotifications) Do(ctx context.Context, p Principal, householdID domain.ID) (int, error) {
 	f, err := uc.d.notificationFilter(ctx, p, householdID)
@@ -106,7 +108,9 @@ func (uc *MarkNotificationRead) Do(ctx context.Context, p Principal, id domain.I
 // of one household or all; people only. It returns how many it marked.
 type MarkAllNotificationsRead struct{ d Deps }
 
-func NewMarkAllNotificationsRead(d Deps) *MarkAllNotificationsRead { return &MarkAllNotificationsRead{d: d} }
+func NewMarkAllNotificationsRead(d Deps) *MarkAllNotificationsRead {
+	return &MarkAllNotificationsRead{d: d}
+}
 
 func (uc *MarkAllNotificationsRead) Do(ctx context.Context, p Principal, householdID domain.ID) (int, error) {
 	if err := requireHuman(p); err != nil {

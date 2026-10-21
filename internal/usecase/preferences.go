@@ -32,7 +32,9 @@ func (d Deps) preferences(ctx context.Context, userID, householdID domain.ID) ([
 // a household, for every event type (FR-551); people only, any role.
 type GetNotificationPreferences struct{ d Deps }
 
-func NewGetNotificationPreferences(d Deps) *GetNotificationPreferences { return &GetNotificationPreferences{d: d} }
+func NewGetNotificationPreferences(d Deps) *GetNotificationPreferences {
+	return &GetNotificationPreferences{d: d}
+}
 
 func (uc *GetNotificationPreferences) Do(ctx context.Context, p Principal, householdID domain.ID) ([]notification.Preference, error) {
 	if err := requireHuman(p); err != nil {
@@ -49,7 +51,9 @@ func (uc *GetNotificationPreferences) Do(ctx context.Context, p Principal, house
 // person's.
 type SetNotificationPreferences struct{ d Deps }
 
-func NewSetNotificationPreferences(d Deps) *SetNotificationPreferences { return &SetNotificationPreferences{d: d} }
+func NewSetNotificationPreferences(d Deps) *SetNotificationPreferences {
+	return &SetNotificationPreferences{d: d}
+}
 
 func (uc *SetNotificationPreferences) Do(ctx context.Context, p Principal, householdID domain.ID, in []notification.Preference) ([]notification.Preference, error) {
 	if err := requireHuman(p); err != nil {
