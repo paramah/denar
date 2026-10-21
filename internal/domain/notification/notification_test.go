@@ -7,6 +7,7 @@ import (
 
 	"github.com/paramah/denar/internal/domain"
 	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 func TestRender(t *testing.T) {
@@ -48,11 +49,73 @@ func TestRender(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Render(event.Event{HouseholdID: "h1", Type: tt.typ, Payload: tt.p})
+			got := Render(user.LocalePL, event.Event{HouseholdID: "h1", Type: tt.typ, Payload: tt.p})
+			if got != tt.want {
+				t.Errorf("Render = %+v\nwant     %+v", got, tt.want)
+			}
+			// An unsupported language falls back to Polish.
+			if got := Render(user.Locale("de"), event.Event{HouseholdID: "h1", Type: tt.typ, Payload: tt.p}); got != tt.want {
+				t.Errorf("Render(de) = %+v\nwant     %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRenderEnglish(t *testing.T) {
+	sub := map[string]string{"subscription_id": "s1", "subscription_name": "ChatGPT Plus", "vendor": "openai", "vendor_name": "OpenAI"}
+	with := func(extra map[string]string) map[string]string {
+		out := map[string]string{}
+		for k, v := range sub {
+			out[k] = v
+		}
+		for k, v := range extra {
+			out[k] = v
+		}
+		return out
+	}
+	tests := []struct {
+		name string
+		typ  event.Type
+		p    map[string]string
+		want Message
+	}{
+		{"renewal in 3 days", event.SubscriptionRenewalUpcoming, with(map[string]string{"due_date": "2026-10-31", "amount": "20.00", "currency": "USD", "days_before": "3"}),
+			Message{"Renewal: ChatGPT Plus in 3 days", "ChatGPT Plus (OpenAI) renews on 2026-10-31: 20.00 USD.", "/h/h1/subscriptions/s1"}},
+		{"renewal today", event.SubscriptionRenewalUpcoming, with(map[string]string{"due_date": "2026-10-31", "amount": "20.00", "currency": "USD", "days_before": "0", "vendor": "other", "vendor_name": "Inne"}),
+			Message{"Renewal: ChatGPT Plus today", "ChatGPT Plus renews on 2026-10-31: 20.00 USD.", "/h/h1/subscriptions/s1"}},
+		{"trial tomorrow", event.SubscriptionTrialEnding, with(map[string]string{"trial_ends_at": "2026-10-22", "days_before": "1", "amount": "43.00", "currency": "PLN"}),
+			Message{"Trial ending: ChatGPT Plus tomorrow", "The ChatGPT Plus trial ends on 2026-10-22. After that it costs 43.00 PLN per period.", "/h/h1/subscriptions/s1"}},
+		{"price with old", event.SubscriptionPriceChanged, with(map[string]string{"effective_from": "2026-11-01", "old_amount": "20.00", "old_currency": "USD", "new_amount": "25.00", "new_currency": "USD"}),
+			Message{"Price change: ChatGPT Plus", "From 2026-11-01 ChatGPT Plus costs 25.00 USD (was 20.00 USD).", "/h/h1/subscriptions/s1"}},
+		{"price without old", event.SubscriptionPriceChanged, with(map[string]string{"effective_from": "2026-11-01", "new_amount": "25.00", "new_currency": "USD"}),
+			Message{"Price change: ChatGPT Plus", "From 2026-11-01 ChatGPT Plus costs 25.00 USD.", "/h/h1/subscriptions/s1"}},
+		{"missed", event.SubscriptionChargeMissed, with(map[string]string{"due_date": "2026-10-20", "amount": "20.00", "currency": "USD"}),
+			Message{"Missed payment: ChatGPT Plus", "No payment for ChatGPT Plus due 2026-10-20 (20.00 USD) was found. Check the matches.", "/h/h1/subscriptions/charges"}},
+		{"overspent", event.EnvelopeOverspent, map[string]string{"envelope_id": "e1", "envelope_name": "Food", "month": "2026-10", "available": "-12.34", "currency": "PLN"},
+			Message{"Envelope overspent: Food", "Envelope Food is negative in 2026-10: -12.34 PLN.", "/h/h1/budget/2026-10"}},
+		{"goal due", event.EnvelopeGoalDue, map[string]string{"envelope_id": "e1", "envelope_name": "Holiday", "month": "2026-10", "target_date": "2026-10-28",
+			"goal_amount": "3000.00", "missing": "500.00", "currency": "PLN", "days_left": "7"},
+			Message{"Goal for envelope Holiday due in 7 days", "Goal due 2026-10-28: 500.00 PLN short of 3000.00 PLN.", "/h/h1/budget/2026-10"}},
+		{"goal due without days", event.EnvelopeGoalDue, map[string]string{"envelope_name": "Holiday", "month": "2026-10", "target_date": "bad",
+			"goal_amount": "3000.00", "missing": "500.00", "currency": "PLN"},
+			Message{"Goal for envelope Holiday", "Goal due bad: 500.00 PLN short of 3000.00 PLN.", "/h/h1/budget/2026-10"}},
+		{"unknown", event.Type("x.y"), nil, Message{"x.y", "", "/h/h1"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Render(user.LocaleEN, event.Event{HouseholdID: "h1", Type: tt.typ, Payload: tt.p})
 			if got != tt.want {
 				t.Errorf("Render = %+v\nwant     %+v", got, tt.want)
 			}
 		})
+	}
+	// Every event type has an English text of its own.
+	for _, typ := range event.Types {
+		e := event.Event{HouseholdID: "h1", Type: typ, Payload: with(map[string]string{"envelope_name": "Food", "days_before": "2", "days_left": "2"})}
+		pl, en := Render(user.LocalePL, e), Render(user.LocaleEN, e)
+		if pl.Title == en.Title || pl.Body == en.Body || pl.Link != en.Link || en.Title == string(typ) {
+			t.Errorf("%s: pl %+v en %+v", typ, pl, en)
+		}
 	}
 }
 

@@ -94,9 +94,11 @@ func (d Deps) dispatch(ctx context.Context, h household.Household, e event.Event
 	if err != nil {
 		return 0, 0, err
 	}
-	msg := notification.Render(e)
 	now := d.Clock.Now()
 	for _, u := range people {
+		// Each recipient reads the notification in their own language
+		// (FR-1307); the stored text keeps the language of this moment.
+		msg := notification.Render(u.EffectiveLocale(), e)
 		prefs, err := d.Preferences.List(ctx, u.ID, h.ID)
 		if err != nil {
 			return notifications, deliveries, err
