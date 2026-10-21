@@ -76,9 +76,23 @@ Demo data on any database: `DENAR_DB=my.db ./denar demo` (refuses when the demo 
 
 The demo data itself is in Polish.
 
-### Docker
+### Container images
 
-Images for `linux/amd64` and `linux/arm64` are published to the GitHub Container Registry as `ghcr.io/paramah/denar` (tags: `latest`, `<major>.<minor>`, `<version>`). The release workflow can also push them to Quay.io; see [Publishing to Quay.io](#publishing-to-quayio).
+Every release publishes the same multi-platform image (`linux/amd64`, `linux/arm64`) to two registries:
+
+| Registry | Image | Page |
+|---|---|---|
+| GitHub Container Registry | `ghcr.io/paramah/denar` | [github.com/paramah/denar/pkgs/container/denar](https://github.com/paramah/denar/pkgs/container/denar) |
+| Quay.io | `quay.io/cynarski/denar` | [quay.io/repository/cynarski/denar](https://quay.io/repository/cynarski/denar) |
+
+Tags: `latest` (newest stable release), `<major>.<minor>` (e.g. `0.1`, follows patch releases) and `<version>` (e.g. `0.1.1`). Pre-releases (`v1.2.0-rc.1`) get only their version tag.
+
+```sh
+docker pull ghcr.io/paramah/denar:latest
+docker pull quay.io/cynarski/denar:latest
+```
+
+### Docker
 
 ```sh
 docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
@@ -90,21 +104,6 @@ docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
 
 The image runs as a non-root user, keeps its database in the `/data` volume (`DENAR_DB=/data/denar.db`), listens on port 8080 and has a healthcheck on `/healthz`. Keep the master key: changing it invalidates stored channel secrets.
 
-### Publishing to Quay.io
-
-The release workflow pushes the image to Quay.io as well when the GitHub repository has:
-
-- the variable `QUAY_IMAGE`, the full image name, e.g. `quay.io/<namespace>/denar`;
-- the secrets `QUAY_USERNAME` and `QUAY_PASSWORD`: a Quay robot account with write access to that repository.
-
-```sh
-gh variable set QUAY_IMAGE --body quay.io/<namespace>/denar
-gh secret set QUAY_USERNAME --body '<namespace>+<robot>'
-gh secret set QUAY_PASSWORD   # paste the robot token
-```
-
-Quay gets the same tags as GHCR. Without `QUAY_IMAGE` the workflow publishes to GHCR only.
-
 ### Docker Compose
 
 ```sh
@@ -112,7 +111,7 @@ cp .env.example .env   # set DENAR_ADMIN_PASSWORD (at least 12 characters)
 task compose:up
 ```
 
-This builds the image from the repository and starts the container: port 8080 on 127.0.0.1, data in the `denar-data` volume. Traffic is not encrypted, so expose it to the network through a reverse proxy with TLS, not through this port (`DENAR_BIND`, `DENAR_PORT` in `.env`). Also `task compose:down` (data stays in the volume) and `task compose:logs`. A different engine: `COMPOSE="podman compose" task compose:up`.
+This pulls the release image (`ghcr.io/paramah/denar:latest`) and starts the container: port 8080 on 127.0.0.1, data in the `denar-data` volume. Pick another registry or version in `.env` with `DENAR_IMAGE` (e.g. `quay.io/cynarski/denar`) and `DENAR_VERSION` (e.g. `0.1.1`); `task compose:up` again updates the container. To run an image built from your checkout instead: `task compose:build` (adds `docker-compose.build.yml`). Traffic is not encrypted, so expose it to the network through a reverse proxy with TLS, not through this port (`DENAR_BIND`, `DENAR_PORT` in `.env`). Also `task compose:down` (data stays in the volume) and `task compose:logs`. A different engine: `COMPOSE="podman compose" task compose:up`.
 
 ### Without Task
 
@@ -281,7 +280,7 @@ Denar is configured with `DENAR_*` environment variables. [`.env.example`](.env.
 | `DENAR_NOTIFY_ALLOWED_CIDRS` | — | networks (CIDRs or addresses, comma-separated) channels may send to despite the block, e.g. `192.168.1.0/24` |
 | `DENAR_DEV_FAKE_CONNECTOR` | `false` | adds a fake bank `fake` to the connection providers (development only, never in production) |
 
-Docker Compose only: `DENAR_PORT` (published port, `8080`), `DENAR_BIND` (host address, `127.0.0.1`; change to `0.0.0.0` only in a trusted network, traffic is not encrypted), `DENAR_VERSION` (image tag and build version). `denar demo` also reads `DENAR_DEMO_PASSWORD`.
+Docker Compose only: `DENAR_PORT` (published port, `8080`), `DENAR_BIND` (host address, `127.0.0.1`; change to `0.0.0.0` only in a trusted network, traffic is not encrypted), `DENAR_IMAGE` (image without the tag, `ghcr.io/paramah/denar`), `DENAR_VERSION` (image tag, `latest`; with `task compose:build` also the build version). `denar demo` also reads `DENAR_DEMO_PASSWORD`.
 
 ## MCP: connecting Claude and other AI assistants
 
@@ -402,6 +401,21 @@ task test:postgres  # the Go tests on PostgreSQL too, in a postgres:17 container
 ```
 
 Before the first `task web:e2e`, install the browser once: `task web:e2e:install`. CI (GitHub Actions) runs `task web:types:check`, `task verify` (with the repository and end-to-end tests also on a PostgreSQL service) and `task web:e2e` on every push to `main` and on pull requests.
+
+### Releases and Quay.io
+
+Pushing a `v*` tag (e.g. `v0.1.2`) runs `.github/workflows/release.yml`: the CI checks, binaries for 5 platforms in a GitHub Release, and the container image on GHCR. It pushes the image to Quay.io as well when the GitHub repository has:
+
+- the variable `QUAY_IMAGE`, the full image name, e.g. `quay.io/<namespace>/denar`;
+- the secrets `QUAY_USERNAME` and `QUAY_PASSWORD`: a Quay robot account with write access to that repository.
+
+```sh
+gh variable set QUAY_IMAGE --body quay.io/<namespace>/denar
+gh secret set QUAY_USERNAME --body '<namespace>+<robot>'
+gh secret set QUAY_PASSWORD   # paste the robot token
+```
+
+Quay gets the same tags as GHCR. Without `QUAY_IMAGE` the workflow publishes to GHCR only.
 
 ## Architecture
 

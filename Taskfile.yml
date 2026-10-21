@@ -149,9 +149,15 @@ tasks:
       - ./denar serve
 
   compose:up:
-    desc: Buduje obraz i uruchamia kontener (wymaga pliku .env)
+    desc: Pobiera obraz z rejestru (GHCR) i uruchamia kontener (wymaga pliku .env)
     cmds:
-      - "{{.COMPOSE}} up --build --detach --wait"
+      - "{{.COMPOSE}} pull"
+      - "{{.COMPOSE}} up --detach --wait"
+
+  compose:build:
+    desc: Buduje obraz z bieżącego kodu i uruchamia kontener (wymaga pliku .env)
+    cmds:
+      - "{{.COMPOSE}} -f docker-compose.yml -f docker-compose.build.yml up --build --detach --wait"
 
   compose:down:
     desc: Zatrzymuje kontener; dane zostają w wolumenie denar-data
