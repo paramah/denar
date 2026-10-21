@@ -1,0 +1,11 @@
+"Lista transakcji"
+"Dokument nr 0123456/2026"
+"Wygenerowany dnia:";"2026-11-01"
+"Dane U¿ytkownika:";"JAN KOWALSKI"
+
+"Data transakcji";"Data ksiêgowania";"Dane kontrahenta";"Tytu³";"Nr rachunku";"Nazwa banku";"Szczegó³y";"Nr transakcji";"Kwota transakcji (waluta rachunku)";"Waluta";"Kwota blokady/zwolnienie blokady";"Waluta";"Kwota p³atnoœci w walucie";"Waluta";"Konto";"Saldo po transakcji";"Waluta";;;
+2026-10-31;2026-10-31;"NETFLIX.COM  Amsterdam NL";"P³atnoœæ kart¹ 31.10.2026 Nr karty 4246xx1234";"";"";"TR.KART";"202630400012345";-49,00;PLN;;;-49,00;PLN;"Konto Direct";3 951,00;PLN;;;
+2026-10-30;;"¯ABKA Z1234 KRAKÓW";"P³atnoœæ kart¹";"";"";"TR.BLOK";"";;;-20,00;PLN;;;"Konto Direct";;;;;
+2026-10-10;2026-10-10;"ACME SP. Z O.O.";"Wynagrodzenie 10/2026";"'11 1111 1111 1111 1111 1111 1111'";"";"PRZELEW";"202628300000001";5 000,00;PLN;;;;;"Konto Direct";4 000,00;PLN;;;
+
+"Dokument ma charakter informacyjny, nie stanowi dowodu ksiêgowego"
