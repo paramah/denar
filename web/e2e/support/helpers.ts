@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { adminEmail, adminPassword, nbpURL } from './state.ts'
@@ -80,4 +81,15 @@ export async function deleteAllChannels(request: APIRequestContext) {
   for (const channel of list.items) {
     expect((await request.delete(`/api/me/channels/${channel.id}`)).status()).toBe(204)
   }
+}
+
+/** Syntetyczny wyciąg mBanku (Windows-1250): 3 operacje, 1 błędny wiersz, preambuła i stopka. */
+export const mbankFile = fileURLToPath(new URL('../fixtures/mbank-pazdziernik.csv', import.meta.url))
+
+/** Krok 1 kreatora importu: plik, preset mBank, podgląd. */
+export async function previewMbank(page: Page) {
+  await page.getByLabel('Plik CSV').setInputFiles(mbankFile)
+  await page.getByRole('radio', { name: /mBank/ }).check()
+  await page.getByRole('button', { name: 'Dalej: podgląd' }).click()
+  await expect(page.getByRole('heading', { name: '2. Sprawdź podgląd' })).toBeVisible()
 }

@@ -1,0 +1,16 @@
+mBank S.A. Bankowoœæ Detaliczna;
+Skrytka Pocztowa 2108;
+90-959 £ódŸ 2;
+;
+#Klient;
+JAN KOWALSKI;
+;
+#Za okres:;
+2026-10-01;2026-10-10;
+;
+#Data operacji;#Opis operacji;#Rachunek;#Kategoria;#Kwota;
+2026-10-02;"NETFLIX.COM  /AMSTERDAM  ZAKUP PRZY U¯YCIU KARTY";"eKonto 1111 ... 5387";"Rozrywka";-49,00 PLN;
+2026-10-03;"BIEDRONKA 1234 WARSZAWA  ZAKUP PRZY U¯YCIU KARTY";"eKonto 1111 ... 5387";"Jedzenie";-123,45 PLN;
+2026-10-05;"WYNAGRODZENIE ACME SP. Z O.O.  PRZELEW PRZYCHODZ¥CY";"eKonto 1111 ... 5387";"Wp³ywy";5 000,00 PLN;
+2026-10-32;"B£ÊDNA DATA";"eKonto";"Inne";-1,00 PLN;
+;;;#Saldo koñcowe:;4 827,55 PLN;

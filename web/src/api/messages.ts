@@ -18,6 +18,37 @@ function plural(n: number, one: string, few: string, many: string): string {
 }
 
 const rules: Rule[] = [
+  // Import CSV (etap 008): plik, opcje parsera i błędy wierszy.
+  [/^is larger than 5 MiB$/, 'Plik jest większy niż 5 MiB — wyeksportuj krótszy okres.'],
+  [/^is empty$/, 'Pusta wartość.'],
+  [/^has no transactions$/, 'W pliku nie ma żadnych operacji.'],
+  [/^has more than (\d+) rows$/, (_, n) => `Plik ma więcej niż ${n} wierszy — podziel go na części.`],
+  [/^must be multipart\/form-data/, 'Nieprawidłowe żądanie wysyłki pliku. Odśwież stronę i spróbuj ponownie.'],
+  [/^must be a JSON object of CsvImportOptions$/, 'Nieprawidłowe opcje importu. Odśwież stronę i spróbuj ponownie.'],
+  [/^is not a known preset$/, 'Nieznany preset banku.'],
+  [/^must be ;, , , \| or tab$/, 'Wybierz separator: średnik, przecinek, kreskę pionową albo tabulator.'],
+  [/^must be utf-8 or windows-1250$/, 'Wybierz kodowanie UTF-8 albo Windows-1250.'],
+  [/^may hold only YYYY, YY, MM, M, DD, D, HH, mm, ss and separators$/,
+    'Format daty: tylko YYYY, YY, MM, M, DD, D, HH, mm, ss i separatory (np. DD.MM.YYYY).'],
+  [/^needs a year, a month and a day/, 'Format daty musi mieć rok, miesiąc i dzień (YYYY, MM, DD).'],
+  [/^must be , or \.$/, 'Wybierz przecinek albo kropkę.'],
+  [/^must be (\d+) to (\d+)$/, (_, a, b) => `Podaj wartość od ${a} do ${b}.`],
+  [/^is required, or debit and credit$/, 'Wskaż kolumnę kwoty albo kolumny obciążeń i uznań.'],
+  [/^no header row has the date column "(.*)"$/, (_, name) =>
+    `Nie znaleziono wiersza nagłówka z kolumną daty (${name}). Wskaż kolumnę daty, zmień separator albo kodowanie.`],
+  [/^is not a column of the file, nor are debit and credit$/,
+    'Nie ma w pliku kolumny kwoty ani kolumn obciążeń i uznań — wskaż je.'],
+  [/^is not a column of the file$/, 'Nie ma takiej kolumny w pliku — wybierz inną.'],
+  [/^is "(.*)"; only (.+) rows are imported$/, (_, state, accepted) =>
+    `Stan „${state}” — importowane są tylko: ${accepted}.`],
+  [/^is not a date: "(.*)"$/, (_, value) => `„${value}” to nie data w tym formacie.`],
+  [/^is empty: neither debit nor credit is given$/, 'Brak kwoty: puste obciążenie i uznanie.'],
+  [/^is not a number: "(.*)"$/, (_, value) => `„${value}” to nie liczba.`],
+  [/^must not be zero$/, 'Kwota nie może być zerem.'],
+  [/^is not an amount$/, 'To nie jest kwota.'],
+  [/^is (\w{3}), not the wallet's (\w{3})$/, (_, c, w) => `Waluta ${c} — portfel jest w ${w}.`],
+  [/^is not valid CSV$/, 'Wiersz nie jest poprawnym CSV (np. niedomknięty cudzysłów).'],
+  [/^is not a valid transaction$/, 'Z tego wiersza nie powstanie poprawna transakcja.'],
   [/^is required: no exchange rate from (\w+) to (\w+) is known for the due date$/, (_, from, to) =>
     `Podaj kwotę — nie znamy kursu ${from} → ${to} z dnia płatności.`],
   [/^is required: the subscription (?:names no|has no) wallet$/, 'Wybierz portfel — subskrypcja nie ma portfela płatności.'],
@@ -103,7 +134,7 @@ const rules: Rule[] = [
   [/^must be (?:one of [a-z_]+(?:, [a-z_]+)+|[a-z_]+(?:, [a-z_]+)* or [a-z_]+)$/, 'Wybierz wartość z listy.'],
 ]
 
-const english = /^(?:must|is|has|may|contains|cannot|give|a|an|the|only|makes)\b/
+const english = /^(?:must|is|has|may|contains|cannot|give|a|an|the|only|makes|needs|no)\b/
 
 /** Komunikat błędu pola po polsku. */
 export function translateFieldMessage(message: string): string {
@@ -136,6 +167,8 @@ export const reasonMessages: Record<string, string> = {
   'smtp-not-configured': 'Serwer nie ma skonfigurowanej poczty (SMTP) — e-maili nie da się wysłać.',
   'too-many-channels': 'Masz już 20 kanałów — usuń któryś, żeby dodać nowy.',
   'human-only': 'Tę operację wykonuje tylko człowiek, nie bot.',
+  'import-reverted': 'Ten import został już cofnięty.',
+  'provider-unavailable': 'Dostawca tego połączenia nie jest dostępny na tym serwerze.',
   conflict: 'Dane się zmieniły w międzyczasie. Odśwież stronę i spróbuj ponownie.',
   validation: 'Popraw dane i spróbuj ponownie.',
   'bad-request': 'Nieprawidłowe żądanie. Odśwież stronę i spróbuj ponownie.',

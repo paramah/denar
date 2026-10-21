@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createHousehold, loginViaApi } from './support/helpers.ts'
+import { createHousehold, loginViaApi, previewMbank } from './support/helpers.ts'
 
 // Nawigacja na wąskim ekranie: menu w wysuwanym panelu, bez poziomego przewijania.
 
@@ -125,4 +125,30 @@ test('notifications fit a narrow screen; the bell sits in the top bar', async ({
   await expect(panel).toBeInViewport({ ratio: 1 })
   await panel.getByRole('link', { name: 'Wszystkie powiadomienia' }).click()
   await expect(page).toHaveURL(new RegExp(`/h/${household.id}/notifications$`))
+})
+
+test('import pages fit a narrow screen; the preview table scrolls inside its box', async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1280) >= 768, 'tylko dla telefonu')
+  await loginViaApi(page.request)
+  const household = await createHousehold(page.request, { name: 'Telefon z importem' })
+  await page.request.post(`/api/households/${household.id}/wallets`, {
+    data: { name: 'Konto z bardzo długą nazwą na telefon', type: 'checking', currency: 'PLN' },
+  })
+  const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  await page.goto(`/h/${household.id}/import`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Import transakcji' })).toBeVisible()
+  expect(await overflow(), 'krok 1').toBeLessThanOrEqual(0)
+  await previewMbank(page)
+  await page.getByRole('button', { name: 'Dostosuj' }).click()
+  await expect(page.getByRole('form', { name: 'Dostosuj odczyt pliku' })).toBeVisible()
+  expect(await overflow(), 'podgląd').toBeLessThanOrEqual(0)
+  await page.getByRole('button', { name: /^Importuj \d/ }).click()
+  await expect(page.getByRole('heading', { name: '3. Gotowe' })).toBeVisible()
+  expect(await overflow(), 'podsumowanie').toBeLessThanOrEqual(0)
+  for (const path of ['/import/history', '/settings/connections']) {
+    await page.goto(`/h/${household.id}${path}`)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await page.waitForLoadState('networkidle')
+    expect(await overflow(), path).toBeLessThanOrEqual(0)
+  }
 })

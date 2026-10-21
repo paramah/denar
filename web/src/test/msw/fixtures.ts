@@ -1,4 +1,9 @@
 import type {
+  Connection,
+  ImportBatch,
+  ImportPreset,
+  ImportPreview,
+  ImportPreviewRow,
   AuditEntry,
   Channel,
   ChannelTypeInfo,
@@ -493,4 +498,136 @@ export const eventTypes: NotificationPreference['type'][] = [
 /** Domyślne preferencje serwera: w aplikacji, bez kanałów. */
 export function preferences(overrides: Partial<Record<NotificationPreference['type'], Partial<NotificationPreference>>> = {}) {
   return { items: eventTypes.map((type) => ({ type, in_app: true, channel_ids: [] as string[], ...overrides[type] })) }
+}
+
+export function importPresets(): ImportPreset[] {
+  return [
+    {
+      key: 'generic',
+      name: 'Dowolny CSV',
+      description: 'Wykrywa kodowanie, separator, format daty i liczb; kolumny po typowych nazwach.',
+      options: {
+        preset: 'generic',
+        skip_rows: 0,
+        has_header: true,
+        invert_amount: false,
+        accept_states: [],
+        columns: {
+          date: ['date', 'data', 'data operacji'],
+          amount: ['amount', 'kwota'],
+          payee: ['payee', 'kontrahent', 'opis'],
+          memo: ['memo', 'tytuł'],
+          external_id: ['id', 'external_id'],
+          currency: ['currency', 'waluta'],
+        },
+      },
+    },
+    {
+      key: 'mbank',
+      name: 'mBank',
+      description: 'Eksport historii operacji mBanku (CSV, Windows-1250, średnik).',
+      options: {
+        preset: 'mbank',
+        delimiter: ';',
+        encoding: 'windows-1250',
+        date_format: 'YYYY-MM-DD',
+        decimal_separator: ',',
+        skip_rows: 0,
+        has_header: true,
+        invert_amount: false,
+        accept_states: [],
+        columns: {
+          date: ['Data operacji', 'Data księgowania'],
+          amount: ['Kwota'],
+          payee: ['Nadawca/Odbiorca', 'Opis operacji'],
+          memo: ['Tytuł', 'Opis operacji'],
+        },
+      },
+    },
+  ]
+}
+
+export function importPreviewRow(overrides: Partial<ImportPreviewRow> = {}): ImportPreviewRow {
+  return {
+    row: 2,
+    date: '2026-10-05',
+    amount: money('-49.00'),
+    payee_raw: 'NETFLIX.COM',
+    memo: 'Subskrypcja',
+    external_id: 'h:0123456789abcdef0123456789abcdef',
+    kind: 'expense',
+    status: 'new',
+    payee_id: null,
+    payee_name: null,
+    envelope_id: null,
+    ...overrides,
+  }
+}
+
+export function importPreview(overrides: Partial<ImportPreview> = {}): ImportPreview {
+  return {
+    wallet_id: 'w-konto',
+    preset: 'generic',
+    detected: { delimiter: ';', encoding: 'utf-8', header_line: 1, headers: ['Data', 'Kwota', 'Kontrahent', 'Tytuł'] },
+    total_rows: 3,
+    new_count: 2,
+    duplicate_count: 0,
+    error_count: 1,
+    rows: [
+      importPreviewRow(),
+      importPreviewRow({
+        row: 3,
+        date: '2026-10-06',
+        amount: money('3000.00'),
+        payee_raw: 'ACME',
+        memo: 'Pensja',
+        kind: 'income',
+        payee_id: 'p-sklep',
+        payee_name: 'Pracodawca',
+        external_id: 'h:1123456789abcdef0123456789abcdef',
+      }),
+    ],
+    errors: [{ row: 4, field: 'amount', message: 'is not a number: "abc"' }],
+    ...overrides,
+  }
+}
+
+export function importBatch(overrides: Partial<ImportBatch> = {}): ImportBatch {
+  return {
+    id: 'imp-1',
+    wallet_id: 'w-konto',
+    source: 'csv',
+    source_ref: 'wyciag.csv',
+    preset: 'generic',
+    status: 'completed',
+    total_rows: 3,
+    created_count: 2,
+    duplicate_count: 0,
+    error_count: 1,
+    matched_count: 1,
+    reverted_count: 0,
+    errors: [{ row: 4, field: 'amount', message: 'is not a number: "abc"' }],
+    created_by: { kind: 'user', id: 'u-ada' },
+    created_at: '2026-10-20T10:00:00Z',
+    reverted_by: null,
+    reverted_at: null,
+    ...overrides,
+  }
+}
+
+export function connection(overrides: Partial<Connection> = {}): Connection {
+  return {
+    id: 'c-1',
+    provider: 'fake',
+    provider_name: 'Bank demo',
+    kind: 'bank',
+    status: 'active',
+    display_name: 'Konto w banku demo',
+    has_credentials: true,
+    last_sync_at: '2026-10-20T08:00:00Z',
+    last_error: null,
+    accounts: [{ external_id: 'acc-1', name: 'eKonto', currency: 'PLN', wallet_id: 'w-konto' }],
+    created_at: '2026-10-01T10:00:00Z',
+    ...overrides,
+  }
 }

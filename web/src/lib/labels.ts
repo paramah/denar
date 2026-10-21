@@ -71,6 +71,11 @@ const actionLabels: Record<string, string> = {
   'charge.unmatched': 'Cofnięcie dopasowania płatności',
   'charge.skipped': 'Pominięcie płatności subskrypcji',
   'charge.posted': 'Zaksięgowanie płatności subskrypcji',
+  'import.created': 'Import transakcji',
+  'import.reverted': 'Cofnięcie importu',
+  'connection.created': 'Dodanie połączenia',
+  'connection.account_mapped': 'Przypisanie konta połączenia',
+  'connection.synced': 'Synchronizacja połączenia',
 }
 
 /** Czytelna nazwa akcji audytu; nieznana (z kolejnych etapów) — surowy kod. */
@@ -92,6 +97,8 @@ export const resourceTypeLabels: Record<string, string> = {
   assignment: 'Przydział',
   subscription: 'Subskrypcja',
   charge: 'Płatność subskrypcji',
+  import: 'Import',
+  connection: 'Połączenie',
 }
 
 export function resourceTypeLabel(type: string): string {
@@ -190,6 +197,43 @@ const fieldLabels: Record<string, string> = {
   'opening_balance.amount': 'saldo otwarcia',
   'price.amount': 'cena',
   password: 'hasło',
+  // Import (008): opcje parsera, części multipart i zmiany w dzienniku.
+  file: 'plik',
+  options: 'opcje importu',
+  body: 'treść żądania',
+  preview_limit: 'liczba wierszy podglądu',
+  'options.wallet_id': 'portfel',
+  'options.preset': 'preset',
+  'options.delimiter': 'separator pól',
+  'options.encoding': 'kodowanie',
+  'options.date_format': 'format daty',
+  'options.decimal_separator': 'separator dziesiętny',
+  'options.skip_rows': 'pomijane wiersze',
+  'options.accept_states': 'importowane stany',
+  'options.columns.date': 'kolumna daty',
+  'options.columns.amount': 'kolumna kwoty',
+  'options.columns.debit': 'kolumna obciążeń',
+  'options.columns.credit': 'kolumna uznań',
+  'options.columns.payee': 'kolumna kontrahenta',
+  'options.columns.memo': 'kolumna opisu',
+  'options.columns.external_id': 'kolumna identyfikatora',
+  'options.columns.currency': 'kolumna waluty',
+  'options.columns.fee': 'kolumna opłaty',
+  'options.columns.state': 'kolumna stanu',
+  source: 'źródło',
+  source_ref: 'plik lub połączenie',
+  preset: 'preset',
+  rows: 'wiersze',
+  created: 'utworzone',
+  duplicates: 'duplikaty',
+  failed: 'błędy',
+  matched: 'dopasowane',
+  reverted: 'cofnięte',
+  import_id: 'import',
+  provider: 'dostawca',
+  display_name: 'nazwa',
+  connection_id: 'połączenie',
+  account: 'konto',
 }
 
 export function fieldLabel(field: string): string {
@@ -289,4 +333,15 @@ export const channelTypeLabels: Record<ChannelType, string> = {
 export const unavailableReasonLabels: Record<string, string> = {
   smtp_not_configured: 'Serwer nie ma skonfigurowanej poczty (SMTP).',
   secrets_unavailable: 'Serwer nie ma klucza DENAR_MASTER_KEY do szyfrowania tokenów.',
+}
+
+export const connectionKindLabels: Record<'bank' | 'billing', string> = {
+  bank: 'Bank',
+  billing: 'Rachunki dostawcy',
+}
+
+export const connectionStatusLabels: Record<'active' | 'error' | 'disabled', string> = {
+  active: 'Aktywne',
+  error: 'Błąd',
+  disabled: 'Wyłączone',
 }

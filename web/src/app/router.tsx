@@ -2,6 +2,10 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
 import { BudgetPage } from '../features/budget/BudgetPage.tsx'
 import { InvitePage } from '../features/auth/InvitePage.tsx'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
+import { ImportBatchPage } from '../features/import/ImportBatchPage.tsx'
+import { ImportHistoryPage } from '../features/import/ImportHistoryPage.tsx'
+import { ImportLayout } from '../features/import/ImportLayout.tsx'
+import { ImportWizardPage } from '../features/import/ImportWizardPage.tsx'
 import { CreateHouseholdPage } from '../features/households/CreateHouseholdPage.tsx'
 import { NotificationsPage } from '../features/notifications/NotificationsPage.tsx'
 import { ChargesQueuePage } from '../features/subscriptions/ChargesQueuePage.tsx'
@@ -12,6 +16,7 @@ import { SubscriptionsLayout } from '../features/subscriptions/SubscriptionsLayo
 import { DashboardPage } from '../features/dashboard/DashboardPage.tsx'
 import { AuditTab } from '../features/settings/AuditTab.tsx'
 import { BotsTab } from '../features/settings/BotsTab.tsx'
+import { ConnectionsTab } from '../features/settings/ConnectionsTab.tsx'
 import { GeneralTab } from '../features/settings/GeneralTab.tsx'
 import { InvitationsTab } from '../features/settings/InvitationsTab.tsx'
 import { MembersTab } from '../features/settings/MembersTab.tsx'
@@ -60,6 +65,15 @@ export const routes: RouteObject[] = [
             ],
           },
           { path: 'subscriptions/:subscriptionId', element: <SubscriptionPage /> },
+          {
+            path: 'import',
+            element: <ImportLayout />,
+            children: [
+              { index: true, element: <ImportWizardPage /> },
+              { path: 'history', element: <ImportHistoryPage /> },
+            ],
+          },
+          { path: 'import/:importId', element: <ImportBatchPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
           {
             path: 'settings',
@@ -87,6 +101,14 @@ export const routes: RouteObject[] = [
               { path: 'payees', element: <PayeesTab /> },
               { path: 'rates', element: <RatesTab /> },
               { path: 'notifications', element: <NotificationsTab /> },
+              {
+                path: 'connections',
+                element: (
+                  <RequireTab path="connections">
+                    <ConnectionsTab />
+                  </RequireTab>
+                ),
+              },
               {
                 path: 'audit',
                 element: (

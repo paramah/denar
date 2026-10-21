@@ -83,6 +83,15 @@ export const keys = {
   channelTypes: () => ['channel-types'] as const,
   channels: () => ['channels'] as const,
   notificationPreferences: (hid: string) => ['household', hid, 'notification-preferences'] as const,
+
+  importPresets: () => ['import-presets'] as const,
+  /** Prefiks historii importów i szczegółów partii. */
+  importsAll: (hid: string) => ['household', hid, 'imports'] as const,
+  imports: (hid: string, filters: { wallet_id?: string } = {}) =>
+    ['household', hid, 'imports', 'list', normalize(filters)] as const,
+  importBatch: (hid: string, id: string) => ['household', hid, 'imports', 'one', id] as const,
+  connectionProviders: () => ['connection-providers'] as const,
+  connections: (hid: string) => ['household', hid, 'connections'] as const,
 }
 
 export type NotificationFilters = { household_id?: string; unread?: boolean; limit?: number }

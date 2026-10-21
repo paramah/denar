@@ -311,3 +311,45 @@ Część C3b daje interfejs etapowi 005: dzwonek z licznikiem, skrzynkę powiado
 - **FR-F30** WHEN serwer ma SMTP (typ `email` dostępny) THE SYSTEM SHALL pokazać w zaproszeniu checkbox „Wyślij link e-mailem” (domyślnie zaznaczony) i po utworzeniu — informację o wysłaniu albo błąd `email_error` obok linku.
 - **FR-F31** Komunikaty walidacji i konfliktów etapu 005 (`secrets-unavailable`, `smtp-not-configured`, `too-many-channels`, `human-only`, pola `config.*`/`secrets.*`/`items.*`) SHALL być po polsku.
 - **NFR-F01** Testy: Vitest+MSW (dynamiczny formularz, sekrety przy edycji, macierz, dzwonek, skrzynka, zaproszenie e-mailem), Playwright na binarium (kanał webhook do atrapy → test z poprawnym podpisem → preferencja → subskrypcja z przypomnieniem → powiadomienie w dzwonku i dostawa na webhook), axe na nowych ekranach w motywie jasnym, ciemnym i na telefonie, bez poziomego przewijania.
+
+---
+
+# Część C4 — import CSV i połączenia (F07C4)
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `.ai/sdd/specs/008-import/` (requirements, design §5–§9, AD-801…AD-815), `api/openapi.yaml` (tagi `imports`, `connections`)
+> Last Updated: 2026-10-21
+
+Część C4 daje interfejs etapowi 008: kreator importu wyciągu CSV z podglądem i dostosowaniem parsera, historię partii z cofnięciem oraz (tylko do odczytu) listę połączeń z bankami i dostawcami.
+
+## Non-Goals (część C4)
+
+- Zmiany backendu i `api/openapi.yaml`; tworzenie, mapowanie kont i synchronizacja połączeń (008 AD-811 — bez REST).
+- Filtr rejestru po partii importu (API go nie ma, 008 „Ograniczenia”); edycja reguł kontrahentów z poziomu importu.
+- Zapamiętywanie własnych ustawień parsera jako presetów.
+
+## Requirements (EARS)
+
+### Kreator importu
+
+- **FR-G01** Strona `/h/:hid/import` SHALL prowadzić przez trzy kroki („Plik”, „Podgląd”, „Podsumowanie”) z widocznym wskaźnikiem kroku; strona portfela i rejestr transakcji SHALL mieć akcję „Importuj CSV” (ze strony portfela — z wybranym portfelem).
+- **FR-G02** Krok „Plik” SHALL mieć wybór portfela docelowego (widoczne, niezarchiwizowane), pole pliku z przeciąganiem i upuszczaniem oraz przyciskiem wyboru (`.csv`, `.txt`), komunikat o limicie 5 MiB (większy plik — błąd przed wysłaniem) i wybór presetu banku z `GET /import-presets` (nazwa i opis, domyślnie `generic`).
+- **FR-G03** Krok „Podgląd” SHALL pokazać wykryty separator, kodowanie, linię i listę nagłówków, liczniki (wiersze, nowe, duplikaty, błędy), tabelę pierwszych wierszy (data, opis z pliku, kontrahent i koperta dopasowane regułami, kwota, status „Nowa”/„Duplikat”) i listę błędów wierszy (linia, pole, komunikat po polsku).
+- **FR-G04** Panel „Dostosuj” SHALL pozwalać zmienić separator, kodowanie, format daty, separator dziesiętny, liczbę pomijanych wierszy, nagłówek, odwrócenie znaku kwoty i mapowanie kolumn (data, kwota, obciążenie, uznanie, kontrahent, opis, identyfikator, waluta, opłata, stan) — każda kolumna jako lista alternatyw wybieranych z wykrytych nagłówków (bez nagłówka — nazwy lub numery wpisane ręcznie), z możliwością powrotu do wartości presetu; WHEN użytkownik zatwierdzi zmiany THE SYSTEM SHALL ponowić podgląd z nowymi opcjami.
+- **FR-G05** WHEN podgląd albo import zwróci 422 THE SYSTEM SHALL pokazać komunikat po polsku przy kroku (plik, opcje, kolumny), nie gubiąc wybranego pliku i opcji.
+- **FR-G06** Krok „Podsumowanie” SHALL pokazać liczby utworzonych transakcji, duplikatów, błędów i dopasowań do subskrypcji oraz linki: rejestr portfela, kolejka dopasowań subskrypcji, szczegóły partii, kolejny import.
+- **FR-G07** Rola „Podgląd” SHALL widzieć historię, ale nie kreator (wyjaśnienie zamiast formularza).
+
+### Historia importów
+
+- **FR-G10** Strona `/h/:hid/import/history` SHALL listować partie od najnowszych, stronicowane kursorem, z filtrem portfela: plik lub źródło, portfel, preset, liczniki, kto i kiedy, status („Zaimportowano”/„Cofnięto”).
+- **FR-G11** Strona partii `/h/:hid/import/:importId` SHALL pokazać szczegóły i błędy wierszy oraz — dla partii niecofniętej i roli z zapisem — „Cofnij import” z potwierdzeniem (liczba transakcji do usunięcia, uwaga o odpięciu dopasowań subskrypcji); 409 `import-reverted` i `wallet-archived` SHALL dawać komunikat po polsku.
+
+### Połączenia
+
+- **FR-G20** Zakładka Ustawienia → Połączenia (owner/admin) SHALL listować połączenia (nazwa, dostawca, rodzaj, status, ostatnia synchronizacja, ostatni błąd, konta z portfelami) i dostępnych dostawców; pusta lista SHALL wyjaśniać, że integracje z bankami i dostawcami (PSD2, OpenAI, Apple) pojawią się w przyszłych wersjach, i prowadzić do importu CSV. Tylko odczyt.
+
+### Komunikaty i jakość
+
+- **FR-G30** Komunikaty walidacji etapu 008 (plik, opcje parsera, kolumny, błędy wierszy) i przyczyny 409 SHALL być po polsku; akcje dziennika `import.*`, `connection.*` i zasoby `import`, `connection` SHALL mieć polskie etykiety.
+- **NFR-G01** Testy: Vitest+MSW (kroki kreatora, multipart z częściami `file` i `options`, dostosowanie opcji i ponowny podgląd, błędy 422, limit pliku, historia, cofnięcie i 409, połączenia), Playwright na binarium (plik CSV → podgląd → import → transakcje w rejestrze → ponowny podgląd pokazuje duplikaty → cofnięcie), axe na nowych ekranach w motywie jasnym, ciemnym i na telefonie, bez poziomego przewijania.

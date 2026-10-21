@@ -58,4 +58,8 @@ export const handlers: RequestHandler[] = [
   http.get(apiUrl('/me/channel-types'), () => HttpResponse.json({ items: f.channelTypes() })),
   http.get(apiUrl('/me/channels'), () => HttpResponse.json({ items: [] })),
   http.get(apiUrl('/me/households/:hid/notification-preferences'), () => HttpResponse.json(f.preferences())),
+  http.get(apiUrl('/import-presets'), () => HttpResponse.json({ items: f.importPresets() })),
+  http.get(apiUrl('/households/:hid/imports'), () => HttpResponse.json({ items: [], next_cursor: null })),
+  http.get(apiUrl('/connection-providers'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/households/:hid/connections'), () => HttpResponse.json({ items: [] })),
 ]

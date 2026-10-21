@@ -28,6 +28,24 @@ describe('translateFieldMessage', () => {
     ['is too long', 'Za długa wartość.'],
     ['is not one of your channels: c-1', 'Ten kanał nie istnieje — odśwież stronę.'],
     ['must be one of email, webhook, ntfy, telegram, matrix', 'Wybierz wartość z listy.'],
+    // Etap 008: import CSV.
+    ['is larger than 5 MiB', 'Plik jest większy niż 5 MiB — wyeksportuj krótszy okres.'],
+    ['has no transactions', 'W pliku nie ma żadnych operacji.'],
+    ['has more than 10000 rows', 'Plik ma więcej niż 10000 wierszy — podziel go na części.'],
+    ['is not a known preset', 'Nieznany preset banku.'],
+    ['must be ;, , , | or tab', 'Wybierz separator: średnik, przecinek, kreskę pionową albo tabulator.'],
+    ['must be utf-8 or windows-1250', 'Wybierz kodowanie UTF-8 albo Windows-1250.'],
+    ['needs a year, a month and a day (YYYY, MM, DD)', 'Format daty musi mieć rok, miesiąc i dzień (YYYY, MM, DD).'],
+    ['must be , or .', 'Wybierz przecinek albo kropkę.'],
+    ['must be 0 to 1000', 'Podaj wartość od 0 do 1000.'],
+    ['is required, or debit and credit', 'Wskaż kolumnę kwoty albo kolumny obciążeń i uznań.'],
+    ['is not a column of the file', 'Nie ma takiej kolumny w pliku — wybierz inną.'],
+    ['is "PENDING"; only COMPLETED rows are imported', 'Stan „PENDING” — importowane są tylko: COMPLETED.'],
+    ['is not a date: "2026-10-32"', '„2026-10-32” to nie data w tym formacie.'],
+    ['is not a number: "abc"', '„abc” to nie liczba.'],
+    ['is EUR, not the wallet\'s PLN', 'Waluta EUR — portfel jest w PLN.'],
+    ['must not be zero', 'Kwota nie może być zerem.'],
+    ['is not valid CSV', 'Wiersz nie jest poprawnym CSV (np. niedomknięty cudzysłów).'],
   ])('%s', (message, want) => {
     expect(translateFieldMessage(message)).toBe(want)
   })
@@ -43,7 +61,8 @@ describe('errorMessage', () => {
     ['secrets-unavailable', /DENAR_MASTER_KEY/],
     ['smtp-not-configured', /SMTP/],
     ['too-many-channels', /20 kanałów/],
-  ])('describes the notification conflict %s', (reason, want) => {
+    ['import-reverted', /już cofnięty/],
+  ])('describes the conflict %s', (reason, want) => {
     const err = new ApiError({ status: 409, code: 'conflict', type: `urn:denar:problem:${reason}`, title: 'Conflict' })
     expect(errorMessage(err)).toMatch(want)
   })
