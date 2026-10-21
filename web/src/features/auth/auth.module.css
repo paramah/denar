@@ -1,0 +1,170 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.1fr);
+  min-height: 100dvh;
+}
+
+.obverse {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-7) var(--space-6);
+  background: var(--rail);
+  color: var(--rail-ink);
+}
+
+.obverse > :not(.ring) {
+  position: relative;
+}
+
+/* Rant monety wychodzący poza kadr: jedyny ozdobnik ekranu. */
+.ring {
+  position: absolute;
+  top: -14rem;
+  right: -16rem;
+  width: 38rem;
+  height: 38rem;
+  color: var(--rail-line);
+  pointer-events: none;
+}
+
+.mark {
+  margin-bottom: auto;
+}
+
+.instance {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.tagline {
+  max-width: 28ch;
+  color: var(--rail-muted);
+  font-size: var(--text-lg);
+  line-height: 1.35;
+}
+
+.reverse {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-7) var(--space-6);
+  outline: none;
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 26rem;
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.heading p {
+  color: var(--muted);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+.wide {
+  width: 100%;
+}
+
+.version {
+  margin-top: var(--space-6);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 47.99rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .obverse {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .ring {
+    display: none;
+  }
+
+  .mark {
+    margin: 0;
+  }
+
+  .mark svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .instance {
+    font-size: var(--text-2xl);
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .reverse {
+    justify-content: flex-start;
+    padding: var(--space-5) var(--space-4);
+  }
+}

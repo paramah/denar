@@ -1,0 +1,121 @@
+/*
+ * Tokeny „Mennica”: chłodne srebro i patyna. Kolory tekstu mają kontrast
+ * co najmniej 4.5:1 do --paper i --surface w obu motywach.
+ */
+:root {
+  color-scheme: light;
+
+  --paper: #eef2f0;
+  --surface: #f9fbfa;
+  --surface-sunken: #e3e9e6;
+  --ink: #16302b;
+  --muted: #506360;
+  --line: #c9d3cf;
+  --line-strong: #9fb0ab;
+
+  --patina: #23695b;
+  --patina-strong: #1a5246;
+  --patina-soft: #d6e7e1;
+  --on-patina: #f4f8f6;
+
+  --inflow: #1d6a4c;
+  --inflow-soft: #d9ece2;
+  --outflow: #9e2f40;
+  --outflow-soft: #f4dfe2;
+  --warn: #7c5200;
+  --warn-soft: #f6ead0;
+
+  --rail: #16302b;
+  --rail-ink: #dfe8e5;
+  --rail-muted: #a5b9b4;
+  --rail-line: #2b4842;
+  --rail-active: #24443e;
+  --silver: #c3cfcb;
+
+  --focus: #23695b;
+  --backdrop: rgb(10 22 20 / 55%);
+
+  --font-body: 'Public Sans Variable', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Public Sans Variable', system-ui, sans-serif;
+
+  /* Skala 1.25 */
+  --text-xs: 0.8rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.563rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius: 6px;
+  --radius-pill: 999px;
+  --rail-width: 16rem;
+  --content-max: 72rem;
+  --duration: 160ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --paper: #121c1b;
+    --surface: #1a2725;
+    --surface-sunken: #0f1817;
+    --ink: #e3ebe8;
+    --muted: #9db0ab;
+    --line: #2e3d3a;
+    --line-strong: #4a5e59;
+    --patina: #72c4b0;
+    --patina-strong: #93d6c5;
+    --patina-soft: #1f3a35;
+    --on-patina: #0d1f1b;
+    --inflow: #7cd3a6;
+    --inflow-soft: #173327;
+    --outflow: #f3949f;
+    --outflow-soft: #3b1f24;
+    --warn: #e8c171;
+    --warn-soft: #3a2f17;
+    --rail: #0d1615;
+    --rail-ink: #dfe8e5;
+    --rail-muted: #92a8a2;
+    --rail-line: #22302e;
+    --rail-active: #1c2c29;
+    --focus: #72c4b0;
+    --backdrop: rgb(0 0 0 / 65%);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #121c1b;
+  --surface: #1a2725;
+  --surface-sunken: #0f1817;
+  --ink: #e3ebe8;
+  --muted: #9db0ab;
+  --line: #2e3d3a;
+  --line-strong: #4a5e59;
+  --patina: #72c4b0;
+  --patina-strong: #93d6c5;
+  --patina-soft: #1f3a35;
+  --on-patina: #0d1f1b;
+  --inflow: #7cd3a6;
+  --inflow-soft: #173327;
+  --outflow: #f3949f;
+  --outflow-soft: #3b1f24;
+  --warn: #e8c171;
+  --warn-soft: #3a2f17;
+  --rail: #0d1615;
+  --rail-ink: #dfe8e5;
+  --rail-muted: #92a8a2;
+  --rail-line: #22302e;
+  --rail-active: #1c2c29;
+  --focus: #72c4b0;
+  --backdrop: rgb(0 0 0 / 65%);
+}

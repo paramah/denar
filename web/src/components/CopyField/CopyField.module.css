@@ -1,0 +1,32 @@
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: var(--text-sm);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 30rem) {
+  .row {
+    flex-direction: column;
+  }
+}

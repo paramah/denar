@@ -1,0 +1,28 @@
+.skeleton {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.line {
+  display: block;
+  height: 1.1rem;
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--surface-sunken), var(--line), var(--surface-sunken));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.line[data-short='true'] {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
