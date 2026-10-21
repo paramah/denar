@@ -693,6 +693,9 @@ func (uc *DeleteTransaction) Do(ctx context.Context, p Principal, householdID, i
 			return domain.ConflictError{Reason: domain.ConflictWalletArchived}
 		}
 		for _, t := range doomed {
+			if err := uc.d.unlinkCharge(ctx, s.Household, p.Actor(), t.ID); err != nil {
+				return err
+			}
 			if err := uc.d.Transactions.Delete(ctx, householdID, t.ID); err != nil {
 				return err
 			}

@@ -349,6 +349,11 @@ func (uc *DeleteEnvelope) Do(ctx context.Context, p Principal, householdID, id d
 		if err != nil {
 			return err
 		}
+		if used == 0 && uc.d.Subscriptions != nil {
+			if used, err = uc.d.Subscriptions.CountByEnvelope(ctx, householdID, id); err != nil {
+				return err
+			}
+		}
 		if used > 0 {
 			return domain.ConflictError{Reason: domain.ConflictEnvelopeInUse}
 		}

@@ -307,3 +307,21 @@ func SortByName(ss []Subscription) {
 		return cmp.Or(cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)), cmp.Compare(a.ID, b.ID))
 	})
 }
+
+// NextCharge is the first term on or after the day that is to be paid; ok
+// is false when there is none (paused, or cancelled before it).
+func (s Subscription) NextCharge(from domain.Date) (domain.Date, bool) {
+	switch s.Status {
+	case Paused:
+		return domain.Date{}, false
+	case Trial:
+		if from.Before(s.TrialEndsAt) {
+			from = s.TrialEndsAt
+		}
+	}
+	d := s.Cycle.OnOrAfter(from)
+	if !s.Expects(d) {
+		return domain.Date{}, false
+	}
+	return d, true
+}

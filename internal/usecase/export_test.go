@@ -17,3 +17,6 @@ func HouseholdScopeOf(d Deps, ctx context.Context, p Principal, householdID doma
 func RequireScope(s HouseholdScope, scope bot.Scope) error { return requireScope(s, scope) }
 
 func RequireRole(s HouseholdScope, min membership.Role) error { return requireRole(s, min) }
+
+// FormatMinorForTest writes minor units as "12.34 PLN".
+func FormatMinorForTest(amount int64, code string) string { return formatMinor(amount, code) }

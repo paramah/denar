@@ -271,3 +271,27 @@ func TestVendors(t *testing.T) {
 		seen[v.Key] = true
 	}
 }
+
+func TestNextCharge(t *testing.T) {
+	s := openAI()
+	from := day("2026-10-21")
+	if d, ok := s.NextCharge(from); !ok || d != day("2026-10-31") {
+		t.Errorf("active = %s %v", d, ok)
+	}
+	s.Status, s.TrialEndsAt = Trial, day("2026-11-10")
+	if d, ok := s.NextCharge(from); !ok || d != day("2026-11-30") {
+		t.Errorf("trial = %s %v", d, ok)
+	}
+	s.Status, s.EndsAt = Cancelled, day("2026-10-31")
+	if _, ok := s.NextCharge(from); ok {
+		t.Error("cancelled from the term")
+	}
+	s.EndsAt = day("2026-11-01")
+	if d, ok := s.NextCharge(from); !ok || d != day("2026-10-31") {
+		t.Errorf("cancelled after the term = %s %v", d, ok)
+	}
+	s.Status = Paused
+	if _, ok := s.NextCharge(from); ok {
+		t.Error("paused")
+	}
+}
