@@ -15,6 +15,7 @@ var allKeys = []string{
 	"DENAR_ADMIN_NAME", "DENAR_LOCAL_LOGIN", "DENAR_BASE_URL", "DENAR_SESSION_TTL", "DENAR_INVITE_TTL",
 	"DENAR_OIDC_ISSUER", "DENAR_OIDC_CLIENT_ID", "DENAR_OIDC_CLIENT_SECRET", "DENAR_OIDC_AUTO_CREATE",
 	"DENAR_AUTO_MIGRATE", "DENAR_TRUSTED_PROXIES", "DENAR_INSTANCE_NAME", "DENAR_BOT_RATE",
+	"DENAR_NBP_URL", "DENAR_FX_INTERVAL",
 }
 
 // clean unsets every variable for the test.
@@ -34,7 +35,8 @@ func TestDefaults(t *testing.T) {
 	}
 	if cfg.Addr != ":8080" || cfg.DatabasePath != "denar.db" || !cfg.LocalLogin || cfg.AutoMigrate ||
 		cfg.SessionTTL != 168*time.Hour || cfg.InviteTTL != 168*time.Hour || cfg.BaseURL != "http://localhost:8080" ||
-		cfg.InstanceName != "Denar" || cfg.BotRate != 120 || cfg.OIDCAutoCreate || cfg.HasAdmin() || cfg.OIDCEnabled() {
+		cfg.InstanceName != "Denar" || cfg.BotRate != 120 || cfg.OIDCAutoCreate || cfg.HasAdmin() || cfg.OIDCEnabled() ||
+		cfg.NBPURL != "https://api.nbp.pl" || cfg.FxInterval != 30*time.Minute {
 		t.Errorf("defaults = %+v", cfg)
 	}
 }
@@ -128,5 +130,25 @@ func TestSecretIsRedacted(t *testing.T) {
 	}
 	if s.Reveal() != "hunter2-hunter2" || Secret("").String() != "" {
 		t.Error("Reveal or empty String wrong")
+	}
+}
+
+func TestNBP(t *testing.T) {
+	clean(t)
+	t.Setenv("DENAR_NBP_URL", "http://127.0.0.1:9999/")
+	t.Setenv("DENAR_FX_INTERVAL", "5m")
+	cfg, err := FromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.NBPURL != "http://127.0.0.1:9999" || cfg.FxInterval != 5*time.Minute {
+		t.Errorf("cfg = %+v", cfg)
+	}
+	for key, bad := range map[string]string{"DENAR_NBP_URL": "ftp://x", "DENAR_FX_INTERVAL": "-1m"} {
+		clean(t)
+		t.Setenv(key, bad)
+		if _, err := FromEnv(); err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s=%s: err = %v", key, bad, err)
+		}
 	}
 }

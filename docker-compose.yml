@@ -24,6 +24,8 @@ services:
       DENAR_OIDC_AUTO_CREATE: ${DENAR_OIDC_AUTO_CREATE:-false}
       DENAR_TRUSTED_PROXIES: ${DENAR_TRUSTED_PROXIES:-}
       DENAR_BOT_RATE: ${DENAR_BOT_RATE:-120}
+      DENAR_NBP_URL: ${DENAR_NBP_URL:-https://api.nbp.pl}
+      DENAR_FX_INTERVAL: ${DENAR_FX_INTERVAL:-30m}
     # Domyślnie tylko na pętli zwrotnej: ruch nie jest szyfrowany, więc do
     # sieci wystawia go reverse proxy z TLS, a nie ten port.
     ports:

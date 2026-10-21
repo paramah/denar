@@ -60,7 +60,7 @@ func tokenCommand(ctx context.Context, cfg config.Config, args []string, stdout,
 	if err := sqlite.CheckSchemaCurrent(ctx, db, sqlite.Migrations()); err != nil {
 		return err
 	}
-	d := useCaseDeps(db, slog.New(slog.NewJSONHandler(stderr, nil)), nil)
+	d := useCaseDeps(db, slog.New(slog.NewJSONHandler(stderr, nil)), nil, nil)
 	created, err := usecase.NewCreateBotCLI(d).Do(ctx, usecase.CreateBotCLIInput{
 		HouseholdID:  domain.ID(*household),
 		CreatorEmail: *as,

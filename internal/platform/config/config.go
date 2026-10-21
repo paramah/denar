@@ -62,6 +62,12 @@ type Config struct {
 	// BotRate is how many requests a bot may make per minute
 	// (DENAR_BOT_RATE, 10 to 6000).
 	BotRate int
+
+	// NBPURL is the origin of the NBP rates API (DENAR_NBP_URL).
+	NBPURL string
+	// FxInterval is how often missing base amounts are filled in
+	// (DENAR_FX_INTERVAL).
+	FxInterval time.Duration
 }
 
 // FromEnv reads and checks the whole configuration, falling back to
@@ -112,6 +118,12 @@ func FromEnv() (Config, error) {
 	if cfg.BotRate, err = botRate(); err != nil {
 		errs = append(errs, err)
 	}
+	if cfg.NBPURL, err = nbpURL(); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.FxInterval, err = duration("DENAR_FX_INTERVAL", "30m"); err != nil {
+		errs = append(errs, err)
+	}
 
 	if len(errs) > 0 {
 		return Config{}, errors.Join(errs...)
@@ -151,6 +163,8 @@ func (c Config) LogValue() slog.Value {
 		slog.Any("trusted_proxies", c.TrustedProxies),
 		slog.String("instance_name", c.InstanceName),
 		slog.Int("bot_rate", c.BotRate),
+		slog.String("nbp_url", c.NBPURL),
+		slog.Duration("fx_interval", c.FxInterval),
 	)
 }
 
@@ -303,4 +317,18 @@ func baseURL(required bool) (string, error) {
 		return "", fmt.Errorf("%s must be an origin such as https://denar.example.com", key)
 	}
 	return u.Scheme + "://" + u.Host, nil
+}
+
+// nbpURL returns the origin of the NBP API: https://api.nbp.pl unless set.
+func nbpURL() (string, error) {
+	const key = "DENAR_NBP_URL"
+	v := os.Getenv(key)
+	if v == "" {
+		return "https://api.nbp.pl", nil
+	}
+	u, err := url.Parse(v)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		return "", fmt.Errorf("%s must be a URL such as https://api.nbp.pl", key)
+	}
+	return strings.TrimRight(u.String(), "/"), nil
 }

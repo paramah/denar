@@ -69,6 +69,8 @@ Docker: `cp .env.example .env`, ustaw hasło, `task compose:up` (port 8080 na 12
 | `DENAR_TRUSTED_PROXIES` | — | CIDR-y zaufanych reverse proxy |
 | `DENAR_INSTANCE_NAME` | `Denar` | nazwa na ekranie logowania |
 | `DENAR_BOT_RATE` | `120` | limit żądań bota na minutę |
+| `DENAR_NBP_URL` | `https://api.nbp.pl` | API kursów NBP (tabela A) |
+| `DENAR_FX_INTERVAL` | `30m` | co ile uzupełniać kwoty bazowe transakcji zapisanych bez kursu |
 
 ## Rozwój
 

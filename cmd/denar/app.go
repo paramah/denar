@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"git.eiac.dev/tools/denar/internal/adapter/nbp"
 	"git.eiac.dev/tools/denar/internal/adapter/oidc"
 	"git.eiac.dev/tools/denar/internal/adapter/rest"
 	"git.eiac.dev/tools/denar/internal/adapter/spa"
@@ -30,6 +31,8 @@ const cleanupInterval = time.Hour
 type app struct {
 	handler http.Handler
 	deps    usecase.Deps
+	// fillRates runs the job that fills in missing base amounts once.
+	fillRates func(ctx context.Context) (int, error)
 
 	db             *sqlite.DB
 	stopBackground context.CancelFunc
@@ -42,6 +45,8 @@ type app struct {
 // what the binary runs with.
 type appOptions struct {
 	clock usecase.Clock // nil means the system clock
+	// rates replaces the NBP provider; nil means NBP at cfg.NBPURL.
+	rates usecase.RateProvider
 }
 
 func newApp(ctx context.Context, cfg config.Config, log *slog.Logger, panel fs.FS) (*app, error) {
@@ -62,24 +67,32 @@ func newAppWith(ctx context.Context, cfg config.Config, log *slog.Logger, panel 
 }
 
 // useCaseDeps builds the dependencies of the use cases over the database.
-func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock) usecase.Deps {
+// Without a rate provider only the base currency, rates set by hand and
+// cached rates are known (the command line needs none).
+func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase.RateProvider) usecase.Deps {
 	if c == nil {
 		c = clock.System{}
 	}
 	return usecase.Deps{
-		Users:       sqlite.NewUserRepository(db),
-		Households:  sqlite.NewHouseholdRepository(db),
-		Memberships: sqlite.NewMembershipRepository(db),
-		Invitations: sqlite.NewInvitationRepository(db),
-		Bots:        sqlite.NewBotRepository(db),
-		Audit:       sqlite.NewAuditRepository(db),
-		Sessions:    sqlite.NewSessionRepository(db),
-		IDs:         id.New(),
-		Tokens:      token.Generator{},
-		Clock:       c,
-		Hasher:      password.Hasher{},
-		Tx:          db,
-		Log:         log,
+		Users:        sqlite.NewUserRepository(db),
+		Households:   sqlite.NewHouseholdRepository(db),
+		Memberships:  sqlite.NewMembershipRepository(db),
+		Invitations:  sqlite.NewInvitationRepository(db),
+		Bots:         sqlite.NewBotRepository(db),
+		Audit:        sqlite.NewAuditRepository(db),
+		Sessions:     sqlite.NewSessionRepository(db),
+		Wallets:      sqlite.NewWalletRepository(db),
+		Transactions: sqlite.NewTransactionRepository(db),
+		Payees:       sqlite.NewPayeeRepository(db),
+		FxRates:      sqlite.NewFxRateRepository(db),
+		FxOverrides:  sqlite.NewFxOverrideRepository(db),
+		Rates:        rates,
+		IDs:          id.New(),
+		Tokens:       token.Generator{},
+		Clock:        c,
+		Hasher:       password.Hasher{},
+		Tx:           db,
+		Log:          log,
 	}
 }
 
@@ -94,7 +107,11 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 
 	// The use cases log who did what; the request it was is added from the
 	// context.
-	d := useCaseDeps(db, rest.WithRequestID(log), opts.clock)
+	rates := opts.rates
+	if rates == nil {
+		rates = nbp.New(nbp.Config{BaseURL: cfg.NBPURL})
+	}
+	d := useCaseDeps(db, rest.WithRequestID(log), opts.clock, rates)
 	states := sqlite.NewOIDCStateRepository(db)
 	provider := oidc.New(oidc.Config{
 		Issuer:       cfg.OIDCIssuer,
@@ -153,6 +170,27 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		DeleteBot:      usecase.NewDeleteBot(d),
 
 		ListAudit: usecase.NewListAudit(d),
+
+		ListWallets:  usecase.NewListWallets(d),
+		CreateWallet: usecase.NewCreateWallet(d),
+		GetWallet:    usecase.NewGetWallet(d),
+		UpdateWallet: usecase.NewUpdateWallet(d),
+
+		SearchTransactions: usecase.NewSearchTransactions(d),
+		RecordTransaction:  usecase.NewRecordTransaction(d),
+		GetTransaction:     usecase.NewGetTransaction(d),
+		UpdateTransaction:  usecase.NewUpdateTransaction(d),
+		DeleteTransaction:  usecase.NewDeleteTransaction(d),
+		CreateTransfer:     usecase.NewCreateTransfer(d),
+
+		ListPayees:  usecase.NewListPayees(d),
+		CreatePayee: usecase.NewCreatePayee(d),
+		UpdatePayee: usecase.NewUpdatePayee(d),
+		DeletePayee: usecase.NewDeletePayee(d),
+
+		QuoteFxRate:     usecase.NewQuoteFxRate(d),
+		ListFxOverrides: usecase.NewListFxOverrides(d),
+		SetFxOverride:   usecase.NewSetFxOverride(d),
 	})
 
 	backgroundCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
@@ -163,9 +201,14 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		stopBackground: stop,
 		backgroundDone: make(chan struct{}),
 	}
+	fill := usecase.NewFillPendingRates(d)
+	a.fillRates = func(ctx context.Context) (int, error) { return fill.Do(ctx) }
 	go func() {
 		defer close(a.backgroundDone)
-		cleanExpired(backgroundCtx, log, d.Clock, d.Sessions, states)
+		var wg sync.WaitGroup
+		wg.Go(func() { cleanExpired(backgroundCtx, log, d.Clock, d.Sessions, states) })
+		wg.Go(func() { fillPendingRates(backgroundCtx, log, cfg.FxInterval, fill) })
+		wg.Wait()
 	}()
 	return a, nil
 }
@@ -220,6 +263,27 @@ func cleanExpired(ctx context.Context, log *slog.Logger, clock usecase.Clock, se
 		}
 		if err := states.DeleteExpired(ctx, now); err != nil && ctx.Err() == nil {
 			log.Error("dropping expired OIDC states", "error", err.Error())
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+// fillPendingRates fills in the base amounts of transactions saved without
+// a rate (FR-111) now and once per interval, until ctx is done.
+func fillPendingRates(ctx context.Context, log *slog.Logger, interval time.Duration, fill *usecase.FillPendingRates) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		n, err := fill.Do(ctx)
+		switch {
+		case err != nil && ctx.Err() == nil:
+			log.Error("filling in exchange rates", "error", err.Error())
+		case n > 0:
+			log.Info("exchange rates filled in", "transactions", n)
 		}
 		select {
 		case <-ctx.Done():

@@ -62,6 +62,8 @@ func setEnv(t *testing.T, extra ...string) string {
 		"DENAR_OIDC_CLIENT_SECRET": "", "DENAR_OIDC_AUTO_CREATE": "", "DENAR_LOCAL_LOGIN": "", "DENAR_SESSION_TTL": "",
 		"DENAR_INVITE_TTL": "", "DENAR_TRUSTED_PROXIES": "", "DENAR_INSTANCE_NAME": "", "DENAR_BOT_RATE": "",
 		"DENAR_ADMIN_PASSWORD_FILE": "", "DENAR_ADMIN_NAME": "",
+		// Nothing listens there: tests never reach the real NBP.
+		"DENAR_NBP_URL": "http://127.0.0.1:1", "DENAR_FX_INTERVAL": "",
 	}
 	for i := 0; i+1 < len(extra); i += 2 {
 		vars[extra[i]] = extra[i+1]
