@@ -89,7 +89,7 @@
     "alternativeLabel": "{{label}} — alternative {{n}}",
     "removeAlternative": "Remove alternative {{n}}: {{label}}",
     "addAlternative": "Add alternative: {{label}}",
-    "alternative": "Alternative",
+    "alternative": "Add alternative",
     "manualHint": "{{hint}} Column names or numbers, comma-separated; empty — as in preset."
   },
   "preview": {
