@@ -1,0 +1,10 @@
+# Buduje obraz denar z bieżącego kodu zamiast pobierać go z rejestru.
+# Użycie: `task compose:build`, czyli
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+services:
+  denar:
+    build:
+      context: .
+      args:
+        VERSION: ${DENAR_VERSION:-dev}
+    image: denar:${DENAR_VERSION:-dev}

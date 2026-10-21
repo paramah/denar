@@ -74,9 +74,23 @@ Co obejrzeć w gospodarstwie „Dom (demo)” (PLN, ~3 miesiące historii):
 
 Dane demo na dowolnej bazie: `DENAR_DB=moja.db ./denar demo` (odmawia, gdy gospodarstwo demo już jest; `--reset` je usuwa i tworzy od nowa).
 
-### Docker
+### Obrazy kontenera
 
-Obrazy dla `linux/amd64` i `linux/arm64` są publikowane w GitHub Container Registry jako `ghcr.io/paramah/denar` (tagi: `latest`, `<major>.<minor>`, `<wersja>`). Workflow wydania może je też wypychać na Quay.io; zobacz [Publikacja na Quay.io](#publikacja-na-quayio).
+Każde wydanie publikuje ten sam obraz wieloplatformowy (`linux/amd64`, `linux/arm64`) w dwóch rejestrach:
+
+| Rejestr | Obraz | Strona |
+|---|---|---|
+| GitHub Container Registry | `ghcr.io/paramah/denar` | [github.com/paramah/denar/pkgs/container/denar](https://github.com/paramah/denar/pkgs/container/denar) |
+| Quay.io | `quay.io/cynarski/denar` | [quay.io/repository/cynarski/denar](https://quay.io/repository/cynarski/denar) |
+
+Tagi: `latest` (najnowsze stabilne wydanie), `<major>.<minor>` (np. `0.1`, idzie za wydaniami poprawkowymi) i `<wersja>` (np. `0.1.1`). Wydania próbne (`v1.2.0-rc.1`) dostają tylko tag swojej wersji.
+
+```sh
+docker pull ghcr.io/paramah/denar:latest
+docker pull quay.io/cynarski/denar:latest
+```
+
+### Docker
 
 ```sh
 docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
@@ -88,21 +102,6 @@ docker run -d --name denar -p 127.0.0.1:8080:8080 -v denar-data:/data \
 
 Obraz działa jako użytkownik bez uprawnień roota, trzyma bazę w wolumenie `/data` (`DENAR_DB=/data/denar.db`), nasłuchuje na porcie 8080 i ma healthcheck na `/healthz`. Zachowaj klucz: jego zmiana unieważnia zapisane sekrety kanałów.
 
-### Publikacja na Quay.io
-
-Workflow wydania wypycha obraz także na Quay.io, gdy repozytorium na GitHubie ma:
-
-- zmienną `QUAY_IMAGE` z pełną nazwą obrazu, np. `quay.io/<namespace>/denar`;
-- sekrety `QUAY_USERNAME` i `QUAY_PASSWORD`, czyli konto robota Quay z prawem zapisu do tego repozytorium.
-
-```sh
-gh variable set QUAY_IMAGE --body quay.io/<namespace>/denar
-gh secret set QUAY_USERNAME --body '<namespace>+<robot>'
-gh secret set QUAY_PASSWORD   # wklej token robota
-```
-
-Quay dostaje te same tagi co GHCR. Bez `QUAY_IMAGE` workflow publikuje tylko w GHCR.
-
 ### Docker Compose
 
 ```sh
@@ -110,7 +109,7 @@ cp .env.example .env   # ustaw DENAR_ADMIN_PASSWORD (min. 12 znaków)
 task compose:up
 ```
 
-To buduje obraz z repozytorium i uruchamia kontener: port 8080 na 127.0.0.1, dane w wolumenie `denar-data`. Ruch nie jest szyfrowany, więc do sieci wystawia go reverse proxy z TLS, a nie ten port (`DENAR_BIND`, `DENAR_PORT` w `.env`). Do tego `task compose:down` (dane zostają w wolumenie) i `task compose:logs`. Inny silnik: `COMPOSE="podman compose" task compose:up`.
+To pobiera obraz z wydania (`ghcr.io/paramah/denar:latest`) i uruchamia kontener: port 8080 na 127.0.0.1, dane w wolumenie `denar-data`. Inny rejestr albo wersję ustawisz w `.env`: `DENAR_IMAGE` (np. `quay.io/cynarski/denar`) i `DENAR_VERSION` (np. `0.1.1`); ponowne `task compose:up` aktualizuje kontener. Obraz zbudowany z własnej kopii repozytorium: `task compose:build` (dokłada `docker-compose.build.yml`). Ruch nie jest szyfrowany, więc do sieci wystawia go reverse proxy z TLS, a nie ten port (`DENAR_BIND`, `DENAR_PORT` w `.env`). Do tego `task compose:down` (dane zostają w wolumenie) i `task compose:logs`. Inny silnik: `COMPOSE="podman compose" task compose:up`.
 
 ### Bez Taska
 
@@ -279,7 +278,7 @@ Denara konfigurują zmienne środowiskowe `DENAR_*`. [`.env.example`](.env.examp
 | `DENAR_NOTIFY_ALLOWED_CIDRS` | — | sieci (CIDR albo adresy, po przecinku), do których kanały mogą wysyłać mimo blokady, np. `192.168.1.0/24` |
 | `DENAR_DEV_FAKE_CONNECTOR` | `false` | dodaje udawany bank `fake` do providerów połączeń (tylko do rozwoju, nie w produkcji) |
 
-Tylko Docker Compose: `DENAR_PORT` (publikowany port, `8080`), `DENAR_BIND` (adres hosta, `127.0.0.1`; zmień na `0.0.0.0` tylko w zaufanej sieci, ruch nie jest szyfrowany), `DENAR_VERSION` (tag obrazu i wersja w buildzie). `denar demo` czyta też `DENAR_DEMO_PASSWORD`.
+Tylko Docker Compose: `DENAR_PORT` (publikowany port, `8080`), `DENAR_BIND` (adres hosta, `127.0.0.1`; zmień na `0.0.0.0` tylko w zaufanej sieci, ruch nie jest szyfrowany), `DENAR_IMAGE` (obraz bez tagu, `ghcr.io/paramah/denar`), `DENAR_VERSION` (tag obrazu, `latest`; przy `task compose:build` także wersja w buildzie). `denar demo` czyta też `DENAR_DEMO_PASSWORD`.
 
 ## MCP: podłączenie Claude i innych asystentów AI
 
@@ -400,6 +399,21 @@ task test:postgres  # testy Go także na PostgreSQL, w kontenerze postgres:17 (C
 ```
 
 Przed pierwszym `task web:e2e` zainstaluj przeglądarkę: `task web:e2e:install`. CI (GitHub Actions) uruchamia `task web:types:check`, `task verify` (z testami repozytoriów i end-to-end także na usłudze PostgreSQL) i `task web:e2e` przy każdym pushu do `main` i dla pull requestów.
+
+### Wydania i Quay.io
+
+Wypchnięcie tagu `v*` (np. `v0.1.2`) uruchamia `.github/workflows/release.yml`: testy CI, binaria na 5 platform w wydaniu na GitHubie i obraz kontenera w GHCR. Obraz trafia też na Quay.io, gdy repozytorium na GitHubie ma:
+
+- zmienną `QUAY_IMAGE` z pełną nazwą obrazu, np. `quay.io/<namespace>/denar`;
+- sekrety `QUAY_USERNAME` i `QUAY_PASSWORD`, czyli konto robota Quay z prawem zapisu do tego repozytorium.
+
+```sh
+gh variable set QUAY_IMAGE --body quay.io/<namespace>/denar
+gh secret set QUAY_USERNAME --body '<namespace>+<robot>'
+gh secret set QUAY_PASSWORD   # wklej token robota
+```
+
+Quay dostaje te same tagi co GHCR. Bez `QUAY_IMAGE` workflow publikuje tylko w GHCR.
 
 ## Architektura
 

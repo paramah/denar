@@ -1,12 +1,10 @@
 # Denar: jedno binarium z API i Web UI w kontenerze `denar`.
 # Start: skopiuj .env.example do .env, ustaw hasło i uruchom `task compose:up`.
+# Obraz z wydania pochodzi z GHCR (ten sam jest na quay.io/cynarski/denar).
+# Obraz zbudowany z bieżącego kodu: `task compose:build` (docker-compose.build.yml).
 services:
   denar:
-    build:
-      context: .
-      args:
-        VERSION: ${DENAR_VERSION:-dev}
-    image: denar:${DENAR_VERSION:-dev}
+    image: ${DENAR_IMAGE:-ghcr.io/paramah/denar}:${DENAR_VERSION:-latest}
     restart: unless-stopped
     environment:
       DENAR_AUTO_MIGRATE: "true"
