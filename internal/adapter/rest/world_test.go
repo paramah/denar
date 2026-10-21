@@ -48,7 +48,7 @@ type world struct {
 	deps Deps
 	// notifier sends over every channel type of the world.
 	notifier *fakes.Notifier
-	vars map[string]string
+	vars     map[string]string
 }
 
 func newWorld(t *testing.T) *world {
