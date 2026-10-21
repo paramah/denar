@@ -23,12 +23,16 @@ type Repos struct {
 	Payees       *PayeeRepository
 	FxRates      *FxRateRepository
 	FxOverrides  *FxOverrideRepository
-	Rates        *RateProvider
-	Tx           *TxManager
-	Clock        *Clock
-	IDs          *IDGenerator
-	Tokens       *TokenGenerator
-	Hasher       *PasswordHasher
+	// Stage 003.
+	EnvelopeGroups *EnvelopeGroupRepository
+	Envelopes      *EnvelopeRepository
+	Assignments    *AssignmentRepository
+	Rates          *RateProvider
+	Tx             *TxManager
+	Clock          *Clock
+	IDs            *IDGenerator
+	Tokens         *TokenGenerator
+	Hasher         *PasswordHasher
 }
 
 // NewRepos returns empty repositories and a clock at a fixed time.
@@ -56,7 +60,11 @@ func NewRepos() *Repos {
 		Hasher:      NewPasswordHasher(),
 	}
 	r.Transactions = NewTransactionRepository(s, r.Payees)
-	r.Households.Cascade(r.Memberships, r.Invitations, r.Bots, r.Audit, r.Wallets, r.Transactions, r.Payees, r.FxOverrides)
+	r.EnvelopeGroups = NewEnvelopeGroupRepository(s)
+	r.Envelopes = NewEnvelopeRepository(s, r.EnvelopeGroups)
+	r.Assignments = NewAssignmentRepository(s, r.Envelopes)
+	r.Households.Cascade(r.Memberships, r.Invitations, r.Bots, r.Audit, r.Wallets, r.Transactions, r.Payees, r.FxOverrides,
+		r.Assignments, r.Envelopes, r.EnvelopeGroups)
 	return r
 }
 
@@ -66,6 +74,7 @@ func (r *Repos) Deps() usecase.Deps {
 		Users: r.Users, Households: r.Households, Memberships: r.Memberships, Invitations: r.Invitations,
 		Bots: r.Bots, Audit: r.Audit, Sessions: r.Sessions,
 		Wallets: r.Wallets, Transactions: r.Transactions, Payees: r.Payees, FxRates: r.FxRates, FxOverrides: r.FxOverrides,
+		EnvelopeGroups: r.EnvelopeGroups, Envelopes: r.Envelopes, Assignments: r.Assignments,
 		Rates: r.Rates,
 		IDs:   r.IDs, Tokens: r.Tokens, Clock: r.Clock, Hasher: r.Hasher, Tx: r.Tx,
 	}

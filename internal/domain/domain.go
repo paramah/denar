@@ -117,3 +117,12 @@ const (
 	// see, such as the other leg of a transfer.
 	ForbiddenWallet ForbiddenReason = "wallet"
 )
+
+// Reasons of stage 003.
+const (
+	// ConflictGroupNotEmpty: an envelope group still has envelopes.
+	ConflictGroupNotEmpty ConflictReason = "group_not_empty"
+	// ConflictEnvelopeInUse: transactions use the envelope; hide it
+	// instead.
+	ConflictEnvelopeInUse ConflictReason = "envelope_in_use"
+)

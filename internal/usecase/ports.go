@@ -10,6 +10,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/audit"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"git.eiac.dev/tools/denar/internal/domain/budget"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
@@ -274,6 +275,79 @@ type TransactionRepository interface {
 	// ListRatePending returns up to limit transactions waiting for a rate,
 	// oldest first; an empty householdID means every household.
 	ListRatePending(ctx context.Context, householdID domain.ID, limit int) ([]transaction.Transaction, error)
+	// BudgetFlows sums the base amounts of the wallets' transactions dated
+	// up to to (a zero to: all), for the budget: a transaction without
+	// split lines counts with its own envelope, one with split lines by its
+	// lines, each with its line's envelope and the transaction's kind.
+	// Transactions waiting for a rate are left out of the sums and counted
+	// per day in Pending.
+	BudgetFlows(ctx context.Context, householdID domain.ID, walletIDs []domain.ID, to domain.Date) (BudgetFlows, error)
+	// CountByEnvelope counts the household's transactions that have the
+	// envelope, on themselves or on a split line.
+	CountByEnvelope(ctx context.Context, householdID, envelopeID domain.ID) (int, error)
+}
+
+// BudgetFlow is the sum of base amounts of one day, envelope and kind.
+type BudgetFlow struct {
+	Date       domain.Date
+	EnvelopeID domain.ID // "" without an envelope
+	Kind       transaction.Kind
+	Base       int64
+}
+
+// BudgetFlows are the sums TransactionRepository.BudgetFlows returns: one
+// flow per day, envelope and kind, ordered by day, envelope, kind; and the
+// number of transactions waiting for a rate per day.
+type BudgetFlows struct {
+	Flows   []BudgetFlow
+	Pending map[domain.Date]int
+}
+
+// EnvelopeGroupRepository stores envelope groups.
+type EnvelopeGroupRepository interface {
+	// Create and Update return a domain.ConflictError with
+	// ConflictDuplicateName when the household has a group of that name,
+	// case-insensitively.
+	Create(ctx context.Context, g budget.Group) error
+	// Update stores the name, position and update time.
+	Update(ctx context.Context, g budget.Group) error
+	// Delete returns a domain.ConflictError with ConflictGroupNotEmpty
+	// while the group has envelopes.
+	Delete(ctx context.Context, householdID, id domain.ID) error
+	ByID(ctx context.Context, householdID, id domain.ID) (budget.Group, error)
+	// ListByHousehold returns the groups ordered as budget.SortGroups does.
+	ListByHousehold(ctx context.Context, householdID domain.ID) ([]budget.Group, error)
+}
+
+// EnvelopeRepository stores envelopes.
+type EnvelopeRepository interface {
+	// Create and Update return a domain.ConflictError with
+	// ConflictDuplicateName when the household has an envelope of that
+	// name, case-insensitively, and domain.ErrNotFound when the group is
+	// not one of the household.
+	Create(ctx context.Context, e budget.Envelope) error
+	// Update stores the group, name, position, hidden flag, goal and
+	// update time.
+	Update(ctx context.Context, e budget.Envelope) error
+	// Delete removes the envelope with its assignments.
+	Delete(ctx context.Context, householdID, id domain.ID) error
+	ByID(ctx context.Context, householdID, id domain.ID) (budget.Envelope, error)
+	// ListByHousehold returns every envelope, hidden ones too, ordered as
+	// budget.SortEnvelopes does.
+	ListByHousehold(ctx context.Context, householdID domain.ID) ([]budget.Envelope, error)
+}
+
+// AssignmentRepository stores the monthly assignments of envelopes.
+type AssignmentRepository interface {
+	// Set stores the assignment, replacing the envelope's one of the same
+	// month; an amount of zero removes it. The envelope must be one of the
+	// household (domain.ErrNotFound otherwise).
+	Set(ctx context.Context, a budget.Assignment) error
+	// Get returns the assignment, with a zero amount when there is none.
+	Get(ctx context.Context, householdID, envelopeID domain.ID, m budget.Month) (budget.Assignment, error)
+	// ListByHousehold returns the household's assignments ordered by
+	// month, then envelope id.
+	ListByHousehold(ctx context.Context, householdID domain.ID) ([]budget.Assignment, error)
 }
 
 // PayeeRepository stores payees.

@@ -24,6 +24,14 @@ const (
 	ResourceFxRate      = "fx_rate"
 )
 
+// Resource types of stage 003.
+const (
+	ResourceEnvelopeGroup = "envelope_group"
+	ResourceEnvelope      = "envelope"
+	// ResourceAssignment entries name the envelope; the month is a change.
+	ResourceAssignment = "assignment"
+)
+
 // Change is the value of one field before and after. Either side may be
 // nil (created or removed). Values are plain JSON values; secrets never go
 // here.

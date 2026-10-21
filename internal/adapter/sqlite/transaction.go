@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -348,4 +349,104 @@ func (r *TransactionRepository) ListRatePending(ctx context.Context, householdID
 	}
 	return r.query(ctx, `SELECT `+txColumns+` FROM transactions t WHERE t.rate_pending = 1 AND t.household_id = ? ORDER BY t.id LIMIT ?`,
 		householdID, limit)
+}
+
+func (r *TransactionRepository) BudgetFlows(ctx context.Context, householdID domain.ID, walletIDs []domain.ID, to domain.Date) (usecase.BudgetFlows, error) {
+	type key struct {
+		date     string
+		envelope domain.ID
+		kind     transaction.Kind
+	}
+	sums := map[key]int64{}
+	pending := map[string]int{}
+	until := "9999-12-31"
+	if !to.IsZero() {
+		until = to.String()
+	}
+	for start := 0; start < len(walletIDs); start += idsChunk {
+		chunk := walletIDs[start:min(start+idsChunk, len(walletIDs))]
+		in := `t.household_id = ? AND t.wallet_id IN (` + placeholders(len(chunk)) + `) AND t.date <= ?`
+		args := append(append([]any{householdID}, idArgs(chunk)...), until)
+		rows, err := r.db.Query(ctx).QueryContext(ctx,
+			`SELECT t.date, COALESCE(t.envelope_id, ''), t.kind, SUM(t.base_amount) FROM transactions t
+			 WHERE `+in+` AND t.rate_pending = 0
+			   AND NOT EXISTS (SELECT 1 FROM transaction_splits s WHERE s.transaction_id = t.id)
+			 GROUP BY 1, 2, 3
+			 UNION ALL
+			 SELECT t.date, COALESCE(s.envelope_id, ''), t.kind, SUM(s.base_amount) FROM transaction_splits s
+			 JOIN transactions t ON t.id = s.transaction_id
+			 WHERE `+in+` AND t.rate_pending = 0
+			 GROUP BY 1, 2, 3`, append(args, args...)...)
+		if err != nil {
+			return usecase.BudgetFlows{}, err
+		}
+		for rows.Next() {
+			var (
+				k   key
+				sum int64
+			)
+			if err := rows.Scan(&k.date, &k.envelope, &k.kind, &sum); err != nil {
+				rows.Close()
+				return usecase.BudgetFlows{}, err
+			}
+			sums[k] += sum
+		}
+		if err := closeRows(rows); err != nil {
+			return usecase.BudgetFlows{}, err
+		}
+		rows, err = r.db.Query(ctx).QueryContext(ctx,
+			`SELECT t.date, COUNT(*) FROM transactions t WHERE `+in+` AND t.rate_pending = 1 GROUP BY 1`, args...)
+		if err != nil {
+			return usecase.BudgetFlows{}, err
+		}
+		for rows.Next() {
+			var (
+				date string
+				n    int
+			)
+			if err := rows.Scan(&date, &n); err != nil {
+				rows.Close()
+				return usecase.BudgetFlows{}, err
+			}
+			pending[date] += n
+		}
+		if err := closeRows(rows); err != nil {
+			return usecase.BudgetFlows{}, err
+		}
+	}
+	out := usecase.BudgetFlows{Flows: make([]usecase.BudgetFlow, 0, len(sums)), Pending: make(map[domain.Date]int, len(pending))}
+	for k, sum := range sums {
+		d, err := domain.ParseDate(k.date)
+		if err != nil {
+			return usecase.BudgetFlows{}, fmt.Errorf("sqlite: transaction date %q: %w", k.date, err)
+		}
+		out.Flows = append(out.Flows, usecase.BudgetFlow{Date: d, EnvelopeID: k.envelope, Kind: k.kind, Base: sum})
+	}
+	for date, n := range pending {
+		d, err := domain.ParseDate(date)
+		if err != nil {
+			return usecase.BudgetFlows{}, fmt.Errorf("sqlite: transaction date %q: %w", date, err)
+		}
+		out.Pending[d] = n
+	}
+	slices.SortFunc(out.Flows, func(a, b usecase.BudgetFlow) int {
+		return cmp.Or(a.Date.Compare(b.Date), cmp.Compare(a.EnvelopeID, b.EnvelopeID), cmp.Compare(a.Kind, b.Kind))
+	})
+	return out, nil
+}
+
+func closeRows(rows *sql.Rows) error {
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	return rows.Err()
+}
+
+func (r *TransactionRepository) CountByEnvelope(ctx context.Context, householdID, envelopeID domain.ID) (int, error) {
+	var n int
+	err := r.db.Query(ctx).QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM transactions t WHERE t.household_id = ?
+		   AND (t.envelope_id = ? OR EXISTS (SELECT 1 FROM transaction_splits s WHERE s.transaction_id = t.id AND s.envelope_id = ?))`,
+		householdID, envelopeID, envelopeID).Scan(&n)
+	return n, err
 }

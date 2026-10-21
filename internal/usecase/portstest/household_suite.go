@@ -7,6 +7,7 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/audit"
+	"git.eiac.dev/tools/denar/internal/domain/budget"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/transaction"
@@ -113,6 +114,11 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 				noError(t, env.FxOverrides.Put(ctx, usecase.FxOverride{HouseholdID: hid, Currency: "USD", Date: day("2026-10-20"),
 					Rate: "4", CreatedBy: domain.Actor{Kind: domain.ActorUser, ID: "u1"}, CreatedAt: now(env)}))
 			}
+			if env.Envelopes != nil {
+				noError(t, env.EnvelopeGroups.Create(ctx, newGroup(env, "g-"+hid, hid, "Grupa", 0)))
+				noError(t, env.Envelopes.Create(ctx, newEnvelope(env, "e-"+hid, hid, "g-"+hid, "Koperta", 0)))
+				noError(t, env.Assignments.Set(ctx, budget.Assignment{HouseholdID: hid, EnvelopeID: "e-" + hid, Month: month("2026-10"), Amount: 5, UpdatedAt: now(env)}))
+			}
 		}
 
 		noError(t, env.Households.Delete(ctx, "h1"))
@@ -141,6 +147,19 @@ func RunHouseholdSuite(t *testing.T, factory Factory) {
 			wantError(t, err, domain.ErrNotFound)
 			_, err = env.Transactions.ByID(ctx, "h2", "t-h2")
 			noError(t, err)
+		}
+		if env.Envelopes != nil {
+			_, err = env.EnvelopeGroups.ByID(ctx, "h1", "g-h1")
+			wantError(t, err, domain.ErrNotFound)
+			_, err = env.Envelopes.ByID(ctx, "h1", "e-h1")
+			wantError(t, err, domain.ErrNotFound)
+			left, err := env.Assignments.ListByHousehold(ctx, "h1")
+			noError(t, err)
+			kept, err := env.Assignments.ListByHousehold(ctx, "h2")
+			noError(t, err)
+			if len(left) != 0 || len(kept) != 1 {
+				t.Errorf("assignments left %v, kept %v", left, kept)
+			}
 		}
 
 		// The other household is untouched.
