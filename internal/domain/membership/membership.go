@@ -5,7 +5,7 @@ package membership
 import (
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Role is a permission level within one household.

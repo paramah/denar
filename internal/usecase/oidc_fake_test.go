@@ -1,6 +1,6 @@
 package usecase_test
 
-import "git.eiac.dev/tools/denar/internal/usecase/fakes"
+import "github.com/paramah/denar/internal/usecase/fakes"
 
 type fakeOIDC = fakes.OIDCProvider
 

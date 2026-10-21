@@ -4,7 +4,7 @@ import (
 	"slices"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // ChargeStatus is where an expected charge stands.

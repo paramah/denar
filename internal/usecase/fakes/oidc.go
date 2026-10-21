@@ -6,7 +6,7 @@ import (
 	"slices"
 	"sync"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // OIDCAuthCall is the arguments of one AuthURL call.

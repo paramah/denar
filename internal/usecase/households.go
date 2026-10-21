@@ -4,10 +4,10 @@ import (
 	"context"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/membership"
 )
 
 // HouseholdView is a household with the role the caller has in it (for a

@@ -6,8 +6,8 @@ import (
 	"maps"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/household"
 )
 
 // householdPart is state that goes with a deleted household. The method

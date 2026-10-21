@@ -12,7 +12,7 @@ import (
 	gooidc "github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // requestTimeout bounds every request to the identity provider.

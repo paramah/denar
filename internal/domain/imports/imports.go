@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Source is where a batch came from.

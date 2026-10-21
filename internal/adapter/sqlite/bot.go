@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.BotRepository = (*BotRepository)(nil)

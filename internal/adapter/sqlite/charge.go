@@ -10,9 +10,9 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.ChargeRepository = (*ChargeRepository)(nil)

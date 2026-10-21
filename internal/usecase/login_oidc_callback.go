@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // OIDCLoginFailure names why an OIDC login was refused.

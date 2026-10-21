@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/transaction"
 )
 
 // BudgetEnvelopeLine is one envelope in a budget month.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/subscription"
 )
 
 // DefaultChargeHorizonDays is how far ahead charges are expected when the

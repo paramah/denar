@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // maxBodyBytes caps a request body; no request of the contract comes near.

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.Clock = System{}

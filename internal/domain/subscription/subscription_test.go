@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/money"
 )
 
 func price(from string, amount int64, currency string) PricePoint {

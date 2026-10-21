@@ -8,7 +8,7 @@ Jesteś wykonawcą jednego etapu projektu **Denar** (`/Users/paramah/Projects/ei
 
 1. `AGENTS.md`, `.ai/steering/*.md`, `.ai/sdd/PLAN.md` (całość — model domeny, etapy, tryb autonomiczny).
 2. Specyfikacje wcześniejszych etapów w `.ai/sdd/specs/` (przynajmniej `design.md`, żeby znać istniejące porty, tabele i konwencje).
-3. Wzorcową implementację **Straylight**: `/Users/paramah/Projects/eiac.dev/tools/para-board` (moduł `git.eiac.dev/tools/straylight`). Kopiuj i adaptuj sprawdzone fragmenty (config, sqlite, tx, migracje, rest/problem/middleware/auth, oidc, mcp, spa, platform/*, web/ setup, Taskfile, Dockerfile) zamiast pisać od zera. Zmieniaj nazwy: `straylight`→`denar`, `STRAYLIGHT_`→`DENAR_`, `slg_`→`dnr_`, moduł → `git.eiac.dev/tools/denar`.
+3. Wzorcową implementację **Straylight**: `/Users/paramah/Projects/eiac.dev/tools/para-board` (moduł `git.eiac.dev/tools/straylight`). Kopiuj i adaptuj sprawdzone fragmenty (config, sqlite, tx, migracje, rest/problem/middleware/auth, oidc, mcp, spa, platform/*, web/ setup, Taskfile, Dockerfile) zamiast pisać od zera. Zmieniaj nazwy: `straylight`→`denar`, `STRAYLIGHT_`→`DENAR_`, `slg_`→`dnr_`, moduł → `github.com/paramah/denar`.
 
 ## Proces etapu
 

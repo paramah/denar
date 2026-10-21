@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 func userIDs(users []user.User) []domain.ID {

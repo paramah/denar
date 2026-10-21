@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
-	"git.eiac.dev/tools/denar/internal/usecase/fakes"
+	"github.com/paramah/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase/fakes"
 )
 
 // hookCatcher is a webhook receiver that keeps what it got.

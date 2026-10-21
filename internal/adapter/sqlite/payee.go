@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/payee"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/payee"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.PayeeRepository = (*PayeeRepository)(nil)

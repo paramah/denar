@@ -3,7 +3,7 @@ package subscription
 import (
 	"math/big"
 
-	"git.eiac.dev/tools/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/money"
 )
 
 // Cost is what a subscription costs per month and per year on average, in

@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/connection"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/connection"
 )
 
 // ConnectionRepository keeps connections and their accounts in memory.

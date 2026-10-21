@@ -3,7 +3,7 @@ package fakes
 import (
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // Repos is every fake port on one store, wired as the composition root

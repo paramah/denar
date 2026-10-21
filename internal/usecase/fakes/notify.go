@@ -7,7 +7,7 @@ import (
 	"errors"
 	"sync"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // SecretBox seals values reversibly, bound to their aad; it is no

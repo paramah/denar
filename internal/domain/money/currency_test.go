@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 func TestLookupCurrency(t *testing.T) {

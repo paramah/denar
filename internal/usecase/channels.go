@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 // sendTimeout bounds one message to a channel (NFR-051).

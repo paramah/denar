@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/budget"
 )
 
 // EnvelopeGroupRepository keeps envelope groups in memory. A group with

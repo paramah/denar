@@ -4,9 +4,9 @@ import (
 	"github.com/oapi-codegen/nullable"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func apiEnvelopeGroup(g budget.Group) api.EnvelopeGroup {

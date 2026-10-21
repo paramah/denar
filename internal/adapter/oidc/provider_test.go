@@ -18,7 +18,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc/oidctest"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.OIDCProvider = (*Provider)(nil)

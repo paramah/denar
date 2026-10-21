@@ -3,10 +3,10 @@ package rest
 import (
 	"github.com/oapi-codegen/nullable"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func refs(p *api.ColumnRefs) []string {

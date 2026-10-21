@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // IDGenerator gives "id-000001", "id-000002" and so on. Like ULIDs, the

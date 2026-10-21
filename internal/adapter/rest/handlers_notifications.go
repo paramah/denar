@@ -3,11 +3,11 @@ package rest
 import (
 	"context"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/event"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func apiNotification(n notification.Notification) api.Notification {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc/oidctest"
 
-	"git.eiac.dev/tools/denar/internal/platform/config"
+	"github.com/paramah/denar/internal/platform/config"
 )
 
 const (

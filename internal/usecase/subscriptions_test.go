@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/event"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // subscriptionFamily is budgetFamily (today 2026-10-21) with the member's

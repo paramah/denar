@@ -4,11 +4,11 @@ import (
 	"github.com/oapi-codegen/nullable"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/money"
-	"git.eiac.dev/tools/denar/internal/domain/payee"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/payee"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func apiMoney(m money.Money) api.Money {

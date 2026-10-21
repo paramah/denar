@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // TLS modes.

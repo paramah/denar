@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain/event"
-	"git.eiac.dev/tools/denar/internal/usecase/fakes"
+	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/usecase/fakes"
 )
 
 type subscriptionJSON struct {

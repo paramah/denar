@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // Env is one empty, isolated set of repositories sharing a store.

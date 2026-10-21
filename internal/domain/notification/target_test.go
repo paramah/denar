@@ -5,7 +5,7 @@ import (
 	"net/netip"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 func TestPrivateRanges(t *testing.T) {

@@ -17,8 +17,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain/notification"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // UserAgent identifies Denar to the services it calls.

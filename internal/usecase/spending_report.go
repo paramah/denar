@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/money"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain/transaction"
 )
 
 // Grouping of the spending report.

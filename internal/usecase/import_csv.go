@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/imports"
 )
 
 // MaxImportFileBytes is the largest CSV file an import takes (FR-812).

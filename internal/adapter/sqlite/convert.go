@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )

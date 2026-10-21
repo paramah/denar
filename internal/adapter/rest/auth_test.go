@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func TestCookieAndBearerTogetherIsABadRequest(t *testing.T) {

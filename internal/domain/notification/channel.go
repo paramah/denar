@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // ChannelType is the kind of a channel.

@@ -1,6 +1,6 @@
 package usecase
 
-import "git.eiac.dev/tools/denar/internal/domain"
+import "github.com/paramah/denar/internal/domain"
 
 const (
 	// DefaultPageLimit is the page size used when the caller gives none.

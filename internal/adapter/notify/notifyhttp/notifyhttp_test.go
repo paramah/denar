@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 func get(t *testing.T, client *http.Client, log *slog.Logger, target string) ([]byte, error) {

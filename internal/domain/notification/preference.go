@@ -3,8 +3,8 @@ package notification
 import (
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/event"
 )
 
 // Preference is what a person wants for one event type in one household:

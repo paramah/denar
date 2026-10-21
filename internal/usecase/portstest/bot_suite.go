@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
 )
 
 func newBot(env Env, id, householdID, createdBy domain.ID, name string) bot.Bot {

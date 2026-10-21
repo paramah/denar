@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Limits of groups, envelopes and goals.

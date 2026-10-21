@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/transaction"
 )
 
 var assistantScopes = []bot.Scope{bot.ScopeTransactionsRead, bot.ScopeTransactionsWrite, bot.ScopeSubscriptionsRead,

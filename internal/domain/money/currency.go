@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Currency is an ISO 4217 currency with the number of its minor-unit digits.

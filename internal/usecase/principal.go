@@ -1,9 +1,9 @@
 package usecase
 
 import (
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // Principal is who a use case acts for: the signed-in user, or the bot a

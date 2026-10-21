@@ -7,7 +7,7 @@ package event
 import (
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Type names a kind of event.

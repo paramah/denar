@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Kind is what a connection brings in.

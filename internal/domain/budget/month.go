@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Month is a budget month. It is labelled by the calendar month it starts

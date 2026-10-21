@@ -15,7 +15,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/platform/crypto"
+	"github.com/paramah/denar/internal/platform/crypto"
 )
 
 // minAdminPasswordLen is the shortest bootstrap admin password accepted.

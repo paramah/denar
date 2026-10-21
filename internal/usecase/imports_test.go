@@ -3,12 +3,12 @@ package usecase_test
 import (
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func TestListAndGetImports(t *testing.T) {

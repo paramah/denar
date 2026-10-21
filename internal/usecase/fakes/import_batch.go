@@ -8,9 +8,9 @@ import (
 	"maps"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // ImportBatchRepository keeps import batches in memory. A transaction the

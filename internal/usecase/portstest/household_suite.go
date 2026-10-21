@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func newHousehold(env Env, id, creator domain.ID) household.Household {

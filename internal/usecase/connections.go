@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/connection"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/connection"
+	"github.com/paramah/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/domain/membership"
 )
 
 // ProviderView is a provider of the registry.

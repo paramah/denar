@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/connection"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/connection"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.ConnectionRepository = (*ConnectionRepository)(nil)

@@ -1,6 +1,6 @@
 package csvimport
 
-import "git.eiac.dev/tools/denar/internal/usecase"
+import "github.com/paramah/denar/internal/usecase"
 
 func list(s ...string) []string { return s }
 

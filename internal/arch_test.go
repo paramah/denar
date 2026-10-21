@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-const module = "git.eiac.dev/tools/denar"
+const module = "github.com/paramah/denar"
 
 // TestDependencyRule enforces adapter -> usecase -> domain: inner layers may
 // import only the standard library and the layers listed for them.

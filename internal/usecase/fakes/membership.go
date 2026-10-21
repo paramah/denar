@@ -6,8 +6,8 @@ import (
 	"maps"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/membership"
 )
 
 type memberKey struct{ household, user domain.ID }

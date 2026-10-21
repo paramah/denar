@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func (f *family) createBot(by membership.Role, name string, scopes ...string) (usecase.BotWithToken, error) {

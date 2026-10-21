@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // Login is the outcome of a successful sign-in. Token is the session

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Crockford base32, as the ULID specification requires.

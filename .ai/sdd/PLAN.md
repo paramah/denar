@@ -35,7 +35,7 @@ Decyzje użytkownika (z rundy pytań):
 | Auth | lokalne hasło + OIDC |
 | Powiadomienia | w aplikacji, SMTP, webhook/ntfy, Telegram/Matrix |
 
-Założenia (do korekty): moduł `git.eiac.dev/tools/denar`, prefiks env `DENAR_`, prefiks tokenów botów `dnr_`, dokumentacja i komentarze po polsku jak w Straylight.
+Założenia (do korekty): moduł `github.com/paramah/denar`, prefiks env `DENAR_`, prefiks tokenów botów `dnr_`, dokumentacja i komentarze po polsku jak w Straylight.
 
 ## Szkielet (przejęty ze Straylight)
 

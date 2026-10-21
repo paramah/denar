@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.TxManager = (*DB)(nil)

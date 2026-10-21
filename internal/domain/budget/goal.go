@@ -1,6 +1,6 @@
 package budget
 
-import "git.eiac.dev/tools/denar/internal/domain"
+import "github.com/paramah/denar/internal/domain"
 
 // GoalStatus is how far an envelope is with its goal in a month.
 type GoalStatus struct {

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/membership"
 )
 
 func memberIDs(ms []membership.Membership, household bool) []domain.ID {

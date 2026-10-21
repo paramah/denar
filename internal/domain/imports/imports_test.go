@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/imports"
 )
 
 func TestHashExternalID(t *testing.T) {

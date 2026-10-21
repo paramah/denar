@@ -8,9 +8,9 @@ import (
 	"maps"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // AuditRepository keeps audit entries in memory. Set AppendErr to make

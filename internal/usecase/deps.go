@@ -4,9 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 // Deps is what the household, member, invitation, bot and audit use cases

@@ -11,13 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/adapter/sqlite"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
-	"git.eiac.dev/tools/denar/internal/domain/user"
-	"git.eiac.dev/tools/denar/internal/platform/config"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/platform/config"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // The demo account and household (stage 009). The password is fixed and

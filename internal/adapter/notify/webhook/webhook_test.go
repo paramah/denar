@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/notify/notifyhttp"
+	"github.com/paramah/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // local may reach the test server on 127.0.0.1 (the default client may not).

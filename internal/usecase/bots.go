@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // MaxBotsPerHousehold bounds the bots of one household.

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // maxRateDecimals is how many decimals a rate written by hand may have.

@@ -4,10 +4,10 @@ import (
 	"slices"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // budgetFamily is fxFamily with a group "Codzienne" holding envelopes

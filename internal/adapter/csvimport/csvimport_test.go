@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func sample(t *testing.T, name string) []byte {

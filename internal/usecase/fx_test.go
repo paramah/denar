@@ -4,13 +4,13 @@ import (
 	"slices"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/domain/money"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // fxFamily has a PLN wallet w1 and a USD wallet w2 in h1 (base PLN). The

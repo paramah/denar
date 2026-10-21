@@ -9,8 +9,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/money"
 )
 
 // Type is the kind of a wallet.

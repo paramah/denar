@@ -5,10 +5,10 @@ import (
 	"errors"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/membership"
 )
 
 // HouseholdScope is what a principal may do in one household, as the

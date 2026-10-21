@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/bot"
 )
 
 func TestEveryFailedAuthenticationLooksTheSame(t *testing.T) {

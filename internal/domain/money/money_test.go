@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 func mustCur(t *testing.T, code string) Currency {

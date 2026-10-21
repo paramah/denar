@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 type BootstrapAdminInput struct {

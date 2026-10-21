@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/payee"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/payee"
 )
 
 // PayeeRepository keeps payees in memory. Deleting one takes it off the

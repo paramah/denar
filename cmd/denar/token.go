@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/adapter/sqlite"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/platform/config"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/platform/config"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 const tokenUsage = `usage: denar token create --household <id> --name <name> --scopes <scope,scope> [--as <email>] [--wallets <id,id>] [--expires <RFC 3339 time>]

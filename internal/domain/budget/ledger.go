@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // ErrOverflow: a sum of the budget does not fit in int64 minor units.

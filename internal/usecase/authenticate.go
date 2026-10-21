@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // sessionTouchInterval is how long a session's last-seen time may lag

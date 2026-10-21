@@ -5,10 +5,10 @@ import (
 	"context"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/money"
-	"git.eiac.dev/tools/denar/internal/domain/subscription"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/subscription"
 )
 
 // Windows of the subscription summary, in days.

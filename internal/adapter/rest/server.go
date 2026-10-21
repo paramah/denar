@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Server implements the operations of api/openapi.yaml. An operation

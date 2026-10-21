@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Unit is the unit of a billing cycle.

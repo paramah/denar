@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func (s *Server) ListBots(ctx context.Context, request api.ListBotsRequestObject) (api.ListBotsResponseObject, error) {

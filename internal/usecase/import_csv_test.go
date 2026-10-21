@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 const csvFile = "2026-10-01;-10.00;Lidl\n2026-10-02;-20.00;Aldi;X-1\n!broken\n2026-10-03;-30.00;Kiosk;X-1\n"

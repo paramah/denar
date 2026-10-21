@@ -6,8 +6,8 @@ import (
 	"maps"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // UserRepository keeps users in memory.

@@ -3,10 +3,10 @@ package mcp
 import (
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/event"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 func TestListNotifications(t *testing.T) {

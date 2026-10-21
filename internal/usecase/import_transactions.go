@@ -10,15 +10,15 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
-	"git.eiac.dev/tools/denar/internal/domain/money"
-	"git.eiac.dev/tools/denar/internal/domain/payee"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/payee"
+	"github.com/paramah/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain/wallet"
 )
 
 // Preview limits of a dry run.

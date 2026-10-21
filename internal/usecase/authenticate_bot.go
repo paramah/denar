@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // botUsedInterval is how long a bot's last-used time may lag behind before

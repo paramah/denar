@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/connection"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/connection"
 )
 
 func TestConnectionValidate(t *testing.T) {

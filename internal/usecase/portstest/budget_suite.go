@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func newGroup(env Env, id, householdID domain.ID, name string, position int) budget.Group {

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func newEntry(env Env, id, householdID domain.ID, actor domain.Actor, resourceType string) audit.Entry {

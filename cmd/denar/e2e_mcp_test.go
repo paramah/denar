@@ -11,7 +11,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"git.eiac.dev/tools/denar/internal/usecase/fakes"
+	"github.com/paramah/denar/internal/usecase/fakes"
 )
 
 // bearer adds a bot token to every request of the MCP client.

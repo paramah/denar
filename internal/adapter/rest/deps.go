@@ -6,7 +6,7 @@ import (
 	"net/netip"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // Deps is what the REST adapter needs from the composition root.

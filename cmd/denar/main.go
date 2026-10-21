@@ -17,9 +17,9 @@ import (
 	// embedded copy works in images without one.
 	_ "time/tzdata"
 
-	"git.eiac.dev/tools/denar/internal/adapter/sqlite"
-	"git.eiac.dev/tools/denar/internal/platform/config"
-	"git.eiac.dev/tools/denar/web"
+	"github.com/paramah/denar/internal/adapter/sqlite"
+	"github.com/paramah/denar/internal/platform/config"
+	"github.com/paramah/denar/web"
 )
 
 var version = "dev"

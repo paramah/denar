@@ -11,8 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/money"
 )
 
 // Kind says what a transaction is for the budget.

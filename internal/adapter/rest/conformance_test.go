@@ -16,9 +16,9 @@ import (
 
 	"github.com/pb33f/libopenapi"
 
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // specOperation is one operation of api/openapi.yaml.

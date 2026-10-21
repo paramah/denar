@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 // deliveryBatch bounds how many deliveries one run sends.

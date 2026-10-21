@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/money"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/money"
+	"github.com/paramah/denar/internal/domain/transaction"
 )
 
 // checkEnvelope checks that id, when set, is an envelope of the household;

@@ -5,7 +5,7 @@ package audit
 import (
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Resource types of stage 001.

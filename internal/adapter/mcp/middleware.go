@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // requestInfo is what the request log learns while a request is handled.

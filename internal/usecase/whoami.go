@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/household"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/wallet"
 )
 
 // BotContext is what a bot needs to know to act: itself with its

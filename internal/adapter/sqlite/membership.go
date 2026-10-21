@@ -3,9 +3,9 @@ package sqlite
 import (
 	"context"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.MembershipRepository = (*MembershipRepository)(nil)

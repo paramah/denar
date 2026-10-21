@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // fakeServer is a minimal SMTP server for one message per connection.

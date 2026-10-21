@@ -3,7 +3,7 @@ package membership
 import (
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // Invitation lets whoever holds its one-time token join a household with

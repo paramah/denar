@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
 )
 
 // BotRepository keeps bots in memory. Set TouchUsedErr to make TouchUsed

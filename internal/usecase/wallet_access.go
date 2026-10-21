@@ -4,8 +4,8 @@ import (
 	"context"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/wallet"
 )
 
 // visibleWallets returns the household's wallets the principal reaches,

@@ -6,7 +6,7 @@
 
 ## 1. Architektura
 
-Monolit Go 1.27, moduł `git.eiac.dev/tools/denar`, Clean Architecture skopiowana ze Straylight (`../para-board`):
+Monolit Go 1.27, moduł `github.com/paramah/denar`, Clean Architecture skopiowana ze Straylight (`../para-board`):
 
 ```
 cmd/denar/                 main.go (serve|migrate|token|version), app.go (wire, rootHandler, joby), token.go

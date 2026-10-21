@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/payee"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/payee"
 )
 
 func newPayee(env Env, id, householdID domain.ID, name string) payee.Payee {

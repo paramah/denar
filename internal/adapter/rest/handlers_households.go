@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/rest/api"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func (s *Server) ListHouseholds(ctx context.Context, _ api.ListHouseholdsRequestObject) (api.ListHouseholdsResponseObject, error) {

@@ -3,8 +3,8 @@ package notification
 import (
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/event"
 )
 
 // DeliveryStatus is where a delivery stands.

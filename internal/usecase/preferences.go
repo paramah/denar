@@ -4,8 +4,8 @@ import (
 	"context"
 	"slices"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 // preferences returns the person's preferences in the household for every

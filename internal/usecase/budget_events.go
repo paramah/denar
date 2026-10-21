@@ -4,9 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	"git.eiac.dev/tools/denar/internal/domain/budget"
-	"git.eiac.dev/tools/denar/internal/domain/event"
-	"git.eiac.dev/tools/denar/internal/domain/household"
+	"github.com/paramah/denar/internal/domain/budget"
+	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain/household"
 )
 
 // defaultGoalDueDays is how many days ahead a goal is reminded of.

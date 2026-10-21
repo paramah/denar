@@ -24,9 +24,9 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/imports"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/imports"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // Parser is the CSV reader. The zero value is ready.

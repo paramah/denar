@@ -10,9 +10,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // Scope is one permission a bot can be given. A write scope does not imply

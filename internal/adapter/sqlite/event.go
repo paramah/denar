@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/event"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.EventOutbox = (*EventOutbox)(nil)

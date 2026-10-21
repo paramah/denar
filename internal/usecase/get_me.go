@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"git.eiac.dev/tools/denar/internal/domain/user"
+	"github.com/paramah/denar/internal/domain/user"
 )
 
 // Me is who the caller is: a person with their households and roles, or a

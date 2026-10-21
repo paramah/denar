@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/usecase/fakes"
-	"git.eiac.dev/tools/denar/internal/usecase/portstest"
+	"github.com/paramah/denar/internal/usecase/fakes"
+	"github.com/paramah/denar/internal/usecase/portstest"
 )
 
 // newEnv is the portstest.Factory for SQLite: a migrated database in a

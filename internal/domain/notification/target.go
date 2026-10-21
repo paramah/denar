@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain"
 )
 
 // ErrTargetForbidden is the error of a notification target in a network

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 func newOIDCState(env Env, hash string, ttl time.Duration) usecase.OIDCLoginState {

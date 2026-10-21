@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/notification"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // NotificationRepository keeps notifications of the app in memory.

@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"git.eiac.dev/tools/denar/internal/domain/notification"
+	"github.com/paramah/denar/internal/domain/notification"
 )
 
 // PruneResult counts what one retention run removed.

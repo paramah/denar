@@ -8,12 +8,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/audit"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/payee"
-	"git.eiac.dev/tools/denar/internal/domain/transaction"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/audit"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/payee"
+	"github.com/paramah/denar/internal/domain/transaction"
+	"github.com/paramah/denar/internal/domain/wallet"
 )
 
 // sourceOf is the source of what the principal records by hand: a bot's

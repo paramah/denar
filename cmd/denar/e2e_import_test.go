@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/adapter/fakeconnector"
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/usecase"
-	"git.eiac.dev/tools/denar/internal/usecase/fakes"
+	"github.com/paramah/denar/internal/adapter/fakeconnector"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/usecase"
+	"github.com/paramah/denar/internal/usecase/fakes"
 )
 
 // upload posts a CSV file with its options as multipart/form-data.

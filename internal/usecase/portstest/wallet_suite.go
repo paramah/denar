@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/wallet"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/wallet"
 )
 
 func newWallet(env Env, id, householdID, creator domain.ID, name string) wallet.Wallet {

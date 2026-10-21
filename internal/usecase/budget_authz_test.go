@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/bot"
-	"git.eiac.dev/tools/denar/internal/domain/membership"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/bot"
+	"github.com/paramah/denar/internal/domain/membership"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 // TestBudgetAuthorizationMatrix is FR-230 over role × kind of principal ×

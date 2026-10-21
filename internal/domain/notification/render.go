@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/domain"
-	"git.eiac.dev/tools/denar/internal/domain/event"
+	"github.com/paramah/denar/internal/domain"
+	"github.com/paramah/denar/internal/domain/event"
 )
 
 // Message is the text of a notification: a title, a body and the path of

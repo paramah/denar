@@ -3,7 +3,7 @@ package fakes
 import (
 	"testing"
 
-	"git.eiac.dev/tools/denar/internal/usecase/portstest"
+	"github.com/paramah/denar/internal/usecase/portstest"
 )
 
 func newEnv(*testing.T) portstest.Env {

@@ -1,4 +1,4 @@
-module git.eiac.dev/tools/denar
+module github.com/paramah/denar
 
 go 1.27
 

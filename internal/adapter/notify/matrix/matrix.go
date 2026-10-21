@@ -13,8 +13,8 @@ import (
 	"regexp"
 	"strings"
 
-	"git.eiac.dev/tools/denar/internal/adapter/notify/notifyhttp"
-	"git.eiac.dev/tools/denar/internal/usecase"
+	"github.com/paramah/denar/internal/adapter/notify/notifyhttp"
+	"github.com/paramah/denar/internal/usecase"
 )
 
 var _ usecase.Notifier = (*Notifier)(nil)
