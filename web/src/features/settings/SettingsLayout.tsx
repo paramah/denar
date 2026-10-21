@@ -14,6 +14,7 @@ export const settingsTabs: Tab[] = [
   { path: 'bots', label: 'Boty', visible: (role) => role !== 'viewer' },
   { path: 'payees', label: 'Kontrahenci', visible: () => true },
   { path: 'rates', label: 'Kursy walut', visible: () => true },
+  { path: 'notifications', label: 'Powiadomienia', visible: () => true },
   { path: 'audit', label: 'Dziennik zmian', visible: canManage },
 ]
 

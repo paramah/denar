@@ -89,10 +89,10 @@ describe('session and households', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
   })
 
-  it('shows coming soon pages for sections of later parts', async () => {
+  it('shows the notifications page instead of a placeholder', async () => {
     renderApp('/h/h-dom/notifications')
     expect(await screen.findByRole('heading', { level: 1, name: 'Powiadomienia' })).toBeInTheDocument()
-    expect(screen.getByText('Wkrótce')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nie ma jeszcze powiadomień' })).toBeInTheDocument()
   })
 })
 

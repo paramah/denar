@@ -3,7 +3,7 @@ import { BudgetPage } from '../features/budget/BudgetPage.tsx'
 import { InvitePage } from '../features/auth/InvitePage.tsx'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { CreateHouseholdPage } from '../features/households/CreateHouseholdPage.tsx'
-import { ComingSoonPage } from '../features/placeholders/ComingSoonPage.tsx'
+import { NotificationsPage } from '../features/notifications/NotificationsPage.tsx'
 import { ChargesQueuePage } from '../features/subscriptions/ChargesQueuePage.tsx'
 import { ListPage as SubscriptionListPage } from '../features/subscriptions/ListPage.tsx'
 import { OverviewPage as SubscriptionOverviewPage } from '../features/subscriptions/OverviewPage.tsx'
@@ -15,6 +15,7 @@ import { BotsTab } from '../features/settings/BotsTab.tsx'
 import { GeneralTab } from '../features/settings/GeneralTab.tsx'
 import { InvitationsTab } from '../features/settings/InvitationsTab.tsx'
 import { MembersTab } from '../features/settings/MembersTab.tsx'
+import { NotificationsTab } from '../features/settings/NotificationsTab.tsx'
 import { PayeesTab } from '../features/settings/PayeesTab.tsx'
 import { RatesTab } from '../features/settings/RatesTab.tsx'
 import { RequireTab, SettingsLayout } from '../features/settings/SettingsLayout.tsx'
@@ -59,7 +60,7 @@ export const routes: RouteObject[] = [
             ],
           },
           { path: 'subscriptions/:subscriptionId', element: <SubscriptionPage /> },
-          { path: 'notifications', element: <ComingSoonPage section="notifications" /> },
+          { path: 'notifications', element: <NotificationsPage /> },
           {
             path: 'settings',
             element: <SettingsLayout />,
@@ -85,6 +86,7 @@ export const routes: RouteObject[] = [
               },
               { path: 'payees', element: <PayeesTab /> },
               { path: 'rates', element: <RatesTab /> },
+              { path: 'notifications', element: <NotificationsTab /> },
               {
                 path: 'audit',
                 element: (

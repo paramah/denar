@@ -75,7 +75,17 @@ export const keys = {
     ['household', hid, 'subscriptions', 'charge-suggestions', chargeId, limit] as const,
   transactionChargeSuggestions: (hid: string, transactionId: string) =>
     ['household', hid, 'subscriptions', 'transaction-suggestions', transactionId] as const,
+
+  /** Powiadomienia są osobiste (wszystkie gospodarstwa) — prefiks listy i licznika. */
+  notifications: () => ['notifications'] as const,
+  notificationList: (filters: NotificationFilters = {}) => ['notifications', 'list', normalize(filters)] as const,
+  unreadCount: () => ['notifications', 'unread-count'] as const,
+  channelTypes: () => ['channel-types'] as const,
+  channels: () => ['channels'] as const,
+  notificationPreferences: (hid: string) => ['household', hid, 'notification-preferences'] as const,
 }
+
+export type NotificationFilters = { household_id?: string; unread?: boolean; limit?: number }
 
 export type SubscriptionFilters = Pick<
   NonNullable<operations['listSubscriptions']['parameters']['query']>,

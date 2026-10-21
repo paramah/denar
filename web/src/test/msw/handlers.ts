@@ -53,4 +53,9 @@ export const handlers: RequestHandler[] = [
   http.get(apiUrl('/households/:hid/subscriptions/upcoming'), () => HttpResponse.json({ items: [] })),
   http.get(apiUrl('/households/:hid/charges'), () => HttpResponse.json({ items: [], next_cursor: null })),
   http.post(apiUrl('/auth/logout'), () => new HttpResponse(null, { status: 204 })),
+  http.get(apiUrl('/me/notifications/unread-count'), () => HttpResponse.json({ count: 0 })),
+  http.get(apiUrl('/me/notifications'), () => HttpResponse.json({ items: [], next_cursor: null })),
+  http.get(apiUrl('/me/channel-types'), () => HttpResponse.json({ items: f.channelTypes() })),
+  http.get(apiUrl('/me/channels'), () => HttpResponse.json({ items: [] })),
+  http.get(apiUrl('/me/households/:hid/notification-preferences'), () => HttpResponse.json(f.preferences())),
 ]

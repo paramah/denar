@@ -1,5 +1,7 @@
 import type {
   ActorKind,
+  ChannelType,
+  EventType,
   FxSource,
   Role,
   TransactionKind,
@@ -98,6 +100,21 @@ export function resourceTypeLabel(type: string): string {
 
 const fieldLabels: Record<string, string> = {
   name: 'nazwa',
+  enabled: 'włączony',
+  'config.address': 'adres e-mail',
+  'config.url': 'adres URL',
+  'config.server': 'serwer ntfy',
+  'config.topic': 'temat',
+  'config.chat_id': 'chat_id',
+  'config.homeserver': 'serwer domowy',
+  'config.room_id': 'room_id',
+  'secrets.secret': 'sekret podpisu',
+  'secrets.token': 'token dostępu',
+  'secrets.bot_token': 'token bota',
+  'secrets.access_token': 'token dostępu',
+  'items.type': 'typ zdarzenia',
+  'items.channel_ids': 'kanały',
+  send_email: 'wysyłka e-mailem',
   role: 'rola',
   timezone: 'strefa czasowa',
   month_start_day: 'dzień startu miesiąca',
@@ -229,4 +246,47 @@ export const fxSourceLabels: Record<FxSource, string> = {
   manual: 'kurs ręczny',
   nbp: 'NBP',
   unavailable: 'brak kursu',
+}
+
+/** Typy zdarzeń powiadomień w kolejności serwera (`event.Types`). */
+export const eventTypeOrder: EventType[] = [
+  'subscription.renewal_upcoming',
+  'subscription.trial_ending',
+  'subscription.price_changed',
+  'subscription.charge_missed',
+  'envelope.overspent',
+  'envelope.goal_due',
+]
+
+export const eventTypeLabels: Record<EventType, string> = {
+  'subscription.renewal_upcoming': 'Zbliżające się odnowienie',
+  'subscription.trial_ending': 'Koniec okresu próbnego',
+  'subscription.price_changed': 'Zmiana ceny subskrypcji',
+  'subscription.charge_missed': 'Przegapiona płatność',
+  'envelope.overspent': 'Przekroczona koperta',
+  'envelope.goal_due': 'Zbliża się termin celu',
+}
+
+export const eventTypeDescriptions: Record<EventType, string> = {
+  'subscription.renewal_upcoming': 'Według przypomnień ustawionych w subskrypcji',
+  'subscription.trial_ending': 'Przed końcem okresu próbnego',
+  'subscription.price_changed': 'Gdy ktoś zapisze nową cenę',
+  'subscription.charge_missed': 'Gdy nie znajdziemy płatności subskrypcji',
+  'envelope.overspent': 'Raz w miesiącu dla każdej koperty na minusie',
+  'envelope.goal_due': 'Gdy do terminu celu zostaje tydzień, a brakuje pieniędzy',
+}
+
+export const channelTypeOrder: ChannelType[] = ['email', 'webhook', 'ntfy', 'telegram', 'matrix']
+
+export const channelTypeLabels: Record<ChannelType, string> = {
+  email: 'E-mail',
+  webhook: 'Webhook',
+  ntfy: 'ntfy',
+  telegram: 'Telegram',
+  matrix: 'Matrix',
+}
+
+export const unavailableReasonLabels: Record<string, string> = {
+  smtp_not_configured: 'Serwer nie ma skonfigurowanej poczty (SMTP).',
+  secrets_unavailable: 'Serwer nie ma klucza DENAR_MASTER_KEY do szyfrowania tokenów.',
 }

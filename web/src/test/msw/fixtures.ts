@@ -1,5 +1,9 @@
 import type {
   AuditEntry,
+  Channel,
+  ChannelTypeInfo,
+  Notification,
+  NotificationPreference,
   Charge,
   PricePoint,
   Subscription,
@@ -394,4 +398,99 @@ export function subscriptionSummary(overrides: Partial<SubscriptionSummary> = {}
     price_changes: [],
     ...overrides,
   }
+}
+
+export function notification(overrides: Partial<Notification> = {}): Notification {
+  return {
+    id: 'n-1',
+    household_id: 'h-dom',
+    type: 'subscription.renewal_upcoming',
+    title: 'Odnowienie: Netflix za 3 dni',
+    body: 'Netflix (netflix) odnowi się 2026-10-24: 43.00 PLN.',
+    link: '/h/h-dom/subscriptions/s-netflix',
+    resource_type: 'subscription',
+    resource_id: 's-netflix',
+    created_at: '2026-10-21T08:00:00Z',
+    read_at: null,
+    ...overrides,
+  }
+}
+
+/** Typy kanałów jak na serwerze z kluczem głównym i bez SMTP. */
+export function channelTypes(overrides: Partial<Record<ChannelTypeInfo['type'], Partial<ChannelTypeInfo>>> = {}): ChannelTypeInfo[] {
+  const base: ChannelTypeInfo[] = [
+    {
+      type: 'email',
+      available: false,
+      unavailable_reason: 'smtp_not_configured',
+      config_fields: [{ name: 'address', required: false }],
+      secret_fields: [],
+    },
+    {
+      type: 'webhook',
+      available: true,
+      unavailable_reason: null,
+      config_fields: [{ name: 'url', required: true }],
+      secret_fields: [{ name: 'secret', required: false }],
+    },
+    {
+      type: 'ntfy',
+      available: true,
+      unavailable_reason: null,
+      config_fields: [
+        { name: 'server', required: false },
+        { name: 'topic', required: true },
+      ],
+      secret_fields: [{ name: 'token', required: false }],
+    },
+    {
+      type: 'telegram',
+      available: true,
+      unavailable_reason: null,
+      config_fields: [{ name: 'chat_id', required: true }],
+      secret_fields: [{ name: 'bot_token', required: true }],
+    },
+    {
+      type: 'matrix',
+      available: true,
+      unavailable_reason: null,
+      config_fields: [
+        { name: 'homeserver', required: true },
+        { name: 'room_id', required: true },
+      ],
+      secret_fields: [{ name: 'access_token', required: true }],
+    },
+  ]
+  return base.map((t) => ({ ...t, ...overrides[t.type] }))
+}
+
+export function channel(overrides: Partial<Channel> = {}): Channel {
+  return {
+    id: 'c-hook',
+    type: 'webhook',
+    name: 'Mój webhook',
+    config: { url: 'https://example.test/hook' },
+    has_secret: false,
+    enabled: true,
+    verified_at: null,
+    last_error: null,
+    last_error_at: null,
+    created_at: '2026-10-20T10:00:00Z',
+    updated_at: '2026-10-20T10:00:00Z',
+    ...overrides,
+  }
+}
+
+export const eventTypes: NotificationPreference['type'][] = [
+  'subscription.renewal_upcoming',
+  'subscription.trial_ending',
+  'subscription.price_changed',
+  'subscription.charge_missed',
+  'envelope.overspent',
+  'envelope.goal_due',
+]
+
+/** Domyślne preferencje serwera: w aplikacji, bez kanałów. */
+export function preferences(overrides: Partial<Record<NotificationPreference['type'], Partial<NotificationPreference>>> = {}) {
+  return { items: eventTypes.map((type) => ({ type, in_app: true, channel_ids: [] as string[], ...overrides[type] })) }
 }

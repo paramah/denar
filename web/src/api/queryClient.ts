@@ -21,6 +21,8 @@ export const staleTime = {
   budget: 15 * second,
   vendors: Infinity,
   subscriptions: 15 * second,
+  notifications: 15 * second,
+  channels: 30 * second,
 } as const
 
 const maxRetries = 2
