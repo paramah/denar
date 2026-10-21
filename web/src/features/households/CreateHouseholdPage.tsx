@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { fieldErrors } from '../../api/errors.ts'
 import { useCreateHousehold } from '../../api/hooks/households.ts'
@@ -16,6 +17,7 @@ import styles from './households.module.css'
 const shownFields = ['name', 'base_currency', 'timezone', 'month_start_day']
 
 export function CreateHouseholdPage() {
+  const { t } = useTranslation('households')
   const create = useCreateHousehold()
   const navigate = useNavigate()
   const toast = useToast()
@@ -31,7 +33,7 @@ export function CreateHouseholdPage() {
 
   const submit = () => {
     if (!values.name.trim()) {
-      setLocalError('Podaj nazwę gospodarstwa.')
+      setLocalError(t('create.nameRequired'))
       return
     }
     setLocalError(undefined)
@@ -44,7 +46,7 @@ export function CreateHouseholdPage() {
       },
       {
         onSuccess: (household) => {
-          toast.show({ message: `Założono gospodarstwo ${household.name}.` })
+          toast.show({ message: t('create.created', { name: household.name }) })
           void navigate(householdPath(household.id), { replace: true })
         },
       },
@@ -54,11 +56,11 @@ export function CreateHouseholdPage() {
   return (
     <PlainLayout>
       <PageHeader
-        title="Nowe gospodarstwo"
-        description="Wspólna przestrzeń na portfele, budżet i subskrypcje. Domowników zaprosisz po założeniu."
+        title={t('create.title')}
+        description={t('create.description')}
       />
       <div className={styles.card}>
-        <Form onSubmit={submit} label="Nowe gospodarstwo">
+        <Form onSubmit={submit} label={t('create.title')}>
           <FormAlert error={create.error} shownFields={shownFields} />
           <HouseholdFields
             values={values}
@@ -67,9 +69,9 @@ export function CreateHouseholdPage() {
           />
           <FormActions>
             <Button type="submit" variant="primary" busy={create.isPending}>
-              Załóż gospodarstwo
+              {t('create.submit')}
             </Button>
-            {households.length > 0 && <LinkButton to="/">Anuluj</LinkButton>}
+            {households.length > 0 && <LinkButton to="/">{t('create.cancel')}</LinkButton>}
           </FormActions>
         </Form>
       </div>

@@ -1,1 +1,388 @@
-{}
+{
+  "layout": {
+    "title": "Ustawienia",
+    "description": "Gospodarstwo {{name}}"
+  },
+  "tabs": {
+    "general": "Gospodarstwo",
+    "members": "Członkowie",
+    "invitations": "Zaproszenia",
+    "bots": "Boty",
+    "payees": "Kontrahenci",
+    "rates": "Kursy walut",
+    "notifications": "Powiadomienia",
+    "connections": "Połączenia",
+    "audit": "Dziennik zmian"
+  },
+  "general": {
+    "documentTitle": "Ustawienia gospodarstwa",
+    "nameRequired": "Podaj nazwę gospodarstwa.",
+    "saved": "Zapisano ustawienia gospodarstwa.",
+    "heading": "Dane gospodarstwa",
+    "readOnly": "Zmieniać je mogą właściciel i administratorzy.",
+    "save": "Zapisz zmiany",
+    "revert": "Cofnij zmiany",
+    "delete": {
+      "title": "Usuń gospodarstwo",
+      "lead": "Usunięcie kasuje członkostwa, zaproszenia, boty i dziennik zmian. Tego nie da się cofnąć.",
+      "confirmTitle": "Usunąć gospodarstwo {{name}}?",
+      "confirm": "Usuń na zawsze",
+      "done": "Usunięto gospodarstwo {{name}}.",
+      "body": "Wszyscy członkowie stracą dostęp, a tokeny botów przestaną działać."
+    }
+  },
+  "members": {
+    "title": "Członkowie",
+    "lastOwner": "Gospodarstwo musi mieć co najmniej jednego właściciela. Najpierw nadaj tę rolę komuś innemu.",
+    "leadManage": "Rola decyduje, co domownik może robić. Nowe osoby dodasz w zakładce Zaproszenia.",
+    "lead": "Osoby z dostępem do tego gospodarstwa.",
+    "loadFailed": "Nie udało się wczytać członków",
+    "listLabel": "Członkowie gospodarstwa",
+    "you": "To Ty",
+    "meta": "{{email}}, w gospodarstwie od {{since}}",
+    "roleLabel": "Rola: {{name}}",
+    "roleChanged": "{{name}}: rola {{role}}.",
+    "leaveHousehold": "Opuść gospodarstwo",
+    "leave": "Opuść",
+    "removeLabel": "Usuń {{name}}",
+    "remove": "Usuń",
+    "leaveDialog": {
+      "title": "Opuścić gospodarstwo {{name}}?",
+      "done": "Opuszczono gospodarstwo {{name}}.",
+      "body": "Stracisz dostęp do danych gospodarstwa. Wrócić możesz tylko z nowym zaproszeniem.",
+      "bots": "Boty utworzone przez Ciebie zostaną wyłączone."
+    },
+    "removeDialog": {
+      "title": "Usunąć {{name}}?",
+      "confirm": "Usuń członka",
+      "done": "Usunięto {{name}} z gospodarstwa.",
+      "body": "{{name}} straci dostęp do gospodarstwa.",
+      "bots": "Boty utworzone przez tę osobę zostaną wyłączone."
+    }
+  },
+  "invitations": {
+    "documentTitle": "Zaproszenia",
+    "inviteHeading": "Zaproś do gospodarstwa",
+    "leadEmail": "Dostaniesz jednorazowy link. Denar może też wysłać go e-mailem do zaproszonej osoby.",
+    "leadNoEmail": "Dostaniesz jednorazowy link. Przekaż go zaproszonej osobie — ten serwer nie ma skonfigurowanej poczty.",
+    "sentHeading": "Wysłane zaproszenia",
+    "loadFailed": "Nie udało się wczytać zaproszeń",
+    "empty": {
+      "title": "Nie ma jeszcze zaproszeń",
+      "body": "Zaproszone osoby pojawią się tutaj razem ze stanem zaproszenia."
+    },
+    "state": {
+      "pending": "Oczekuje",
+      "accepted": "Przyjęte",
+      "revoked": "Odwołane",
+      "expired": "Wygasło"
+    },
+    "meta": "{{role}}, wysłane {{sent}}",
+    "metaPending": "{{role}}, wysłane {{sent}}, ważne do {{expires}}",
+    "revokeLabel": "Odwołaj zaproszenie dla {{email}}",
+    "revoke": "Odwołaj",
+    "link": "Link z zaproszeniem",
+    "done": "Gotowe",
+    "sendLink": "Wyślij ten link do <strong>{{email}}</strong>. Działa raz, do {{date}}.",
+    "emailSent": "Wysłaliśmy link e-mailem na adres {{email}}.",
+    "emailFailedTitle": "Nie udało się wysłać e-maila",
+    "emailFailedBody": "{{error}}. Zaproszenie powstało — przekaż link samodzielnie.",
+    "linkOnce": "Link pokazujemy tylko teraz. Po zamknięciu okna możesz wygenerować nowy.",
+    "form": {
+      "emailInvalid": "Podaj poprawny adres e-mail.",
+      "label": "Nowe zaproszenie",
+      "email": "E-mail",
+      "role": "Rola",
+      "createAndSend": "Utwórz i wyślij",
+      "create": "Utwórz link",
+      "sendEmail": "Wyślij link e-mailem",
+      "sendEmailHint": "Link i tak zobaczysz po utworzeniu — możesz go też przekazać sam."
+    },
+    "revokeDialog": {
+      "title": "Odwołać zaproszenie?",
+      "confirm": "Odwołaj zaproszenie",
+      "done": "Odwołano zaproszenie dla {{email}}.",
+      "body": "Link wysłany do {{email}} przestanie działać."
+    }
+  },
+  "bots": {
+    "documentTitle": "Boty",
+    "status": {
+      "disabled": "Wyłączony",
+      "expired": "Wygasł",
+      "noScopes": "Bez uprawnień",
+      "active": "Aktywny"
+    },
+    "heading": "Boty i asystenci AI",
+    "lead": "Bot dostaje token do API i MCP. Widzi tylko to, na co pozwalają jego uprawnienia — i nigdy więcej niż osoba, która go utworzyła.",
+    "new": "Nowy bot",
+    "loadFailed": "Nie udało się wczytać botów",
+    "listLabel": "Boty gospodarstwa",
+    "empty": {
+      "title": "Nie ma jeszcze botów",
+      "action": "Utwórz pierwszego bota",
+      "body": "Bot pozwala asystentowi AI (np. Claude przez MCP) albo własnemu skryptowi czytać analizy i dopisywać wydatki w Twoim imieniu."
+    },
+    "walletsOf": "Portfele bota {{name}}",
+    "walletsAll": "wszystkie widoczne dla twórcy",
+    "walletsHidden_one": "niewidoczne dla Ciebie: {{count}}",
+    "walletsHidden_few": "niewidoczne dla Ciebie: {{count}}",
+    "walletsHidden_many": "niewidoczne dla Ciebie: {{count}}",
+    "walletsHidden_other": "niewidoczne dla Ciebie: {{count}}",
+    "walletsSaved": "Zapisano portfele bota {{name}}.",
+    "scopes": "Uprawnienia",
+    "cancel": "Anuluj",
+    "save": "Zapisz",
+    "row": {
+      "label": "Bot {{name}}",
+      "meta": "Token <code>{{prefix}}…</code>, utworzony {{created}}, {{used}}, {{expires}}",
+      "usedAt": "ostatnio użyty {{when}}",
+      "neverUsed": "jeszcze nieużyty",
+      "expiresAt": "wygasa {{date}}",
+      "noExpiry": "bez daty wygaśnięcia",
+      "wallets": "Portfele: {{wallets}}",
+      "inactiveTitle": "Obecna rola twórcy nie daje tego uprawnienia",
+      "inactive": " (nieaktywne)",
+      "updateFailed": "Nie udało się zmienić bota. Spróbuj ponownie.",
+      "enableLabel": "Włącz {{name}}",
+      "disableLabel": "Wyłącz {{name}}",
+      "enabled": "Włączono bota {{name}}.",
+      "disabled": "Wyłączono bota {{name}}.",
+      "enable": "Włącz",
+      "disable": "Wyłącz",
+      "walletsButton": "Portfele",
+      "rotateLabel": "Nowy token dla {{name}}",
+      "rotate": "Nowy token",
+      "deleteLabel": "Usuń {{name}}",
+      "delete": "Usuń"
+    },
+    "form": {
+      "nameRequired": "Podaj nazwę bota.",
+      "scopesRequired": "Wybierz co najmniej jedno uprawnienie.",
+      "futureDate": "Wybierz datę w przyszłości.",
+      "duplicate": "Bot o tej nazwie już istnieje. Wybierz inną.",
+      "name": "Nazwa",
+      "nameHint": "Po nazwie rozpoznasz bota w dzienniku zmian, np. „Claude”, „Import z banku”.",
+      "presets": "Gotowe zestawy:",
+      "presetRead": "Tylko odczyt",
+      "presetAssistant": "Asystent AI (odczyt + wprowadzanie wydatków)",
+      "presetAll": "Odczyt i zapis",
+      "area": "Obszar",
+      "read": "Odczyt",
+      "write": "Zapis",
+      "noWrite": "Brak zapisu",
+      "validity": "Ważność tokenu",
+      "expires": "Token wygasa",
+      "expiresHint_one": "Zalecane. Domyślnie po {{count}} dniu.",
+      "expiresHint_few": "Zalecane. Domyślnie po {{count}} dniach.",
+      "expiresHint_many": "Zalecane. Domyślnie po {{count}} dniach.",
+      "expiresHint_other": "Zalecane. Domyślnie po {{count}} dniach.",
+      "expiryDate": "Wygasa po dniu",
+      "submit": "Utwórz bota"
+    },
+    "token": {
+      "title": "Token bota {{name}}",
+      "done": "Zapisałem token",
+      "onceTitle": "Token pokazujemy tylko raz",
+      "onceBody": "Skopiuj go teraz i zapisz w bezpiecznym miejscu (np. menedżerze haseł). Po zamknięciu okna odzyskać go się nie da — można jedynie wygenerować nowy. Tak samo zniknie z poleceń podłączenia asystenta poniżej.",
+      "label": "Token",
+      "hint": "Bot przedstawia się nagłówkiem Authorization: Bearer <token> — w REST API i w MCP."
+    },
+    "rotate": {
+      "title": "Nowy token dla {{name}}?",
+      "confirm": "Wygeneruj nowy token",
+      "body": "Obecny token przestanie działać od razu. Wpisz nowy wszędzie, gdzie bot jest używany."
+    },
+    "delete": {
+      "title": "Usunąć bota {{name}}?",
+      "confirm": "Usuń bota",
+      "done": "Usunięto bota {{name}}.",
+      "body": "Token przestanie działać. Wpisy bota w dzienniku zmian zostaną."
+    }
+  },
+  "walletScope": {
+    "required": "Wybierz co najmniej jeden portfel albo pozwól na wszystkie.",
+    "legend": "Portfele",
+    "restricted": "Tylko wybrane portfele",
+    "restrictedHint": "Bez ograniczenia bot widzi wszystkie portfele, które widzi jego twórca (także te dodane później).",
+    "listLabel": "Portfele bota",
+    "wallet": "{{name}} ({{currency}})",
+    "walletArchived": "{{name}} ({{currency}}) — zarchiwizowany",
+    "none": "Nie widzisz jeszcze żadnych portfeli.",
+    "hidden_one": "Oraz portfele niewidoczne dla Ciebie: {{count}} (zostaną bez zmian).",
+    "hidden_few": "Oraz portfele niewidoczne dla Ciebie: {{count}} (zostaną bez zmian).",
+    "hidden_many": "Oraz portfele niewidoczne dla Ciebie: {{count}} (zostaną bez zmian).",
+    "hidden_other": "Oraz portfele niewidoczne dla Ciebie: {{count}} (zostaną bez zmian)."
+  },
+  "assistant": {
+    "prompts": {
+      "renewals": "Co odnawia się w tym tygodniu i ile to kosztuje?",
+      "envelope": "Ile zostało mi w kopercie „Jedzenie” w tym miesiącu?",
+      "spending": "Na co wydałem najwięcej w zeszłym miesiącu?",
+      "balances": "Jakie mam salda na portfelach?",
+      "expense": "Wydałem 42,50 zł w Biedronce z karty, na jedzenie."
+    },
+    "title": "Podłącz do asystenta AI",
+    "lead": "Denar ma serwer MCP — asystent (np. Claude) czyta przez niego dane i dopisuje wydatki z uprawnieniami tego bota. Polecenia poniżej zawierają token, więc też skopiuj je teraz.",
+    "insecureTitle": "Połączenie bez HTTPS",
+    "insecureBody": "Token pójdzie przez sieć niezaszyfrowany. Udostępnij Denara przez HTTPS (np. za reverse proxy), zanim podłączysz asystenta spoza tego komputera.",
+    "url": "Adres serwera MCP",
+    "urlHint": "Transport: Streamable HTTP.",
+    "header": "Nagłówek uwierzytelnienia",
+    "claudeCode": "Claude Code — polecenie w terminalu",
+    "otherClients": "Inne klienty: konfiguracja JSON",
+    "remoteHttp": "Klient ze zdalnym MCP (HTTP z nagłówkami)",
+    "remoteHttpHint": "Np. plik .mcp.json Claude Code albo konfiguracja Cursora.",
+    "mcpRemote": "Klient bez nagłówków — most mcp-remote",
+    "mcpRemoteHint": "Np. claude_desktop_config.json w Claude Desktop. Wymaga Node.js (npx).",
+    "thenAsk": "Potem zapytaj na przykład:",
+    "quoted": "„{{prompt}}”"
+  },
+  "payees": {
+    "title": "Kontrahenci",
+    "lead": "Sklepy, firmy i osoby, z którymi się rozliczasz. Nowy kontrahent powstaje sam, gdy wpiszesz go w transakcji. Wzorce rozpoznają go w opisach z banku (np. „BIEDRONKA” w „BIEDRONKA 1234 WARSZAWA”).",
+    "new": "Nowy kontrahent",
+    "loadFailed": "Nie udało się wczytać kontrahentów",
+    "empty": {
+      "title": "Nie ma jeszcze kontrahentów",
+      "body": "Pojawią się, gdy wpiszesz kontrahenta w transakcji, albo dodaj ich tutaj."
+    },
+    "rowLabel": "Kontrahent {{name}}",
+    "patterns": "Wzorce",
+    "noPatterns": "Bez wzorców — rozpoznawany po nazwie",
+    "defaultEnvelopeMeta": "Domyślna koperta: {{envelope}}",
+    "unknownEnvelope": "nieznana",
+    "editLabel": "Edytuj {{name}}",
+    "edit": "Edytuj",
+    "deleteLabel": "Usuń {{name}}",
+    "delete": "Usuń",
+    "editTitle": "Edycja: {{name}}",
+    "form": {
+      "nameRequired": "Podaj nazwę.",
+      "saved": "Zapisano kontrahenta {{name}}.",
+      "editLabel": "Edycja kontrahenta",
+      "name": "Nazwa",
+      "duplicate": "Kontrahent o tej nazwie już istnieje.",
+      "patternsHint": "Jeden w linii. Fragment tekstu bez względu na wielkość liter, np. ORLEN.",
+      "defaultEnvelope": "Domyślna koperta",
+      "defaultEnvelopeHint": "Wydatek u tego kontrahenta bez wybranej koperty trafi do tej koperty.",
+      "cancel": "Anuluj",
+      "save": "Zapisz"
+    },
+    "deleteDialog": {
+      "title": "Usunąć kontrahenta {{name}}?",
+      "confirm": "Usuń kontrahenta",
+      "done": "Usunięto kontrahenta {{name}}.",
+      "body": "Transakcje zostaną, ale bez kontrahenta."
+    }
+  },
+  "rates": {
+    "title": "Kursy walut",
+    "lead": "Transakcje w obcej walucie przeliczamy na {{base}} po średnim kursie NBP z dnia transakcji (albo ostatniego dnia roboczego przed nim). Bez dostępu do NBP transakcja czeka na kurs — możesz go wtedy ustawić ręcznie.",
+    "overrides": "Kursy ustawione ręcznie",
+    "loadFailed": "Nie udało się wczytać kursów",
+    "empty": {
+      "title": "Brak ręcznych kursów",
+      "body": "Wszystkie kursy pochodzą z NBP."
+    },
+    "rowLabel": "Kurs {{currency}} z {{date}}",
+    "rowMeta": "Na dzień {{date}} · ustawiony {{created}}",
+    "currency": "Waluta",
+    "day": "Dzień",
+    "quote": {
+      "missingTitle": "Brak kursu",
+      "missingBody": "Nie ma kursu {{currency}} na {{date}}. Transakcje w tej walucie z tego dnia poczekają na kurs.",
+      "ratedOn": " · notowanie z {{date}}"
+    },
+    "set": {
+      "done": "Ustawiono kurs {{currency}} na {{date}}.",
+      "title": "Ustaw kurs ręcznie",
+      "lead": "Kurs obowiązuje tylko w tym gospodarstwie i tylko tego dnia. Uzupełni kwoty w {{base}} transakcji, które czekają na kurs z tego dnia; transakcji już przeliczonych nie zmienia.",
+      "date": "Na dzień",
+      "rate": "Kurs ({{base}} za 1 {{currency}})",
+      "placeholder": "np. 4,2512",
+      "submit": "Zapisz kurs"
+    }
+  },
+  "audit": {
+    "title": "Dziennik zmian",
+    "actorAll": "Wszyscy",
+    "resourceAll": "Wszystkie",
+    "yes": "tak",
+    "no": "nie",
+    "system": "System",
+    "lead": "Kto i kiedy zmienił coś w gospodarstwie — ludzie, boty i zadania systemowe. Od najnowszych.",
+    "filters": "Filtry dziennika",
+    "actor": "Kto",
+    "resource": "Czego dotyczy",
+    "loading": "Wczytywanie dziennika…",
+    "loadFailed": "Nie udało się wczytać dziennika",
+    "listLabel": "Wpisy dziennika",
+    "loadMore": "Pokaż starsze",
+    "empty": {
+      "title": "Brak wpisów",
+      "filtered": "Żaden wpis nie pasuje do filtrów.",
+      "body": "Tu pojawi się każda zmiana w gospodarstwie."
+    },
+    "botPrefix": "Bot ",
+    "changes_one": "Zmiany ({{count}})",
+    "changes_few": "Zmiany ({{count}})",
+    "changes_many": "Zmiany ({{count}})",
+    "changes_other": "Zmiany ({{count}})",
+    "changedTo": "zmienione na"
+  },
+  "connections": {
+    "title": "Połączenia",
+    "lead": "Automatyczne pobieranie transakcji z banków i rachunków dostawców. Pobrane operacje przechodzą przez ten sam import co pliki CSV: duplikaty są pomijane, kontrahenci dopasowani regułami.",
+    "loading": "Wczytywanie połączeń…",
+    "loadFailed": "Nie udało się wczytać połączeń",
+    "empty": {
+      "title": "Brak połączeń",
+      "action": "Importuj CSV",
+      "body": "Integracje z bankami i dostawcami (PSD2, OpenAI, Apple) pojawią się w przyszłych wersjach; teraz użyj importu CSV — wyciąg z banku trafi do portfela w kilka kliknięć."
+    },
+    "providers": {
+      "title": "Dostawcy na tym serwerze",
+      "loadFailed": "Nie udało się wczytać dostawców",
+      "none": "Żaden dostawca nie jest jeszcze dostępny. Kolejne wersje Denara dodadzą banki (PSD2 przez agregatora) i rachunki OpenAI oraz Apple.",
+      "listLabel": "Dostawcy połączeń"
+    },
+    "card": {
+      "lastSync": "ostatnia synchronizacja {{date}}",
+      "neverSynced": "jeszcze nie synchronizowano",
+      "lastError": "Ostatni błąd: ",
+      "accounts": "Konta: {{name}}",
+      "wallet": "→ {{wallet}}",
+      "walletFallback": "portfel",
+      "noWallet": "nie przypisano do portfela"
+    }
+  },
+  "scopes": {
+    "read": "{{area}}: odczyt",
+    "write": "{{area}}: zapis",
+    "wallets": {
+      "label": "Portfele",
+      "description": "Konta, gotówka, karty i salda"
+    },
+    "transactions": {
+      "label": "Transakcje",
+      "description": "Wydatki, wpływy i przelewy"
+    },
+    "budget": {
+      "label": "Budżet",
+      "description": "Koperty i przydziały"
+    },
+    "subscriptions": {
+      "label": "Subskrypcje",
+      "description": "Koszty cykliczne i odnowienia"
+    },
+    "reports": {
+      "label": "Raporty",
+      "description": "Podsumowania i analizy wydatków"
+    },
+    "notifications": {
+      "label": "Powiadomienia",
+      "description": "Przypomnienia w aplikacji"
+    }
+  }
+}

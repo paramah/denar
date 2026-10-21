@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { fieldErrors } from '../../api/errors.ts'
 import { translateDeliveryError } from '../../api/messages.ts'
 import { useCreateInvitation, useInvitations, useRevokeInvitation } from '../../api/hooks/invitations.ts'
@@ -20,33 +21,32 @@ import { formatDate, formatDateTime } from '../../lib/format.ts'
 import { roleDescriptions, roleLabels, roleOrder } from '../../lib/labels.ts'
 import styles from './settings.module.css'
 
-const stateBadges: Record<Invitation['state'], { label: string; tone: 'brand' | 'positive' | 'neutral' | 'warn' }> = {
-  pending: { label: 'Oczekuje', tone: 'brand' },
-  accepted: { label: 'Przyjęte', tone: 'positive' },
-  revoked: { label: 'Odwołane', tone: 'neutral' },
-  expired: { label: 'Wygasło', tone: 'warn' },
+const stateTones: Record<Invitation['state'], 'brand' | 'positive' | 'neutral' | 'warn'> = {
+  pending: 'brand',
+  accepted: 'positive',
+  revoked: 'neutral',
+  expired: 'warn',
 }
 
 export function InvitationsTab() {
-  useDocumentTitle('Zaproszenia')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('invitations.documentTitle'))
   const { household } = useHousehold()
   const invitations = useInvitations(household.id)
   const [created, setCreated] = useState<InvitationCreated | null>(null)
   const [revoking, setRevoking] = useState<Invitation | null>(null)
   // E-mail z linkiem tylko, gdy serwer ma SMTP (typ kanału „email” dostępny).
   const channelTypes = useChannelTypes()
-  const canEmail = channelTypes.data?.some((t) => t.type === 'email' && t.available) ?? false
+  const canEmail = channelTypes.data?.some((c) => c.type === 'email' && c.available) ?? false
 
   return (
     <>
       <section className={styles.section} aria-labelledby="invite-heading">
         <div className={styles.sectionHead}>
           <div>
-            <h2 id="invite-heading">Zaproś do gospodarstwa</h2>
+            <h2 id="invite-heading">{t('invitations.inviteHeading')}</h2>
             <p>
-              {canEmail
-                ? 'Dostaniesz jednorazowy link. Denar może też wysłać go e-mailem do zaproszonej osoby.'
-                : 'Dostaniesz jednorazowy link. Przekaż go zaproszonej osobie — ten serwer nie ma skonfigurowanej poczty.'}
+              {canEmail ? t('invitations.leadEmail') : t('invitations.leadNoEmail')}
             </p>
           </div>
         </div>
@@ -56,16 +56,16 @@ export function InvitationsTab() {
       </section>
 
       <section className={styles.section} aria-labelledby="invitations-heading">
-        <h2 id="invitations-heading">Wysłane zaproszenia</h2>
-        <QueryState query={invitations} errorTitle="Nie udało się wczytać zaproszeń">
+        <h2 id="invitations-heading">{t('invitations.sentHeading')}</h2>
+        <QueryState query={invitations} errorTitle={t('invitations.loadFailed')}>
           {(items) => (
             <DataList
-              label="Wysłane zaproszenia"
+              label={t('invitations.sentHeading')}
               items={items}
               getKey={(invitation) => invitation.id}
               empty={
-                <EmptyState icon="mail" title="Nie ma jeszcze zaproszeń" headingLevel={3}>
-                  <p>Zaproszone osoby pojawią się tutaj razem ze stanem zaproszenia.</p>
+                <EmptyState icon="mail" title={t('invitations.empty.title')} headingLevel={3}>
+                  <p>{t('invitations.empty.body')}</p>
                 </EmptyState>
               }
               renderItem={(invitation) => (
@@ -73,11 +73,16 @@ export function InvitationsTab() {
                   <div className={styles.rowMain}>
                     <span className={styles.rowTitle}>
                       {invitation.email}
-                      <Badge tone={stateBadges[invitation.state].tone}>{stateBadges[invitation.state].label}</Badge>
+                      <Badge tone={stateTones[invitation.state]}>{t(`invitations.state.${invitation.state}`)}</Badge>
                     </span>
                     <span className={styles.rowMeta}>
-                      {roleLabels[invitation.role]}, wysłane {formatDate(invitation.created_at)}
-                      {invitation.state === 'pending' && `, ważne do ${formatDateTime(invitation.expires_at)}`}
+                      {invitation.state === 'pending'
+                        ? t('invitations.metaPending', {
+                            role: roleLabels[invitation.role],
+                            sent: formatDate(invitation.created_at),
+                            expires: formatDateTime(invitation.expires_at),
+                          })
+                        : t('invitations.meta', { role: roleLabels[invitation.role], sent: formatDate(invitation.created_at) })}
                     </span>
                   </div>
                   {invitation.state === 'pending' && (
@@ -86,9 +91,9 @@ export function InvitationsTab() {
                         size="sm"
                         variant="danger"
                         onClick={() => setRevoking(invitation)}
-                        aria-label={`Odwołaj zaproszenie dla ${invitation.email}`}
+                        aria-label={t('invitations.revokeLabel', { email: invitation.email })}
                       >
-                        Odwołaj
+                        {t('invitations.revoke')}
                       </Button>
                     </div>
                   )}
@@ -99,27 +104,31 @@ export function InvitationsTab() {
         </QueryState>
       </section>
 
-      <Dialog open={!!created} title="Link z zaproszeniem" onClose={() => setCreated(null)} footer={
+      <Dialog open={!!created} title={t('invitations.link')} onClose={() => setCreated(null)} footer={
         <Button variant="primary" onClick={() => setCreated(null)}>
-          Gotowe
+          {t('invitations.done')}
         </Button>
       }>
         {created && (
           <>
             <p>
-              Wyślij ten link do <strong>{created.invitation.email}</strong>. Działa raz, do{' '}
-              {formatDateTime(created.invitation.expires_at)}.
+              <Trans
+                t={t}
+                i18nKey="invitations.sendLink"
+                values={{ email: created.invitation.email, date: formatDateTime(created.invitation.expires_at) }}
+                components={{ strong: <strong /> }}
+              />
             </p>
             {created.email_sent && (
-              <Callout>Wysłaliśmy link e-mailem na adres {created.invitation.email}.</Callout>
+              <Callout>{t('invitations.emailSent', { email: created.invitation.email })}</Callout>
             )}
             {created.email_error && (
-              <Callout tone="warn" title="Nie udało się wysłać e-maila">
-                {translateDeliveryError(created.email_error)}. Zaproszenie powstało — przekaż link samodzielnie.
+              <Callout tone="warn" title={t('invitations.emailFailedTitle')}>
+                {t('invitations.emailFailedBody', { error: translateDeliveryError(created.email_error) })}
               </Callout>
             )}
-            <CopyField label="Link z zaproszeniem" value={created.url} initialFocus />
-            <Callout tone="warn">Link pokazujemy tylko teraz. Po zamknięciu okna możesz wygenerować nowy.</Callout>
+            <CopyField label={t('invitations.link')} value={created.url} initialFocus />
+            <Callout tone="warn">{t('invitations.linkOnce')}</Callout>
           </>
         )}
       </Dialog>
@@ -131,6 +140,7 @@ export function InvitationsTab() {
 
 function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCreated) => void; canEmail: boolean }) {
   const { household, role } = useHousehold()
+  const { t } = useTranslation('settings')
   const create = useCreateInvitation(household.id)
   const [email, setEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<Role>('member')
@@ -141,7 +151,7 @@ function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCr
 
   const submit = () => {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setEmailError('Podaj poprawny adres e-mail.')
+      setEmailError(t('invitations.form.emailInvalid'))
       return
     }
     setEmailError(undefined)
@@ -157,11 +167,11 @@ function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCr
   }
 
   return (
-    <Form onSubmit={submit} label="Nowe zaproszenie">
+    <Form onSubmit={submit} label={t('invitations.form.label')}>
       <FormAlert error={create.error} shownFields={['email', 'role']} />
       <div className={styles.inlineForm}>
         <TextField
-          label="E-mail"
+          label={t('invitations.form.email')}
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -170,7 +180,7 @@ function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCr
           required
         />
         <SelectField
-          label="Rola"
+          label={t('invitations.form.role')}
           value={inviteRole}
           onChange={(event) => setInviteRole(event.target.value as Role)}
           options={roles.map((r) => ({ value: r, label: roleLabels[r] }))}
@@ -178,13 +188,13 @@ function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCr
           hint={roleDescriptions[inviteRole]}
         />
         <Button type="submit" variant="primary" icon="link" busy={create.isPending}>
-          {canEmail && sendEmail ? 'Utwórz i wyślij' : 'Utwórz link'}
+          {canEmail && sendEmail ? t('invitations.form.createAndSend') : t('invitations.form.create')}
         </Button>
       </div>
       {canEmail && (
         <Checkbox
-          label="Wyślij link e-mailem"
-          hint="Link i tak zobaczysz po utworzeniu — możesz go też przekazać sam."
+          label={t('invitations.form.sendEmail')}
+          hint={t('invitations.form.sendEmailHint')}
           checked={sendEmail}
           onChange={(event) => setSendEmail(event.target.checked)}
         />
@@ -195,26 +205,27 @@ function InviteForm({ onCreated, canEmail }: { onCreated: (created: InvitationCr
 
 function RevokeDialog({ invitation, onDone }: { invitation: Invitation; onDone: () => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const revoke = useRevokeInvitation(household.id)
   const toast = useToast()
   return (
     <ConfirmDialog
       open
-      title="Odwołać zaproszenie?"
-      confirmLabel="Odwołaj zaproszenie"
+      title={t('invitations.revokeDialog.title')}
+      confirmLabel={t('invitations.revokeDialog.confirm')}
       busy={revoke.isPending}
       error={<FormAlert error={revoke.error} />}
       onCancel={onDone}
       onConfirm={() =>
         revoke.mutate(invitation.id, {
           onSuccess: () => {
-            toast.show({ message: `Odwołano zaproszenie dla ${invitation.email}.` })
+            toast.show({ message: t('invitations.revokeDialog.done', { email: invitation.email }) })
             onDone()
           },
         })
       }
     >
-      <p>Link wysłany do {invitation.email} przestanie działać.</p>
+      <p>{t('invitations.revokeDialog.body', { email: invitation.email })}</p>
     </ConfirmDialog>
   )
 }

@@ -1,1 +1,380 @@
-{}
+{
+  "layout": {
+    "title": "Settings",
+    "description": "Household {{name}}"
+  },
+  "tabs": {
+    "general": "Household",
+    "members": "Members",
+    "invitations": "Invitations",
+    "bots": "Bots",
+    "payees": "Payees",
+    "rates": "Exchange rates",
+    "notifications": "Notifications",
+    "connections": "Connections",
+    "audit": "Change log"
+  },
+  "general": {
+    "documentTitle": "Household settings",
+    "nameRequired": "Enter the household name.",
+    "saved": "Household settings saved.",
+    "heading": "Household details",
+    "readOnly": "Only the owner and admins can change them.",
+    "save": "Save changes",
+    "revert": "Undo changes",
+    "delete": {
+      "title": "Delete household",
+      "lead": "Deleting removes memberships, invitations, bots and the change log. This cannot be undone.",
+      "confirmTitle": "Delete household {{name}}?",
+      "confirm": "Delete forever",
+      "done": "Household {{name}} deleted.",
+      "body": "All members will lose access, and bot tokens will stop working."
+    }
+  },
+  "members": {
+    "title": "Members",
+    "lastOwner": "A household must have at least one owner. Give this role to someone else first.",
+    "leadManage": "The role decides what a household member can do. Add new people on the Invitations tab.",
+    "lead": "People with access to this household.",
+    "loadFailed": "Could not load the members",
+    "listLabel": "Household members",
+    "you": "You",
+    "meta": "{{email}}, in the household since {{since}}",
+    "roleLabel": "Role: {{name}}",
+    "roleChanged": "{{name}}: role {{role}}.",
+    "leaveHousehold": "Leave household",
+    "leave": "Leave",
+    "removeLabel": "Remove {{name}}",
+    "remove": "Remove",
+    "leaveDialog": {
+      "title": "Leave household {{name}}?",
+      "done": "You left household {{name}}.",
+      "body": "You will lose access to the household data. You can only come back with a new invitation.",
+      "bots": "Bots you created will be disabled."
+    },
+    "removeDialog": {
+      "title": "Remove {{name}}?",
+      "confirm": "Remove member",
+      "done": "{{name}} removed from the household.",
+      "body": "{{name}} will lose access to the household.",
+      "bots": "Bots created by this person will be disabled."
+    }
+  },
+  "invitations": {
+    "documentTitle": "Invitations",
+    "inviteHeading": "Invite to the household",
+    "leadEmail": "You will get a single-use link. Denar can also email it to the invited person.",
+    "leadNoEmail": "You will get a single-use link. Pass it on to the invited person — this server has no email configured.",
+    "sentHeading": "Sent invitations",
+    "loadFailed": "Could not load the invitations",
+    "empty": {
+      "title": "No invitations yet",
+      "body": "Invited people will appear here together with the invitation status."
+    },
+    "state": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
+    "meta": "{{role}}, sent {{sent}}",
+    "metaPending": "{{role}}, sent {{sent}}, valid until {{expires}}",
+    "revokeLabel": "Revoke the invitation for {{email}}",
+    "revoke": "Revoke",
+    "link": "Invitation link",
+    "done": "Done",
+    "sendLink": "Send this link to <strong>{{email}}</strong>. It works once, until {{date}}.",
+    "emailSent": "We emailed the link to {{email}}.",
+    "emailFailedTitle": "Could not send the email",
+    "emailFailedBody": "{{error}}. The invitation was created — pass the link on yourself.",
+    "linkOnce": "The link is shown only now. After closing this window you can generate a new one.",
+    "form": {
+      "emailInvalid": "Enter a valid email address.",
+      "label": "New invitation",
+      "email": "Email",
+      "role": "Role",
+      "createAndSend": "Create and send",
+      "create": "Create link",
+      "sendEmail": "Email the link",
+      "sendEmailHint": "You will see the link after creating it anyway — you can also pass it on yourself."
+    },
+    "revokeDialog": {
+      "title": "Revoke the invitation?",
+      "confirm": "Revoke invitation",
+      "done": "Invitation for {{email}} revoked.",
+      "body": "The link sent to {{email}} will stop working."
+    }
+  },
+  "bots": {
+    "documentTitle": "Bots",
+    "status": {
+      "disabled": "Disabled",
+      "expired": "Expired",
+      "noScopes": "No permissions",
+      "active": "Active"
+    },
+    "heading": "Bots and AI assistants",
+    "lead": "A bot gets a token for the API and MCP. It sees only what its scopes allow — and never more than the person who created it.",
+    "new": "New bot",
+    "loadFailed": "Could not load the bots",
+    "listLabel": "Household bots",
+    "empty": {
+      "title": "No bots yet",
+      "action": "Create the first bot",
+      "body": "A bot lets an AI assistant (e.g. Claude over MCP) or your own script read reports and record expenses on your behalf."
+    },
+    "walletsOf": "Wallets of bot {{name}}",
+    "walletsAll": "all visible to the creator",
+    "walletsHidden_one": "hidden from you: {{count}}",
+    "walletsHidden_other": "hidden from you: {{count}}",
+    "walletsSaved": "Wallets of bot {{name}} saved.",
+    "scopes": "Scopes",
+    "cancel": "Cancel",
+    "save": "Save",
+    "row": {
+      "label": "Bot {{name}}",
+      "meta": "Token <code>{{prefix}}…</code>, created {{created}}, {{used}}, {{expires}}",
+      "usedAt": "last used {{when}}",
+      "neverUsed": "not used yet",
+      "expiresAt": "expires {{date}}",
+      "noExpiry": "no expiry date",
+      "wallets": "Wallets: {{wallets}}",
+      "inactiveTitle": "The creator's current role does not grant this scope",
+      "inactive": " (inactive)",
+      "updateFailed": "Could not change the bot. Try again.",
+      "enableLabel": "Enable {{name}}",
+      "disableLabel": "Disable {{name}}",
+      "enabled": "Bot {{name}} enabled.",
+      "disabled": "Bot {{name}} disabled.",
+      "enable": "Enable",
+      "disable": "Disable",
+      "walletsButton": "Wallets",
+      "rotateLabel": "New token for {{name}}",
+      "rotate": "New token",
+      "deleteLabel": "Delete {{name}}",
+      "delete": "Delete"
+    },
+    "form": {
+      "nameRequired": "Enter the bot name.",
+      "scopesRequired": "Choose at least one scope.",
+      "futureDate": "Choose a date in the future.",
+      "duplicate": "A bot with this name already exists. Choose another one.",
+      "name": "Name",
+      "nameHint": "The name identifies the bot in the change log, e.g. “Claude”, “Bank import”.",
+      "presets": "Presets:",
+      "presetRead": "Read only",
+      "presetAssistant": "AI assistant (read + recording expenses)",
+      "presetAll": "Read and write",
+      "area": "Area",
+      "read": "Read",
+      "write": "Write",
+      "noWrite": "No write access",
+      "validity": "Token validity",
+      "expires": "Token expires",
+      "expiresHint_one": "Recommended. By default after {{count}} day.",
+      "expiresHint_other": "Recommended. By default after {{count}} days.",
+      "expiryDate": "Expires after",
+      "submit": "Create bot"
+    },
+    "token": {
+      "title": "Token of bot {{name}}",
+      "done": "I have saved the token",
+      "onceTitle": "The token is shown only once",
+      "onceBody": "Copy it now and keep it somewhere safe (e.g. a password manager). Once you close this window it cannot be recovered — you can only generate a new one. It will also disappear from the assistant connection commands below.",
+      "label": "Token",
+      "hint": "The bot identifies itself with the header Authorization: Bearer <token> — in the REST API and in MCP."
+    },
+    "rotate": {
+      "title": "New token for {{name}}?",
+      "confirm": "Generate a new token",
+      "body": "The current token stops working immediately. Enter the new one wherever the bot is used."
+    },
+    "delete": {
+      "title": "Delete bot {{name}}?",
+      "confirm": "Delete bot",
+      "done": "Bot {{name}} deleted.",
+      "body": "The token will stop working. The bot's change log entries will remain."
+    }
+  },
+  "walletScope": {
+    "required": "Choose at least one wallet or allow all of them.",
+    "legend": "Wallets",
+    "restricted": "Selected wallets only",
+    "restrictedHint": "Without a restriction the bot sees every wallet its creator sees (including ones added later).",
+    "listLabel": "Bot wallets",
+    "wallet": "{{name}} ({{currency}})",
+    "walletArchived": "{{name}} ({{currency}}) — archived",
+    "none": "You cannot see any wallets yet.",
+    "hidden_one": "Plus {{count}} wallet hidden from you (left unchanged).",
+    "hidden_other": "Plus {{count}} wallets hidden from you (left unchanged)."
+  },
+  "assistant": {
+    "prompts": {
+      "renewals": "What renews this week and how much does it cost?",
+      "envelope": "How much is left in my “Groceries” envelope this month?",
+      "spending": "What did I spend the most on last month?",
+      "balances": "What are my wallet balances?",
+      "expense": "I spent 42.50 at the grocery store with my card, on groceries."
+    },
+    "title": "Connect to an AI assistant",
+    "lead": "Denar has an MCP server — an assistant (e.g. Claude) uses it to read data and record expenses with this bot's scopes. The commands below contain the token, so copy them now too.",
+    "insecureTitle": "Connection without HTTPS",
+    "insecureBody": "The token will travel over the network unencrypted. Serve Denar over HTTPS (e.g. behind a reverse proxy) before connecting an assistant from outside this computer.",
+    "url": "MCP server address",
+    "urlHint": "Transport: Streamable HTTP.",
+    "header": "Authentication header",
+    "claudeCode": "Claude Code — terminal command",
+    "otherClients": "Other clients: JSON configuration",
+    "remoteHttp": "Client with remote MCP (HTTP with headers)",
+    "remoteHttpHint": "E.g. Claude Code's .mcp.json file or the Cursor configuration.",
+    "mcpRemote": "Client without headers — mcp-remote bridge",
+    "mcpRemoteHint": "E.g. claude_desktop_config.json in Claude Desktop. Requires Node.js (npx).",
+    "thenAsk": "Then ask, for example:",
+    "quoted": "“{{prompt}}”"
+  },
+  "payees": {
+    "title": "Payees",
+    "lead": "Shops, companies and people you deal with. A new payee is created automatically when you enter it in a transaction. Patterns recognise it in bank descriptions (e.g. “BIEDRONKA” in “BIEDRONKA 1234 WARSZAWA”).",
+    "new": "New payee",
+    "loadFailed": "Could not load the payees",
+    "empty": {
+      "title": "No payees yet",
+      "body": "They will appear when you enter a payee in a transaction, or you can add them here."
+    },
+    "rowLabel": "Payee {{name}}",
+    "patterns": "Patterns",
+    "noPatterns": "No patterns — recognised by name",
+    "defaultEnvelopeMeta": "Default envelope: {{envelope}}",
+    "unknownEnvelope": "unknown",
+    "editLabel": "Edit {{name}}",
+    "edit": "Edit",
+    "deleteLabel": "Delete {{name}}",
+    "delete": "Delete",
+    "editTitle": "Edit: {{name}}",
+    "form": {
+      "nameRequired": "Enter a name.",
+      "saved": "Payee {{name}} saved.",
+      "editLabel": "Edit payee",
+      "name": "Name",
+      "duplicate": "A payee with this name already exists.",
+      "patternsHint": "One per line. A text fragment, case-insensitive, e.g. ORLEN.",
+      "defaultEnvelope": "Default envelope",
+      "defaultEnvelopeHint": "An expense at this payee without a chosen envelope goes to this envelope.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "deleteDialog": {
+      "title": "Delete payee {{name}}?",
+      "confirm": "Delete payee",
+      "done": "Payee {{name}} deleted.",
+      "body": "Transactions will remain, but without a payee."
+    }
+  },
+  "rates": {
+    "title": "Exchange rates",
+    "lead": "Foreign currency transactions are converted to {{base}} at the NBP average rate for the transaction date (or the last business day before it). Without access to NBP a transaction waits for a rate — you can then set it manually.",
+    "overrides": "Manually set rates",
+    "loadFailed": "Could not load the rates",
+    "empty": {
+      "title": "No manual rates",
+      "body": "All rates come from NBP."
+    },
+    "rowLabel": "{{currency}} rate on {{date}}",
+    "rowMeta": "For {{date}} · set {{created}}",
+    "currency": "Currency",
+    "day": "Day",
+    "quote": {
+      "missingTitle": "No rate",
+      "missingBody": "There is no {{currency}} rate for {{date}}. Transactions in this currency from that day will wait for a rate.",
+      "ratedOn": " · quoted on {{date}}"
+    },
+    "set": {
+      "done": "{{currency}} rate for {{date}} set.",
+      "title": "Set a rate manually",
+      "lead": "The rate applies only in this household and only on that day. It fills in the {{base}} amounts of transactions waiting for a rate from that day; it does not change transactions already converted.",
+      "date": "For date",
+      "rate": "Rate ({{base}} per 1 {{currency}})",
+      "placeholder": "e.g. 4.2512",
+      "submit": "Save rate"
+    }
+  },
+  "audit": {
+    "title": "Change log",
+    "actorAll": "Everyone",
+    "resourceAll": "All",
+    "yes": "yes",
+    "no": "no",
+    "system": "System",
+    "lead": "Who changed what in the household and when — people, bots and system jobs. Newest first.",
+    "filters": "Change log filters",
+    "actor": "Who",
+    "resource": "Concerns",
+    "loading": "Loading the change log…",
+    "loadFailed": "Could not load the change log",
+    "listLabel": "Change log entries",
+    "loadMore": "Show older",
+    "empty": {
+      "title": "No entries",
+      "filtered": "No entry matches the filters.",
+      "body": "Every change in the household will appear here."
+    },
+    "botPrefix": "Bot ",
+    "changes_one": "Changes ({{count}})",
+    "changes_other": "Changes ({{count}})",
+    "changedTo": "changed to"
+  },
+  "connections": {
+    "title": "Connections",
+    "lead": "Automatic import of transactions from banks and provider accounts. Fetched operations go through the same import as CSV files: duplicates are skipped and payees are matched by rules.",
+    "loading": "Loading connections…",
+    "loadFailed": "Could not load the connections",
+    "empty": {
+      "title": "No connections",
+      "action": "Import CSV",
+      "body": "Integrations with banks and providers (PSD2, OpenAI, Apple) will come in future versions; for now use the CSV import — a bank statement lands in a wallet in a few clicks."
+    },
+    "providers": {
+      "title": "Providers on this server",
+      "loadFailed": "Could not load the providers",
+      "none": "No provider is available yet. Future versions of Denar will add banks (PSD2 via an aggregator) and OpenAI and Apple accounts.",
+      "listLabel": "Connection providers"
+    },
+    "card": {
+      "lastSync": "last synced {{date}}",
+      "neverSynced": "not synced yet",
+      "lastError": "Last error: ",
+      "accounts": "Accounts: {{name}}",
+      "wallet": "→ {{wallet}}",
+      "walletFallback": "wallet",
+      "noWallet": "not assigned to a wallet"
+    }
+  },
+  "scopes": {
+    "read": "{{area}}: read",
+    "write": "{{area}}: write",
+    "wallets": {
+      "label": "Wallets",
+      "description": "Accounts, cash, cards and balances"
+    },
+    "transactions": {
+      "label": "Transactions",
+      "description": "Expenses, income and transfers"
+    },
+    "budget": {
+      "label": "Budget",
+      "description": "Envelopes and allocations"
+    },
+    "subscriptions": {
+      "label": "Subscriptions",
+      "description": "Recurring costs and renewals"
+    },
+    "reports": {
+      "label": "Reports",
+      "description": "Spending summaries and analyses"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "description": "In-app reminders"
+    }
+  }
+}

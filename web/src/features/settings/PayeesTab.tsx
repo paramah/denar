@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useCreatePayee, useDeletePayee, usePayees, useUpdatePayee } from '../../api/hooks/payees.ts'
 import type { Payee } from '../../api/types.ts'
@@ -23,7 +24,8 @@ export function parsePatterns(text: string): string[] {
 }
 
 export function PayeesTab() {
-  useDocumentTitle('Kontrahenci')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('payees.title'))
   const { household, role } = useHousehold()
   const payees = usePayees(household.id)
   const canWrite = role !== 'viewer'
@@ -35,35 +37,32 @@ export function PayeesTab() {
     <section className={styles.section} aria-labelledby="payees-heading">
       <div className={styles.sectionHead}>
         <div>
-          <h2 id="payees-heading">Kontrahenci</h2>
-          <p>
-            Sklepy, firmy i osoby, z którymi się rozliczasz. Nowy kontrahent powstaje sam, gdy wpiszesz go w transakcji.
-            Wzorce rozpoznają go w opisach z banku (np. „BIEDRONKA” w „BIEDRONKA 1234 WARSZAWA”).
-          </p>
+          <h2 id="payees-heading">{t('payees.title')}</h2>
+          <p>{t('payees.lead')}</p>
         </div>
         {canWrite && (
           <Button variant="primary" icon="plus" onClick={() => setEditing('new')}>
-            Nowy kontrahent
+            {t('payees.new')}
           </Button>
         )}
       </div>
-      <QueryState query={payees} errorTitle="Nie udało się wczytać kontrahentów">
+      <QueryState query={payees} errorTitle={t('payees.loadFailed')}>
         {(items) => (
           <DataList
-            label="Kontrahenci"
+            label={t('payees.title')}
             items={items}
             getKey={(payee) => payee.id}
             empty={
-              <EmptyState icon="users" title="Nie ma jeszcze kontrahentów" headingLevel={3}>
-                <p>Pojawią się, gdy wpiszesz kontrahenta w transakcji, albo dodaj ich tutaj.</p>
+              <EmptyState icon="users" title={t('payees.empty.title')} headingLevel={3}>
+                <p>{t('payees.empty.body')}</p>
               </EmptyState>
             }
             renderItem={(payee) => (
-              <article className={styles.row} aria-label={`Kontrahent ${payee.name}`}>
+              <article className={styles.row} aria-label={t('payees.rowLabel', { name: payee.name })}>
                 <div className={styles.rowMain}>
                   <h3 className={styles.rowTitle}>{payee.name}</h3>
                   {payee.patterns.length > 0 ? (
-                    <ul className={styles.chips} aria-label="Wzorce">
+                    <ul className={styles.chips} aria-label={t('payees.patterns')}>
                       {payee.patterns.map((pattern) => (
                         <li key={pattern}>
                           <Badge>{pattern}</Badge>
@@ -71,21 +70,23 @@ export function PayeesTab() {
                       ))}
                     </ul>
                   ) : (
-                    <span className={styles.rowMeta}>Bez wzorców — rozpoznawany po nazwie</span>
+                    <span className={styles.rowMeta}>{t('payees.noPatterns')}</span>
                   )}
                   {envelopesEnabled() && payee.default_envelope_id && (
                     <span className={styles.rowMeta}>
-                      Domyślna koperta: {envelopeNames.get(payee.default_envelope_id) ?? 'nieznana'}
+                      {t('payees.defaultEnvelopeMeta', {
+                        envelope: envelopeNames.get(payee.default_envelope_id) ?? t('payees.unknownEnvelope'),
+                      })}
                     </span>
                   )}
                 </div>
                 {canWrite && (
                   <div className={styles.rowActions}>
-                    <Button size="sm" icon="edit" onClick={() => setEditing(payee)} aria-label={`Edytuj ${payee.name}`}>
-                      Edytuj
+                    <Button size="sm" icon="edit" onClick={() => setEditing(payee)} aria-label={t('payees.editLabel', { name: payee.name })}>
+                      {t('payees.edit')}
                     </Button>
-                    <Button size="sm" variant="danger" icon="trash" onClick={() => setDeleting(payee)} aria-label={`Usuń ${payee.name}`}>
-                      Usuń
+                    <Button size="sm" variant="danger" icon="trash" onClick={() => setDeleting(payee)} aria-label={t('payees.deleteLabel', { name: payee.name })}>
+                      {t('payees.delete')}
                     </Button>
                   </div>
                 )}
@@ -96,7 +97,7 @@ export function PayeesTab() {
       </QueryState>
       <Dialog
         open={editing !== null}
-        title={editing === 'new' ? 'Nowy kontrahent' : `Edycja: ${editing?.name ?? ''}`}
+        title={editing === 'new' ? t('payees.new') : t('payees.editTitle', { name: editing?.name ?? '' })}
         onClose={() => setEditing(null)}
       >
         <PayeeForm payee={editing === 'new' ? undefined : (editing ?? undefined)} onDone={() => setEditing(null)} />
@@ -108,6 +109,7 @@ export function PayeesTab() {
 
 function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const create = useCreatePayee(household.id)
   const update = useUpdatePayee(household.id)
   const toast = useToast()
@@ -123,7 +125,7 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
 
   const submit = async () => {
     if (!name.trim()) {
-      setError('Podaj nazwę.')
+      setError(t('payees.form.nameRequired'))
       return
     }
     setError(undefined)
@@ -136,7 +138,7 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
       } else {
         await create.mutateAsync({ ...body, ...(showEnvelope && envelopeId ? { default_envelope_id: envelopeId } : {}) })
       }
-      toast.show({ message: `Zapisano kontrahenta ${body.name}.` })
+      toast.show({ message: t('payees.form.saved', { name: body.name }) })
       onDone()
     } catch {
       // Błąd pokazuje formularz.
@@ -146,7 +148,7 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
   return (
     <form
       noValidate
-      aria-label={payee ? 'Edycja kontrahenta' : 'Nowy kontrahent'}
+      aria-label={payee ? t('payees.form.editLabel') : t('payees.new')}
       className={styles.section}
       onSubmit={(event) => {
         event.preventDefault()
@@ -155,38 +157,38 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
     >
       <FormAlert error={duplicate ? null : mutation.error} shownFields={['name', 'patterns', 'default_envelope_id']} />
       <TextField
-        label="Nazwa"
+        label={t('payees.form.name')}
         value={name}
         onChange={(event) => setName(event.target.value)}
-        error={error ?? (duplicate ? 'Kontrahent o tej nazwie już istnieje.' : server.name)}
+        error={error ?? (duplicate ? t('payees.form.duplicate') : server.name)}
         maxLength={100}
         autoComplete="off"
         data-autofocus
       />
       <TextAreaField
-        label="Wzorce"
+        label={t('payees.patterns')}
         value={patterns}
         onChange={setPatterns}
         rows={4}
-        hint="Jeden w linii. Fragment tekstu bez względu na wielkość liter, np. ORLEN."
+        hint={t('payees.form.patternsHint')}
         error={server.patterns}
       />
       {showEnvelope && (
         <div>
           <EnvelopeField
-            label="Domyślna koperta"
+            label={t('payees.form.defaultEnvelope')}
             value={envelopeId}
             onChange={setEnvelopeId}
             options={envelopeOptions}
             error={server.default_envelope_id}
           />
-          <p className={styles.rowMeta}>Wydatek u tego kontrahenta bez wybranej koperty trafi do tej koperty.</p>
+          <p className={styles.rowMeta}>{t('payees.form.defaultEnvelopeHint')}</p>
         </div>
       )}
       <div className={styles.rowActions}>
-        <Button onClick={onDone}>Anuluj</Button>
+        <Button onClick={onDone}>{t('payees.form.cancel')}</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>
-          Zapisz
+          {t('payees.form.save')}
         </Button>
       </div>
     </form>
@@ -195,26 +197,27 @@ function PayeeForm({ payee, onDone }: { payee?: Payee; onDone: () => void }) {
 
 function DeletePayeeDialog({ payee, onDone }: { payee: Payee; onDone: () => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const remove = useDeletePayee(household.id)
   const toast = useToast()
   return (
     <ConfirmDialog
       open
-      title={`Usunąć kontrahenta ${payee.name}?`}
-      confirmLabel="Usuń kontrahenta"
+      title={t('payees.deleteDialog.title', { name: payee.name })}
+      confirmLabel={t('payees.deleteDialog.confirm')}
       busy={remove.isPending}
       error={<FormAlert error={remove.error} />}
       onCancel={onDone}
       onConfirm={() =>
         remove.mutate(payee.id, {
           onSuccess: () => {
-            toast.show({ message: `Usunięto kontrahenta ${payee.name}.` })
+            toast.show({ message: t('payees.deleteDialog.done', { name: payee.name }) })
             onDone()
           },
         })
       }
     >
-      <p>Transakcje zostaną, ale bez kontrahenta.</p>
+      <p>{t('payees.deleteDialog.body')}</p>
     </ConfirmDialog>
   )
 }

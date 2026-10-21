@@ -1,1 +1,22 @@
-{}
+{
+  "create": {
+    "title": "Nowe gospodarstwo",
+    "description": "Wspólna przestrzeń na portfele, budżet i subskrypcje. Domowników zaprosisz po założeniu.",
+    "nameRequired": "Podaj nazwę gospodarstwa.",
+    "created": "Założono gospodarstwo {{name}}.",
+    "submit": "Załóż gospodarstwo",
+    "cancel": "Anuluj"
+  },
+  "fields": {
+    "name": "Nazwa",
+    "nameHint": "Np. „Dom”, „Mieszkanie na Mokotowie”.",
+    "baseCurrency": "Waluta bazowa",
+    "currencyLockedHint": "Waluty bazowej nie można zmienić: w niej liczony jest budżet.",
+    "currencyHint": "W niej prowadzisz budżet; portfele mogą mieć inne waluty. Później jej nie zmienisz.",
+    "currencyOption": "{{code}} — {{name}}",
+    "timezone": "Strefa czasowa",
+    "monthStart": "Miesiąc budżetowy zaczyna się",
+    "monthStartDay": "{{day}}. dnia",
+    "monthStartHint": "Np. w dniu wypłaty."
+  }
+}

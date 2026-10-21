@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { ApiError, errorMessage } from '../../api/errors.ts'
 import { forgetHousehold } from '../../api/hooks/households.ts'
@@ -16,6 +17,7 @@ import { Callout } from '../../components/Form/Form.tsx'
 import { useDocumentTitle } from '../../components/PageHeader/PageHeader.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
 import { useToast } from '../../components/Toast/Toast.tsx'
+import { tk } from '../../i18n/translate.ts'
 import { formatDate } from '../../lib/format.ts'
 import { roleLabels, roleOrder } from '../../lib/labels.ts'
 import { storageKeys, writeStored } from '../../lib/storage.ts'
@@ -34,13 +36,14 @@ export function assignableRoles(actor: Role, target: Member): Role[] {
 
 function conflictMessage(error: unknown): string {
   if (error instanceof ApiError && error.reason === 'last-owner') {
-    return 'Gospodarstwo musi mieć co najmniej jednego właściciela. Najpierw nadaj tę rolę komuś innemu.'
+    return tk('settings:members.lastOwner')
   }
   return errorMessage(error)
 }
 
 export function MembersTab() {
-  useDocumentTitle('Członkowie')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('members.title'))
   const { household, role } = useHousehold()
   const members = useMembers(household.id)
   const { user } = useSessionUser()
@@ -50,18 +53,16 @@ export function MembersTab() {
     <section className={styles.section} aria-labelledby="members-heading">
       <div className={styles.sectionHead}>
         <div>
-          <h2 id="members-heading">Członkowie</h2>
+          <h2 id="members-heading">{t('members.title')}</h2>
           <p>
-            {canManage(role)
-              ? 'Rola decyduje, co domownik może robić. Nowe osoby dodasz w zakładce Zaproszenia.'
-              : 'Osoby z dostępem do tego gospodarstwa.'}
+            {canManage(role) ? t('members.leadManage') : t('members.lead')}
           </p>
         </div>
       </div>
-      <QueryState query={members} errorTitle="Nie udało się wczytać członków">
+      <QueryState query={members} errorTitle={t('members.loadFailed')}>
         {(items) => (
           <DataList
-            label="Członkowie gospodarstwa"
+            label={t('members.listLabel')}
             items={items}
             getKey={(member) => member.user_id}
             renderItem={(member) => (
@@ -94,6 +95,7 @@ function MemberRow({
   onRemove: () => void
 }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const update = useUpdateMemberRole(household.id)
   const toast = useToast()
   const roles = assignableRoles(actorRole, member)
@@ -105,10 +107,10 @@ function MemberRow({
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>
           {member.name}
-          {isSelf && <Badge tone="brand">To Ty</Badge>}
+          {isSelf && <Badge tone="brand">{t('members.you')}</Badge>}
         </span>
         <span className={styles.rowMeta}>
-          {member.email}, w gospodarstwie od {formatDate(member.joined_at)}
+          {t('members.meta', { email: member.email, since: formatDate(member.joined_at) })}
         </span>
         {update.error ? (
           <span role="alert" className={styles.rowMeta}>
@@ -120,7 +122,7 @@ function MemberRow({
         {roles.length > 0 ? (
           <>
             <label htmlFor={selectId} className="visually-hidden">
-              Rola: {member.name}
+              {t('members.roleLabel', { name: member.name })}
             </label>
             <select
               id={selectId}
@@ -132,7 +134,12 @@ function MemberRow({
                   { userId: member.user_id, role: event.target.value as Role },
                   {
                     onSuccess: (changed) =>
-                      toast.show({ message: `${changed.name}: rola ${roleLabels[changed.role].toLowerCase()}.` }),
+                      toast.show({
+                        message: t('members.roleChanged', {
+                          name: changed.name,
+                          role: roleLabels[changed.role].toLowerCase(),
+                        }),
+                      }),
                   },
                 )
               }
@@ -152,9 +159,9 @@ function MemberRow({
             size="sm"
             variant={isSelf ? 'secondary' : 'danger'}
             onClick={onRemove}
-            aria-label={isSelf ? 'Opuść gospodarstwo' : `Usuń ${member.name}`}
+            aria-label={isSelf ? t('members.leaveHousehold') : t('members.removeLabel', { name: member.name })}
           >
-            {isSelf ? 'Opuść' : 'Usuń'}
+            {isSelf ? t('members.leave') : t('members.remove')}
           </Button>
         )}
       </div>
@@ -164,6 +171,7 @@ function MemberRow({
 
 function RemoveMemberDialog({ member, isSelf, onDone }: { member: Member; isSelf: boolean; onDone: () => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const remove = useRemoveMember(household.id)
   const client = useQueryClient()
   const navigate = useNavigate()
@@ -171,8 +179,8 @@ function RemoveMemberDialog({ member, isSelf, onDone }: { member: Member; isSelf
   return (
     <ConfirmDialog
       open
-      title={isSelf ? `Opuścić gospodarstwo ${household.name}?` : `Usunąć ${member.name}?`}
-      confirmLabel={isSelf ? 'Opuść gospodarstwo' : 'Usuń członka'}
+      title={isSelf ? t('members.leaveDialog.title', { name: household.name }) : t('members.removeDialog.title', { name: member.name })}
+      confirmLabel={isSelf ? t('members.leaveHousehold') : t('members.removeDialog.confirm')}
       busy={remove.isPending}
       error={
         remove.error ? (
@@ -189,21 +197,19 @@ function RemoveMemberDialog({ member, isSelf, onDone }: { member: Member; isSelf
             if (isSelf) {
               writeStored(storageKeys.household, null)
               forgetHousehold(client, household.id)
-              toast.show({ message: `Opuszczono gospodarstwo ${household.name}.` })
+              toast.show({ message: t('members.leaveDialog.done', { name: household.name }) })
               void navigate('/', { replace: true })
             } else {
-              toast.show({ message: `Usunięto ${member.name} z gospodarstwa.` })
+              toast.show({ message: t('members.removeDialog.done', { name: member.name }) })
             }
           },
         })
       }
     >
       <p>
-        {isSelf
-          ? 'Stracisz dostęp do danych gospodarstwa. Wrócić możesz tylko z nowym zaproszeniem.'
-          : `${member.name} straci dostęp do gospodarstwa.`}
+        {isSelf ? t('members.leaveDialog.body') : t('members.removeDialog.body', { name: member.name })}
       </p>
-      <p>Boty utworzone przez {isSelf ? 'Ciebie' : 'tę osobę'} zostaną wyłączone.</p>
+      <p>{isSelf ? t('members.leaveDialog.bots') : t('members.removeDialog.bots')}</p>
     </ConfirmDialog>
   )
 }

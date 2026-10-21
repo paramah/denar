@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useBots, useCreateBot, useDeleteBot, useRotateBotToken, useUpdateBot } from '../../api/hooks/bots.ts'
 import { useWallets } from '../../api/hooks/wallets.ts'
@@ -15,6 +16,7 @@ import { Callout, FormAlert } from '../../components/Form/Form.tsx'
 import { useDocumentTitle } from '../../components/PageHeader/PageHeader.tsx'
 import { QueryState } from '../../components/QueryState/QueryState.tsx'
 import { useToast } from '../../components/Toast/Toast.tsx'
+import { tk } from '../../i18n/translate.ts'
 import { addDays, endOfLocalDay, formatDate, formatRelative, toDateInput } from '../../lib/format.ts'
 import { allScopes, assistantScopes, readScopes, roleAllowsScope, scopeGroups, scopeLabel, toggleScope } from '../../lib/scopes.ts'
 import { AssistantConnect } from './AssistantConnect.tsx'
@@ -28,19 +30,20 @@ type Status = { label: string; tone: 'positive' | 'neutral' | 'warn' }
 
 export function botStatus(bot: Bot, now = new Date()): Status {
   if (bot.disabled) {
-    return { label: 'Wyłączony', tone: 'neutral' }
+    return { label: tk('settings:bots.status.disabled'), tone: 'neutral' }
   }
   if (bot.expires_at && new Date(bot.expires_at) <= now) {
-    return { label: 'Wygasł', tone: 'warn' }
+    return { label: tk('settings:bots.status.expired'), tone: 'warn' }
   }
   if (bot.scopes.length > 0 && bot.effective_scopes.length === 0) {
-    return { label: 'Bez uprawnień', tone: 'warn' }
+    return { label: tk('settings:bots.status.noScopes'), tone: 'warn' }
   }
-  return { label: 'Aktywny', tone: 'positive' }
+  return { label: tk('settings:bots.status.active'), tone: 'positive' }
 }
 
 export function BotsTab() {
-  useDocumentTitle('Boty')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('bots.documentTitle'))
   const { household } = useHousehold()
   const bots = useBots(household.id)
   const [creating, setCreating] = useState(false)
@@ -54,38 +57,32 @@ export function BotsTab() {
     <section className={styles.section} aria-labelledby="bots-heading">
       <div className={styles.sectionHead}>
         <div>
-          <h2 id="bots-heading">Boty i asystenci AI</h2>
-          <p>
-            Bot dostaje token do API i MCP. Widzi tylko to, na co pozwalają jego uprawnienia — i nigdy więcej niż
-            osoba, która go utworzyła.
-          </p>
+          <h2 id="bots-heading">{t('bots.heading')}</h2>
+          <p>{t('bots.lead')}</p>
         </div>
         <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-          Nowy bot
+          {t('bots.new')}
         </Button>
       </div>
-      <QueryState query={bots} errorTitle="Nie udało się wczytać botów">
+      <QueryState query={bots} errorTitle={t('bots.loadFailed')}>
         {(items) => (
           <DataList
-            label="Boty gospodarstwa"
+            label={t('bots.listLabel')}
             items={items}
             variant="cards"
             getKey={(bot) => bot.id}
             empty={
               <EmptyState
                 icon="bot"
-                title="Nie ma jeszcze botów"
+                title={t('bots.empty.title')}
                 headingLevel={3}
                 action={
                   <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
-                    Utwórz pierwszego bota
+                    {t('bots.empty.action')}
                   </Button>
                 }
               >
-                <p>
-                  Bot pozwala asystentowi AI (np. Claude przez MCP) albo własnemu skryptowi czytać analizy i dopisywać
-                  wydatki w Twoim imieniu.
-                </p>
+                <p>{t('bots.empty.body')}</p>
               </EmptyState>
             }
             renderItem={(bot) => (
@@ -122,7 +119,7 @@ export function BotsTab() {
         />
       )}
       {deleting && <DeleteDialog bot={deleting} onDone={() => setDeleting(null)} />}
-      <Dialog open={!!scoping} title={scoping ? `Portfele bota ${scoping.name}` : ''} onClose={() => setScoping(null)}>
+      <Dialog open={!!scoping} title={scoping ? t('bots.walletsOf', { name: scoping.name }) : ''} onClose={() => setScoping(null)}>
         {scoping && <BotWalletsForm bot={scoping} wallets={wallets.data ?? []} onDone={() => setScoping(null)} />}
       </Dialog>
     </section>
@@ -132,12 +129,12 @@ export function BotsTab() {
 /** „wszystkie widoczne dla twórcy” albo nazwy portfeli bota. */
 export function botWalletsLabel(bot: Bot, wallets: Wallet[]): string {
   if (bot.wallet_ids.length === 0) {
-    return 'wszystkie widoczne dla twórcy'
+    return tk('settings:bots.walletsAll')
   }
   const names = new Map(wallets.map((w) => [w.id, w.name]))
   const known = bot.wallet_ids.flatMap((id) => (names.has(id) ? [names.get(id)!] : []))
   const hidden = bot.wallet_ids.length - known.length
-  return [...known, ...(hidden > 0 ? [`niewidoczne dla Ciebie: ${hidden}`] : [])].join(', ')
+  return [...known, ...(hidden > 0 ? [tk('settings:bots.walletsHidden', { count: hidden })] : [])].join(', ')
 }
 
 function BotRow({
@@ -154,40 +151,51 @@ function BotRow({
   onDelete: () => void
 }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const update = useUpdateBot(household.id)
   const toast = useToast()
   const status = botStatus(bot)
   const effective = new Set(bot.effective_scopes)
 
   return (
-    <article className={styles.row} aria-label={`Bot ${bot.name}`}>
+    <article className={styles.row} aria-label={t('bots.row.label', { name: bot.name })}>
       <div className={styles.rowMain}>
         <h3 className={styles.rowTitle}>
           {bot.name}
           <Badge tone={status.tone}>{status.label}</Badge>
         </h3>
         <span className={styles.rowMeta}>
-          Token <code>{bot.token_prefix}…</code>, utworzony {formatDate(bot.created_at)},{' '}
-          {bot.last_used_at ? `ostatnio użyty ${formatRelative(bot.last_used_at)}` : 'jeszcze nieużyty'},{' '}
-          {bot.expires_at ? `wygasa ${formatDate(bot.expires_at)}` : 'bez daty wygaśnięcia'}
+          <Trans
+            t={t}
+            i18nKey="bots.row.meta"
+            values={{
+              prefix: bot.token_prefix,
+              created: formatDate(bot.created_at),
+              used: bot.last_used_at
+                ? t('bots.row.usedAt', { when: formatRelative(bot.last_used_at) })
+                : t('bots.row.neverUsed'),
+              expires: bot.expires_at ? t('bots.row.expiresAt', { date: formatDate(bot.expires_at) }) : t('bots.row.noExpiry'),
+            }}
+            components={{ code: <code /> }}
+          />
         </span>
-        <span className={styles.rowMeta}>Portfele: {botWalletsLabel(bot, wallets)}</span>
-        <ul className={styles.chips} aria-label="Uprawnienia">
+        <span className={styles.rowMeta}>{t('bots.row.wallets', { wallets: botWalletsLabel(bot, wallets) })}</span>
+        <ul className={styles.chips} aria-label={t('bots.scopes')}>
           {bot.scopes.map((scope) => (
             <li key={scope}>
               <Badge
                 struck={!effective.has(scope)}
-                title={effective.has(scope) ? undefined : 'Obecna rola twórcy nie daje tego uprawnienia'}
+                title={effective.has(scope) ? undefined : t('bots.row.inactiveTitle')}
               >
                 {scopeLabel(scope)}
-                {!effective.has(scope) && <span className="visually-hidden"> (nieaktywne)</span>}
+                {!effective.has(scope) && <span className="visually-hidden">{t('bots.row.inactive')}</span>}
               </Badge>
             </li>
           ))}
         </ul>
         {update.error ? (
           <span role="alert" className={styles.rowMeta}>
-            Nie udało się zmienić bota. Spróbuj ponownie.
+            {t('bots.row.updateFailed')}
           </span>
         ) : null}
       </div>
@@ -196,27 +204,29 @@ function BotRow({
           size="sm"
           icon={bot.disabled ? 'play' : 'pause'}
           busy={update.isPending}
-          aria-label={`${bot.disabled ? 'Włącz' : 'Wyłącz'} ${bot.name}`}
+          aria-label={t(bot.disabled ? 'bots.row.enableLabel' : 'bots.row.disableLabel', { name: bot.name })}
           onClick={() =>
             update.mutate(
               { botId: bot.id, body: { disabled: !bot.disabled } },
               {
                 onSuccess: (changed) =>
-                  toast.show({ message: changed.disabled ? `Wyłączono bota ${changed.name}.` : `Włączono bota ${changed.name}.` }),
+                  toast.show({
+                    message: t(changed.disabled ? 'bots.row.disabled' : 'bots.row.enabled', { name: changed.name }),
+                  }),
               },
             )
           }
         >
-          {bot.disabled ? 'Włącz' : 'Wyłącz'}
+          {bot.disabled ? t('bots.row.enable') : t('bots.row.disable')}
         </Button>
-        <Button size="sm" icon="wallet" onClick={onWallets} aria-label={`Portfele bota ${bot.name}`}>
-          Portfele
+        <Button size="sm" icon="wallet" onClick={onWallets} aria-label={t('bots.walletsOf', { name: bot.name })}>
+          {t('bots.row.walletsButton')}
         </Button>
-        <Button size="sm" icon="key" onClick={onRotate} aria-label={`Nowy token dla ${bot.name}`}>
-          Nowy token
+        <Button size="sm" icon="key" onClick={onRotate} aria-label={t('bots.row.rotateLabel', { name: bot.name })}>
+          {t('bots.row.rotate')}
         </Button>
-        <Button size="sm" variant="danger" icon="trash" onClick={onDelete} aria-label={`Usuń ${bot.name}`}>
-          Usuń
+        <Button size="sm" variant="danger" icon="trash" onClick={onDelete} aria-label={t('bots.row.deleteLabel', { name: bot.name })}>
+          {t('bots.row.delete')}
         </Button>
       </div>
     </article>
@@ -232,8 +242,9 @@ function CreateBotDialog({
   onClose: () => void
   onCreated: (result: BotWithToken) => void
 }) {
+  const { t } = useTranslation('settings')
   return (
-    <Dialog open={open} title="Nowy bot" onClose={onClose} size="lg">
+    <Dialog open={open} title={t('bots.new')} onClose={onClose} size="lg">
       <CreateBotForm onCancel={onClose} onCreated={onCreated} />
     </Dialog>
   )
@@ -241,6 +252,7 @@ function CreateBotDialog({
 
 function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: (result: BotWithToken) => void }) {
   const { household, role } = useHousehold()
+  const { t } = useTranslation('settings')
   const create = useCreateBot(household.id)
   const wallets = useWallets(household.id)
   const [walletScope, setWalletScope] = useState<WalletScope>({ restricted: false, ids: [] })
@@ -256,10 +268,10 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
   const submit = () => {
     const expiresAt = expires ? endOfLocalDay(expiryDate) : null
     const next = {
-      name: name.trim() ? undefined : 'Podaj nazwę bota.',
-      scopes: scopes.length > 0 ? undefined : 'Wybierz co najmniej jedno uprawnienie.',
+      name: name.trim() ? undefined : t('bots.form.nameRequired'),
+      scopes: scopes.length > 0 ? undefined : t('bots.form.scopesRequired'),
       expires_at:
-        expires && (!expiresAt || new Date(expiresAt) <= new Date()) ? 'Wybierz datę w przyszłości.' : undefined,
+        expires && (!expiresAt || new Date(expiresAt) <= new Date()) ? t('bots.form.futureDate') : undefined,
       wallet_ids: walletScopeError(walletScope),
     }
     setErrors(next)
@@ -276,7 +288,7 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
   return (
     <form
       noValidate
-      aria-label="Nowy bot"
+      aria-label={t('bots.new')}
       className={styles.section}
       onSubmit={(event) => {
         event.preventDefault()
@@ -284,15 +296,15 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       }}
     >
       {duplicate ? (
-        <Callout tone="warn">Bot o tej nazwie już istnieje. Wybierz inną.</Callout>
+        <Callout tone="warn">{t('bots.form.duplicate')}</Callout>
       ) : (
         <FormAlert error={create.error} shownFields={['name', 'scopes', 'expires_at', 'wallet_ids']} />
       )}
       <TextField
-        label="Nazwa"
+        label={t('bots.form.name')}
         value={name}
         onChange={(event) => setName(event.target.value)}
-        hint="Po nazwie rozpoznasz bota w dzienniku zmian, np. „Claude”, „Import z banku”."
+        hint={t('bots.form.nameHint')}
         error={errors.name ?? server.name}
         maxLength={100}
         autoComplete="off"
@@ -300,25 +312,25 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       />
 
       <fieldset className={styles.fieldset} aria-describedby={errors.scopes ? 'scopes-error' : undefined}>
-        <legend>Uprawnienia</legend>
+        <legend>{t('bots.scopes')}</legend>
         <div className={styles.presets}>
-          <span>Gotowe zestawy:</span>
+          <span>{t('bots.form.presets')}</span>
           <Button size="sm" onClick={() => setScopes(readScopes)}>
-            Tylko odczyt
+            {t('bots.form.presetRead')}
           </Button>
           <Button size="sm" onClick={() => setScopes(assistantScopes.filter((s) => roleAllowsScope(role, s)))}>
-            Asystent AI (odczyt + wprowadzanie wydatków)
+            {t('bots.form.presetAssistant')}
           </Button>
           <Button size="sm" onClick={() => setScopes(allScopes.filter((s) => roleAllowsScope(role, s)))}>
-            Odczyt i zapis
+            {t('bots.form.presetAll')}
           </Button>
         </div>
         <table className={styles.scopeTable}>
           <thead>
             <tr>
-              <th scope="col">Obszar</th>
-              <th scope="col">Odczyt</th>
-              <th scope="col">Zapis</th>
+              <th scope="col">{t('bots.form.area')}</th>
+              <th scope="col">{t('bots.form.read')}</th>
+              <th scope="col">{t('bots.form.write')}</th>
             </tr>
           </thead>
           <tbody>
@@ -346,7 +358,7 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
                       onChange={(event) => setScopes(toggleScope(scopes, group.write!, event.target.checked))}
                     />
                   ) : (
-                    <span aria-label="Brak zapisu">—</span>
+                    <span aria-label={t('bots.form.noWrite')}>—</span>
                   )}
                 </td>
               </tr>
@@ -368,17 +380,17 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       />
 
       <fieldset className={styles.fieldset}>
-        <legend>Ważność tokenu</legend>
+        <legend>{t('bots.form.validity')}</legend>
         <div className={styles.expiry}>
           <Checkbox
-            label="Token wygasa"
+            label={t('bots.form.expires')}
             checked={expires}
             onChange={(event) => setExpires(event.target.checked)}
-            hint={`Zalecane. Domyślnie po ${defaultExpiryDays} dniach.`}
+            hint={t('bots.form.expiresHint', { count: defaultExpiryDays })}
           />
           {expires && (
             <TextField
-              label="Wygasa po dniu"
+              label={t('bots.form.expiryDate')}
               type="date"
               value={expiryDate}
               min={tomorrow}
@@ -390,9 +402,9 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       </fieldset>
 
       <div className={styles.rowActions}>
-        <Button onClick={onCancel}>Anuluj</Button>
+        <Button onClick={onCancel}>{t('bots.cancel')}</Button>
         <Button type="submit" variant="primary" busy={create.isPending}>
-          Utwórz bota
+          {t('bots.form.submit')}
         </Button>
       </div>
     </form>
@@ -400,29 +412,29 @@ function CreateBotForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
 }
 
 function TokenDialog({ result, onClose }: { result: BotWithToken | null; onClose: () => void }) {
+  const { t } = useTranslation('settings')
   return (
     <Dialog
       open={!!result}
-      title={result ? `Token bota ${result.bot.name}` : ''}
+      title={result ? t('bots.token.title', { name: result.bot.name }) : ''}
       onClose={onClose}
       size="lg"
       footer={
         <Button variant="primary" onClick={onClose}>
-          Zapisałem token
+          {t('bots.token.done')}
         </Button>
       }
     >
       {result && (
         <>
-          <Callout tone="warn" title="Token pokazujemy tylko raz">
-            Skopiuj go teraz i zapisz w bezpiecznym miejscu (np. menedżerze haseł). Po zamknięciu okna odzyskać go się
-            nie da — można jedynie wygenerować nowy. Tak samo zniknie z poleceń podłączenia asystenta poniżej.
+          <Callout tone="warn" title={t('bots.token.onceTitle')}>
+            {t('bots.token.onceBody')}
           </Callout>
           <CopyField
-            label="Token"
+            label={t('bots.token.label')}
             value={result.token}
             initialFocus
-            hint="Bot przedstawia się nagłówkiem Authorization: Bearer <token> — w REST API i w MCP."
+            hint={t('bots.token.hint')}
           />
           <AssistantConnect token={result.token} scopes={result.bot.effective_scopes} />
         </>
@@ -433,51 +445,54 @@ function TokenDialog({ result, onClose }: { result: BotWithToken | null; onClose
 
 function RotateDialog({ bot, onDone }: { bot: Bot; onDone: (result: BotWithToken | null) => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const rotate = useRotateBotToken(household.id)
   return (
     <ConfirmDialog
       open
-      title={`Nowy token dla ${bot.name}?`}
-      confirmLabel="Wygeneruj nowy token"
+      title={t('bots.rotate.title', { name: bot.name })}
+      confirmLabel={t('bots.rotate.confirm')}
       danger={false}
       busy={rotate.isPending}
       error={<FormAlert error={rotate.error} />}
       onCancel={() => onDone(null)}
       onConfirm={() => rotate.mutate(bot.id, { onSuccess: (result) => onDone(result) })}
     >
-      <p>Obecny token przestanie działać od razu. Wpisz nowy wszędzie, gdzie bot jest używany.</p>
+      <p>{t('bots.rotate.body')}</p>
     </ConfirmDialog>
   )
 }
 
 function DeleteDialog({ bot, onDone }: { bot: Bot; onDone: () => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const remove = useDeleteBot(household.id)
   const toast = useToast()
   return (
     <ConfirmDialog
       open
-      title={`Usunąć bota ${bot.name}?`}
-      confirmLabel="Usuń bota"
+      title={t('bots.delete.title', { name: bot.name })}
+      confirmLabel={t('bots.delete.confirm')}
       busy={remove.isPending}
       error={<FormAlert error={remove.error} />}
       onCancel={onDone}
       onConfirm={() =>
         remove.mutate(bot.id, {
           onSuccess: () => {
-            toast.show({ message: `Usunięto bota ${bot.name}.` })
+            toast.show({ message: t('bots.delete.done', { name: bot.name }) })
             onDone()
           },
         })
       }
     >
-      <p>Token przestanie działać. Wpisy bota w dzienniku zmian zostaną.</p>
+      <p>{t('bots.delete.body')}</p>
     </ConfirmDialog>
   )
 }
 
 function BotWalletsForm({ bot, wallets, onDone }: { bot: Bot; wallets: Wallet[]; onDone: () => void }) {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const update = useUpdateBot(household.id)
   const toast = useToast()
   const [scope, setScope] = useState<WalletScope>({ restricted: bot.wallet_ids.length > 0, ids: bot.wallet_ids })
@@ -486,7 +501,7 @@ function BotWalletsForm({ bot, wallets, onDone }: { bot: Bot; wallets: Wallet[];
   return (
     <form
       noValidate
-      aria-label={`Portfele bota ${bot.name}`}
+      aria-label={t('bots.walletsOf', { name: bot.name })}
       className={styles.section}
       onSubmit={(event) => {
         event.preventDefault()
@@ -499,7 +514,7 @@ function BotWalletsForm({ bot, wallets, onDone }: { bot: Bot; wallets: Wallet[];
           { botId: bot.id, body: { wallet_ids: walletIdsOf(scope) } },
           {
             onSuccess: () => {
-              toast.show({ message: `Zapisano portfele bota ${bot.name}.` })
+              toast.show({ message: t('bots.walletsSaved', { name: bot.name }) })
               onDone()
             },
           },
@@ -509,9 +524,9 @@ function BotWalletsForm({ bot, wallets, onDone }: { bot: Bot; wallets: Wallet[];
       <FormAlert error={update.error} shownFields={['wallet_ids']} />
       <WalletScopePicker value={scope} onChange={setScope} wallets={wallets} error={error ?? server.wallet_ids} />
       <div className={styles.rowActions}>
-        <Button onClick={onDone}>Anuluj</Button>
+        <Button onClick={onDone}>{t('bots.cancel')}</Button>
         <Button type="submit" variant="primary" busy={update.isPending}>
-          Zapisz
+          {t('bots.save')}
         </Button>
       </div>
     </form>

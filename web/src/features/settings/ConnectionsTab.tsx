@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useConnectionProviders, useConnections } from '../../api/hooks/imports.ts'
 import { useWallets } from '../../api/hooks/wallets.ts'
 import type { Connection } from '../../api/types.ts'
@@ -19,7 +20,8 @@ const statusTone = { active: 'positive', error: 'negative', disabled: 'neutral' 
 
 /** Połączenia z bankami i dostawcami (008): tylko odczyt — zarządzanie dojdzie z konektorami. */
 export function ConnectionsTab() {
-  useDocumentTitle('Połączenia')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('connections.title'))
   const { household } = useHousehold()
   const connections = useConnections(household.id)
   const providers = useConnectionProviders()
@@ -30,41 +32,35 @@ export function ConnectionsTab() {
     <section className={styles.section} aria-labelledby="connections-heading">
       <div className={styles.sectionHead}>
         <div>
-          <h2 id="connections-heading">Połączenia</h2>
-          <p>
-            Automatyczne pobieranie transakcji z banków i rachunków dostawców. Pobrane operacje przechodzą przez ten sam
-            import co pliki CSV: duplikaty są pomijane, kontrahenci dopasowani regułami.
-          </p>
+          <h2 id="connections-heading">{t('connections.title')}</h2>
+          <p>{t('connections.lead')}</p>
         </div>
       </div>
       {connections.isPending ? (
-        <Skeleton lines={3} label="Wczytywanie połączeń…" />
+        <Skeleton lines={3} label={t('connections.loading')} />
       ) : connections.isError ? (
         <SectionError
-          title="Nie udało się wczytać połączeń"
+          title={t('connections.loadFailed')}
           error={connections.error}
           onRetry={() => void connections.refetch()}
         />
       ) : (
         <DataList
-          label="Połączenia"
+          label={t('connections.title')}
           variant="cards"
           items={connections.data}
           getKey={(c) => c.id}
           empty={
             <EmptyState
               icon="plug"
-              title="Brak połączeń"
+              title={t('connections.empty.title')}
               action={
                 <LinkButton variant="primary" icon="upload" to={householdPath(household.id, 'import')}>
-                  Importuj CSV
+                  {t('connections.empty.action')}
                 </LinkButton>
               }
             >
-              <p>
-                Integracje z bankami i dostawcami (PSD2, OpenAI, Apple) pojawią się w przyszłych wersjach; teraz użyj
-                importu CSV — wyciąg z banku trafi do portfela w kilka kliknięć.
-              </p>
+              <p>{t('connections.empty.body')}</p>
             </EmptyState>
           }
           renderItem={(connection) => <ConnectionCard connection={connection} walletNames={walletNames} />}
@@ -72,18 +68,15 @@ export function ConnectionsTab() {
       )}
 
       <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Dostawcy na tym serwerze</h3>
+        <h3 className={styles.cardTitle}>{t('connections.providers.title')}</h3>
         {providers.isPending ? (
           <Skeleton lines={1} />
         ) : providers.isError ? (
-          <SectionError title="Nie udało się wczytać dostawców" error={providers.error} onRetry={() => void providers.refetch()} />
+          <SectionError title={t('connections.providers.loadFailed')} error={providers.error} onRetry={() => void providers.refetch()} />
         ) : providers.data.length === 0 ? (
-          <p className={styles.muted}>
-            Żaden dostawca nie jest jeszcze dostępny. Kolejne wersje Denara dodadzą banki (PSD2 przez agregatora) i rachunki
-            OpenAI oraz Apple.
-          </p>
+          <p className={styles.muted}>{t('connections.providers.none')}</p>
         ) : (
-          <ul className={styles.plainList} aria-label="Dostawcy połączeń">
+          <ul className={styles.plainList} aria-label={t('connections.providers.listLabel')}>
             {providers.data.map((p) => (
               <li key={p.key}>
                 <strong>{p.name}</strong> · {connectionKindLabels[p.kind]}
@@ -97,6 +90,7 @@ export function ConnectionsTab() {
 }
 
 function ConnectionCard({ connection, walletNames }: { connection: Connection; walletNames: Map<string, string> }) {
+  const { t } = useTranslation('settings')
   return (
     <article className={styles.connection} aria-label={connection.display_name}>
       <div className={styles.rowMain}>
@@ -106,17 +100,19 @@ function ConnectionCard({ connection, walletNames }: { connection: Connection; w
         </p>
         <p className={styles.rowMeta}>
           {connection.provider_name} · {connectionKindLabels[connection.kind]} ·{' '}
-          {connection.last_sync_at ? `ostatnia synchronizacja ${formatDateTime(connection.last_sync_at)}` : 'jeszcze nie synchronizowano'}
+          {connection.last_sync_at
+            ? t('connections.card.lastSync', { date: formatDateTime(connection.last_sync_at) })
+            : t('connections.card.neverSynced')}
         </p>
         {connection.last_error && (
           <p className={styles.connectionError}>
-            <span className="visually-hidden">Ostatni błąd: </span>
+            <span className="visually-hidden">{t('connections.card.lastError')}</span>
             {connection.last_error}
           </p>
         )}
       </div>
       {connection.accounts.length > 0 && (
-        <ul className={styles.accounts} aria-label={`Konta: ${connection.display_name}`}>
+        <ul className={styles.accounts} aria-label={t('connections.card.accounts', { name: connection.display_name })}>
           {connection.accounts.map((account) => (
             <li key={account.external_id}>
               <span>
@@ -124,7 +120,9 @@ function ConnectionCard({ connection, walletNames }: { connection: Connection; w
                 {account.currency && ` (${account.currency})`}
               </span>
               <span className={styles.rowMeta}>
-                {account.wallet_id ? `→ ${walletNames.get(account.wallet_id) ?? 'portfel'}` : 'nie przypisano do portfela'}
+                {account.wallet_id
+                  ? t('connections.card.wallet', { wallet: walletNames.get(account.wallet_id) ?? t('connections.card.walletFallback') })
+                  : t('connections.card.noWallet')}
               </span>
             </li>
           ))}

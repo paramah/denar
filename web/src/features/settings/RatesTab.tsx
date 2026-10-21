@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { fieldErrors } from '../../api/errors.ts'
 import { useFxOverrides, useFxQuote, useSetFxOverride } from '../../api/hooks/fx.ts'
@@ -20,7 +21,8 @@ import { formatRate, parseRateInput } from '../../lib/money.ts'
 import styles from './settings.module.css'
 
 export function RatesTab() {
-  useDocumentTitle('Kursy walut')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('rates.title'))
   const { household, role } = useHousehold()
   const overrides = useFxOverrides(household.id)
 
@@ -29,12 +31,8 @@ export function RatesTab() {
       <section className={styles.section} aria-labelledby="quote-heading">
         <div className={styles.sectionHead}>
           <div>
-            <h2 id="quote-heading">Kursy walut</h2>
-            <p>
-              Transakcje w obcej walucie przeliczamy na {household.base_currency} po średnim kursie NBP z dnia transakcji
-              (albo ostatniego dnia roboczego przed nim). Bez dostępu do NBP transakcja czeka na kurs — możesz go wtedy
-              ustawić ręcznie.
-            </p>
+            <h2 id="quote-heading">{t('rates.title')}</h2>
+            <p>{t('rates.lead', { base: household.base_currency })}</p>
           </div>
         </div>
         <QuoteChecker />
@@ -43,26 +41,26 @@ export function RatesTab() {
       {canManage(role) && <SetRateForm />}
 
       <section className={styles.section} aria-labelledby="overrides-heading">
-        <h2 id="overrides-heading">Kursy ustawione ręcznie</h2>
-        <QueryState query={overrides} errorTitle="Nie udało się wczytać kursów">
+        <h2 id="overrides-heading">{t('rates.overrides')}</h2>
+        <QueryState query={overrides} errorTitle={t('rates.loadFailed')}>
           {(items) => (
             <DataList
-              label="Kursy ustawione ręcznie"
+              label={t('rates.overrides')}
               items={items}
               getKey={(o) => `${o.currency}/${o.date}`}
               empty={
-                <EmptyState icon="rate" title="Brak ręcznych kursów" headingLevel={3}>
-                  <p>Wszystkie kursy pochodzą z NBP.</p>
+                <EmptyState icon="rate" title={t('rates.empty.title')} headingLevel={3}>
+                  <p>{t('rates.empty.body')}</p>
                 </EmptyState>
               }
               renderItem={(o) => (
-                <article className={styles.row} aria-label={`Kurs ${o.currency} z ${formatDay(o.date)}`}>
+                <article className={styles.row} aria-label={t('rates.rowLabel', { currency: o.currency, date: formatDay(o.date) })}>
                   <div className={styles.rowMain}>
                     <h3 className={styles.rowTitle}>
                       1 {o.currency} = {formatRate(o.rate)} {household.base_currency}
                     </h3>
                     <span className={styles.rowMeta}>
-                      Na dzień {formatDay(o.date)} · ustawiony {formatDateTime(o.created_at)}
+                      {t('rates.rowMeta', { date: formatDay(o.date), created: formatDateTime(o.created_at) })}
                     </span>
                   </div>
                 </article>
@@ -81,6 +79,7 @@ function currencyOptions(codes: string[]) {
 
 function QuoteChecker() {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const currencies = useCurrencies()
   const foreign = (currencies.data ?? []).map((c) => c.code).filter((c) => c !== household.base_currency)
   const [currency, setCurrency] = useState('')
@@ -91,8 +90,13 @@ function QuoteChecker() {
   return (
     <div className={`${styles.card} ${styles.section}`}>
       <div className={styles.filters}>
-        <SelectField label="Waluta" value={chosen} onChange={(event) => setCurrency(event.target.value)} options={currencyOptions(foreign)} />
-        <TextField label="Dzień" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+        <SelectField
+          label={t('rates.currency')}
+          value={chosen}
+          onChange={(event) => setCurrency(event.target.value)}
+          options={currencyOptions(foreign)}
+        />
+        <TextField label={t('rates.day')} type="date" value={date} onChange={(event) => setDate(event.target.value)} />
       </div>
       <div aria-live="polite">
         {quote.isSuccess && <QuoteResult quote={quote.data} />}
@@ -103,10 +107,11 @@ function QuoteChecker() {
 }
 
 function QuoteResult({ quote }: { quote: FxQuote }) {
+  const { t } = useTranslation('settings')
   if (quote.rate === null || quote.source === 'unavailable') {
     return (
-      <Callout tone="warn" title="Brak kursu">
-        Nie ma kursu {quote.currency} na {formatDay(quote.date)}. Transakcje w tej walucie z tego dnia poczekają na kurs.
+      <Callout tone="warn" title={t('rates.quote.missingTitle')}>
+        {t('rates.quote.missingBody', { currency: quote.currency, date: formatDay(quote.date) })}
       </Callout>
     )
   }
@@ -117,7 +122,7 @@ function QuoteResult({ quote }: { quote: FxQuote }) {
       </strong>{' '}
       <Badge tone={quote.source === 'manual' ? 'brand' : 'neutral'}>{fxSourceLabels[quote.source]}</Badge>
       {quote.rate_date && quote.rate_date !== quote.date && (
-        <span className={styles.rowMeta}> · notowanie z {formatDay(quote.rate_date)}</span>
+        <span className={styles.rowMeta}>{t('rates.quote.ratedOn', { date: formatDay(quote.rate_date) })}</span>
       )}
     </p>
   )
@@ -127,6 +132,7 @@ function SetRateForm() {
   const { household } = useHousehold()
   const currencies = useCurrencies()
   const [params] = useSearchParams()
+  const { t } = useTranslation('settings')
   const set = useSetFxOverride(household.id)
   const toast = useToast()
   const foreign = (currencies.data ?? []).map((c) => c.code).filter((c) => c !== household.base_currency)
@@ -146,7 +152,7 @@ function SetRateForm() {
     setError(undefined)
     try {
       const saved = await set.mutateAsync({ currency: chosen, date, rate: parsed.value })
-      toast.show({ message: `Ustawiono kurs ${saved.currency} na ${formatDay(saved.date)}.` })
+      toast.show({ message: t('rates.set.done', { currency: saved.currency, date: formatDay(saved.date) }) })
       setRate('')
     } catch {
       // Błąd pokazuje formularz.
@@ -155,14 +161,11 @@ function SetRateForm() {
 
   return (
     <section className={styles.section} aria-labelledby="set-rate-heading">
-      <h2 id="set-rate-heading">Ustaw kurs ręcznie</h2>
-      <p className={styles.rowMeta}>
-        Kurs obowiązuje tylko w tym gospodarstwie i tylko tego dnia. Uzupełni kwoty w {household.base_currency}{' '}
-        transakcji, które czekają na kurs z tego dnia; transakcji już przeliczonych nie zmienia.
-      </p>
+      <h2 id="set-rate-heading">{t('rates.set.title')}</h2>
+      <p className={styles.rowMeta}>{t('rates.set.lead', { base: household.base_currency })}</p>
       <form
         noValidate
-        aria-label="Ustaw kurs ręcznie"
+        aria-label={t('rates.set.title')}
         className={`${styles.card} ${styles.section}`}
         onSubmit={(event) => {
           event.preventDefault()
@@ -172,26 +175,26 @@ function SetRateForm() {
         <FormAlert error={set.error} shownFields={['currency', 'date', 'rate']} />
         <div className={styles.filters}>
           <SelectField
-            label="Waluta"
+            label={t('rates.currency')}
             value={chosen}
             onChange={(event) => setCurrency(event.target.value)}
             options={currencyOptions(foreign)}
             error={server.currency}
           />
-          <TextField label="Na dzień" type="date" value={date} onChange={(event) => setDate(event.target.value)} error={server.date} />
+          <TextField label={t('rates.set.date')} type="date" value={date} onChange={(event) => setDate(event.target.value)} error={server.date} />
           <TextField
-            label={`Kurs (${household.base_currency} za 1 ${chosen})`}
+            label={t('rates.set.rate', { base: household.base_currency, currency: chosen })}
             value={rate}
             onChange={(event) => setRate(event.target.value)}
             inputMode="decimal"
             autoComplete="off"
-            placeholder="np. 4,2512"
+            placeholder={t('rates.set.placeholder')}
             error={error ?? server.rate}
           />
         </div>
         <div className={styles.rowActions}>
           <Button type="submit" variant="primary" icon="check" busy={set.isPending}>
-            Zapisz kurs
+            {t('rates.set.submit')}
           </Button>
         </div>
       </form>

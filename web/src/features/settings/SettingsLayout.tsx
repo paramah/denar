@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router'
 import type { Role } from '../../api/types.ts'
 import { canManage, useHousehold } from '../../app/household.tsx'
@@ -5,27 +6,31 @@ import { householdPath } from '../../app/nav.ts'
 import { PageHeader } from '../../components/PageHeader/PageHeader.tsx'
 import styles from './settings.module.css'
 
-type Tab = { path: string; label: string; visible: (role: Role) => boolean }
+type TabPath = 'general' | 'members' | 'invitations' | 'bots' | 'payees' | 'rates' | 'notifications' | 'connections' | 'audit'
+
+/** Zakładka ustawień; nazwa to klucz `settings:tabs.<path>`. */
+type Tab = { path: TabPath; visible: (role: Role) => boolean }
 
 export const settingsTabs: Tab[] = [
-  { path: 'general', label: 'Gospodarstwo', visible: () => true },
-  { path: 'members', label: 'Członkowie', visible: () => true },
-  { path: 'invitations', label: 'Zaproszenia', visible: canManage },
-  { path: 'bots', label: 'Boty', visible: (role) => role !== 'viewer' },
-  { path: 'payees', label: 'Kontrahenci', visible: () => true },
-  { path: 'rates', label: 'Kursy walut', visible: () => true },
-  { path: 'notifications', label: 'Powiadomienia', visible: () => true },
-  { path: 'connections', label: 'Połączenia', visible: canManage },
-  { path: 'audit', label: 'Dziennik zmian', visible: canManage },
+  { path: 'general', visible: () => true },
+  { path: 'members', visible: () => true },
+  { path: 'invitations', visible: canManage },
+  { path: 'bots', visible: (role) => role !== 'viewer' },
+  { path: 'payees', visible: () => true },
+  { path: 'rates', visible: () => true },
+  { path: 'notifications', visible: () => true },
+  { path: 'connections', visible: canManage },
+  { path: 'audit', visible: canManage },
 ]
 
 export function SettingsLayout() {
+  const { t } = useTranslation('settings')
   const { household, role } = useHousehold()
   const tabs = settingsTabs.filter((tab) => tab.visible(role))
   return (
     <>
-      <PageHeader title="Ustawienia" description={`Gospodarstwo ${household.name}`} />
-      <nav aria-label="Ustawienia" className={styles.tabs}>
+      <PageHeader title={t('layout.title')} description={t('layout.description', { name: household.name })} />
+      <nav aria-label={t('layout.title')} className={styles.tabs}>
         <ul>
           {tabs.map((tab) => (
             <li key={tab.path}>
@@ -33,7 +38,7 @@ export function SettingsLayout() {
                 to={householdPath(household.id, `settings/${tab.path}`)}
                 className={({ isActive }) => (isActive ? `${styles.tab} ${styles.activeTab}` : styles.tab)}
               >
-                {tab.label}
+                {t(`tabs.${tab.path}`)}
               </NavLink>
             </li>
           ))}
@@ -50,7 +55,7 @@ export function SettingsLayout() {
 export function RequireTab({ path, children }: { path: string; children: React.ReactNode }) {
   const { household, role } = useHousehold()
   const location = useLocation()
-  const tab = settingsTabs.find((t) => t.path === path)
+  const tab = settingsTabs.find((tab) => tab.path === path)
   if (tab && !tab.visible(role)) {
     return <Navigate to={householdPath(household.id, 'settings/general')} replace state={{ from: location.pathname }} />
   }

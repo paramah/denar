@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCurrencies } from '../../api/hooks/households.ts'
 import { SelectField, TextField } from '../../components/Field/Field.tsx'
 import { timeZones } from '../../lib/format.ts'
@@ -33,6 +34,7 @@ const days = Array.from({ length: 28 }, (_, i) => String(i + 1))
 
 /** Pola gospodarstwa wspólne dla zakładania i ustawień. */
 export function HouseholdFields({ values, onChange, errors, currencyLocked, readOnly }: Props) {
+  const { t } = useTranslation('households')
   const currencies = useCurrencies()
   const zones = useMemo(() => {
     const list = timeZones()
@@ -42,42 +44,42 @@ export function HouseholdFields({ values, onChange, errors, currencyLocked, read
 
   const currencyOptions = (currencies.data ?? [{ code: values.base_currency, decimals: 2 }]).map((c) => ({
     value: c.code,
-    label: `${c.code} — ${currencyNames()?.of(c.code) ?? c.code}`,
+    label: t('fields.currencyOption', { code: c.code, name: currencyNames()?.of(c.code) ?? c.code }),
   }))
 
   return (
     <div className={styles.fields}>
       <TextField
-        label="Nazwa"
+        label={t('fields.name')}
         value={values.name}
         onChange={(event) => set({ name: event.target.value })}
         error={errors.name}
-        hint="Np. „Dom”, „Mieszkanie na Mokotowie”."
+        hint={t('fields.nameHint')}
         maxLength={100}
         readOnly={readOnly}
         required
       />
       {currencyLocked ? (
         <TextField
-          label="Waluta bazowa"
+          label={t('fields.baseCurrency')}
           value={currencyOptions.find((o) => o.value === values.base_currency)?.label ?? values.base_currency}
           readOnly
-          hint="Waluty bazowej nie można zmienić: w niej liczony jest budżet."
+          hint={t('fields.currencyLockedHint')}
         />
       ) : (
         <SelectField
-          label="Waluta bazowa"
+          label={t('fields.baseCurrency')}
           value={values.base_currency}
           onChange={(event) => set({ base_currency: event.target.value })}
           options={currencyOptions}
           error={errors.base_currency}
-          hint="W niej prowadzisz budżet; portfele mogą mieć inne waluty. Później jej nie zmienisz."
+          hint={t('fields.currencyHint')}
           disabled={currencies.isPending}
         />
       )}
       <div className={styles.pair}>
         <SelectField
-          label="Strefa czasowa"
+          label={t('fields.timezone')}
           value={values.timezone}
           onChange={(event) => set({ timezone: event.target.value })}
           options={zones.map((zone) => ({ value: zone, label: zone.replaceAll('_', ' ') }))}
@@ -85,12 +87,12 @@ export function HouseholdFields({ values, onChange, errors, currencyLocked, read
           disabled={readOnly}
         />
         <SelectField
-          label="Miesiąc budżetowy zaczyna się"
+          label={t('fields.monthStart')}
           value={values.month_start_day}
           onChange={(event) => set({ month_start_day: event.target.value })}
-          options={days.map((day) => ({ value: day, label: `${day}. dnia` }))}
+          options={days.map((day) => ({ value: day, label: t('fields.monthStartDay', { day }) }))}
           error={errors.month_start_day}
-          hint="Np. w dniu wypłaty."
+          hint={t('fields.monthStartHint')}
           disabled={readOnly}
         />
       </div>

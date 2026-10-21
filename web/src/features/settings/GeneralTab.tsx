@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { fieldErrors } from '../../api/errors.ts'
 import { useDeleteHousehold, useUpdateHousehold } from '../../api/hooks/households.ts'
@@ -15,7 +16,8 @@ import styles from './settings.module.css'
 const shownFields = ['name', 'timezone', 'month_start_day']
 
 export function GeneralTab() {
-  useDocumentTitle('Ustawienia gospodarstwa')
+  const { t } = useTranslation('settings')
+  useDocumentTitle(t('general.documentTitle'))
   const { household, role } = useHousehold()
   const editable = canManage(role)
   const update = useUpdateHousehold(household.id)
@@ -36,13 +38,13 @@ export function GeneralTab() {
 
   const submit = () => {
     if (!values.name.trim()) {
-      setNameError('Podaj nazwę gospodarstwa.')
+      setNameError(t('general.nameRequired'))
       return
     }
     setNameError(undefined)
     update.mutate(
       { name: values.name.trim(), timezone: values.timezone, month_start_day: Number(values.month_start_day) },
-      { onSuccess: () => toast.show({ message: 'Zapisano ustawienia gospodarstwa.' }) },
+      { onSuccess: () => toast.show({ message: t('general.saved') }) },
     )
   }
 
@@ -51,12 +53,12 @@ export function GeneralTab() {
       <section className={styles.section} aria-labelledby="general-heading">
         <div className={styles.sectionHead}>
           <div>
-            <h2 id="general-heading">Dane gospodarstwa</h2>
-            {!editable && <p>Zmieniać je mogą właściciel i administratorzy.</p>}
+            <h2 id="general-heading">{t('general.heading')}</h2>
+            {!editable && <p>{t('general.readOnly')}</p>}
           </div>
         </div>
         <div className={styles.card}>
-          <Form onSubmit={submit} label="Dane gospodarstwa">
+          <Form onSubmit={submit} label={t('general.heading')}>
             <FormAlert error={update.error} shownFields={shownFields} />
             <HouseholdFields
               values={values}
@@ -68,9 +70,9 @@ export function GeneralTab() {
             {editable && (
               <FormActions>
                 <Button type="submit" variant="primary" busy={update.isPending} disabled={!dirty}>
-                  Zapisz zmiany
+                  {t('general.save')}
                 </Button>
-                {dirty && <Button onClick={() => setValues(initial)}>Cofnij zmiany</Button>}
+                {dirty && <Button onClick={() => setValues(initial)}>{t('general.revert')}</Button>}
               </FormActions>
             )}
           </Form>
@@ -83,21 +85,22 @@ export function GeneralTab() {
 
 function DeleteHousehold() {
   const { household } = useHousehold()
+  const { t } = useTranslation('settings')
   const remove = useDeleteHousehold(household.id)
   const navigate = useNavigate()
   const toast = useToast()
   const [open, setOpen] = useState(false)
   return (
     <section className={styles.danger} aria-labelledby="delete-heading">
-      <h2 id="delete-heading">Usuń gospodarstwo</h2>
-      <p>Usunięcie kasuje członkostwa, zaproszenia, boty i dziennik zmian. Tego nie da się cofnąć.</p>
+      <h2 id="delete-heading">{t('general.delete.title')}</h2>
+      <p>{t('general.delete.lead')}</p>
       <Button variant="danger" icon="trash" onClick={() => setOpen(true)}>
-        Usuń gospodarstwo
+        {t('general.delete.title')}
       </Button>
       <ConfirmDialog
         open={open}
-        title={`Usunąć gospodarstwo ${household.name}?`}
-        confirmLabel="Usuń na zawsze"
+        title={t('general.delete.confirmTitle', { name: household.name })}
+        confirmLabel={t('general.delete.confirm')}
         requirePhrase={household.name}
         busy={remove.isPending}
         error={<FormAlert error={remove.error} />}
@@ -106,13 +109,13 @@ function DeleteHousehold() {
           remove.mutate(undefined, {
             onSuccess: () => {
               writeStored(storageKeys.household, null)
-              toast.show({ message: `Usunięto gospodarstwo ${household.name}.` })
+              toast.show({ message: t('general.delete.done', { name: household.name }) })
               void navigate('/', { replace: true })
             },
           })
         }
       >
-        <p>Wszyscy członkowie stracą dostęp, a tokeny botów przestaną działać.</p>
+        <p>{t('general.delete.body')}</p>
       </ConfirmDialog>
     </section>
   )

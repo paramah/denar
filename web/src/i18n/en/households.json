@@ -1,1 +1,22 @@
-{}
+{
+  "create": {
+    "title": "New household",
+    "description": "A shared space for wallets, the budget and subscriptions. You can invite household members once it is created.",
+    "nameRequired": "Enter the household name.",
+    "created": "Household {{name}} created.",
+    "submit": "Create household",
+    "cancel": "Cancel"
+  },
+  "fields": {
+    "name": "Name",
+    "nameHint": "E.g. “Home”, “Flat in the city centre”.",
+    "baseCurrency": "Base currency",
+    "currencyLockedHint": "The base currency cannot be changed: the budget is kept in it.",
+    "currencyHint": "You keep the budget in it; wallets can use other currencies. You cannot change it later.",
+    "currencyOption": "{{code}} — {{name}}",
+    "timezone": "Time zone",
+    "monthStart": "Budget month starts on",
+    "monthStartDay": "day {{day}}",
+    "monthStartHint": "E.g. on payday."
+  }
+}

@@ -1,4 +1,5 @@
 import type { Role, Scope } from '../api/types.ts'
+import { tk } from '../i18n/translate.ts'
 
 export type ScopeGroup = {
   id: string
@@ -8,26 +9,31 @@ export type ScopeGroup = {
   write?: Scope
 }
 
+type ScopeArea = 'wallets' | 'transactions' | 'budget' | 'subscriptions' | 'reports' | 'notifications'
+
+/** Grupa z nazwą i opisem czytanymi z settings.json w chwili odczytu (gettery). */
+function group(id: ScopeArea, read: Scope, write?: Scope): ScopeGroup {
+  return {
+    id,
+    get label() {
+      return tk(`settings:scopes.${id}.label`)
+    },
+    get description() {
+      return tk(`settings:scopes.${id}.description`)
+    },
+    read,
+    ...(write ? { write } : {}),
+  }
+}
+
 /** Scope'y botów pogrupowane według obszaru: wiersz to obszar, kolumny odczyt/zapis. */
 export const scopeGroups: ScopeGroup[] = [
-  { id: 'wallets', label: 'Portfele', description: 'Konta, gotówka, karty i salda', read: 'wallets:read', write: 'wallets:write' },
-  {
-    id: 'transactions',
-    label: 'Transakcje',
-    description: 'Wydatki, wpływy i przelewy',
-    read: 'transactions:read',
-    write: 'transactions:write',
-  },
-  { id: 'budget', label: 'Budżet', description: 'Koperty i przydziały', read: 'budget:read', write: 'budget:write' },
-  {
-    id: 'subscriptions',
-    label: 'Subskrypcje',
-    description: 'Koszty cykliczne i odnowienia',
-    read: 'subscriptions:read',
-    write: 'subscriptions:write',
-  },
-  { id: 'reports', label: 'Raporty', description: 'Podsumowania i analizy wydatków', read: 'reports:read' },
-  { id: 'notifications', label: 'Powiadomienia', description: 'Przypomnienia w aplikacji', read: 'notifications:read' },
+  group('wallets', 'wallets:read', 'wallets:write'),
+  group('transactions', 'transactions:read', 'transactions:write'),
+  group('budget', 'budget:read', 'budget:write'),
+  group('subscriptions', 'subscriptions:read', 'subscriptions:write'),
+  group('reports', 'reports:read'),
+  group('notifications', 'notifications:read'),
 ]
 
 export const allScopes: Scope[] = scopeGroups.flatMap((group) => (group.write ? [group.read, group.write] : [group.read]))
@@ -40,15 +46,12 @@ export const readScopes: Scope[] = scopeGroups.map((group) => group.read)
  */
 export const assistantScopes: Scope[] = allScopes.filter((scope) => scope.endsWith(':read') || scope === 'transactions:write')
 
-const scopeLabels: Record<Scope, string> = Object.fromEntries(
-  scopeGroups.flatMap((group) => [
-    [group.read, `${group.label}: odczyt`],
-    ...(group.write ? [[group.write, `${group.label}: zapis`]] : []),
-  ]),
-) as Record<Scope, string>
-
 export function scopeLabel(scope: Scope): string {
-  return scopeLabels[scope] ?? scope
+  const found = scopeGroups.find((g) => g.read === scope || g.write === scope)
+  if (!found) {
+    return scope
+  }
+  return tk(scope === found.read ? 'settings:scopes.read' : 'settings:scopes.write', { area: found.label })
 }
 
 /** Zaznaczenie zapisu pociąga odczyt; odznaczenie odczytu zabiera zapis. */

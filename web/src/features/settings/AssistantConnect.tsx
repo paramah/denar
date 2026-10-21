@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import type { Scope } from '../../api/types.ts'
 import { CopyBlock, CopyField } from '../../components/CopyField/CopyField.tsx'
 import { Callout } from '../../components/Form/Form.tsx'
+import { tk } from '../../i18n/translate.ts'
 import styles from './settings.module.css'
 
 /** Adres serwera MCP tej instancji (ten sam origin co Web UI, ścieżka `/mcp`). */
@@ -39,11 +41,11 @@ export function mcpRemoteConfig(url: string, token: string): string {
 export function examplePrompts(scopes: readonly Scope[]): string[] {
   const has = (scope: Scope) => scopes.includes(scope)
   return [
-    ...(has('subscriptions:read') ? ['Co odnawia się w tym tygodniu i ile to kosztuje?'] : []),
-    ...(has('budget:read') ? ['Ile zostało mi w kopercie „Jedzenie” w tym miesiącu?'] : []),
-    ...(has('reports:read') ? ['Na co wydałem najwięcej w zeszłym miesiącu?'] : []),
-    ...(has('wallets:read') ? ['Jakie mam salda na portfelach?'] : []),
-    ...(has('transactions:write') ? ['Wydałem 42,50 zł w Biedronce z karty, na jedzenie.'] : []),
+    ...(has('subscriptions:read') ? [tk('settings:assistant.prompts.renewals')] : []),
+    ...(has('budget:read') ? [tk('settings:assistant.prompts.envelope')] : []),
+    ...(has('reports:read') ? [tk('settings:assistant.prompts.spending')] : []),
+    ...(has('wallets:read') ? [tk('settings:assistant.prompts.balances')] : []),
+    ...(has('transactions:write') ? [tk('settings:assistant.prompts.expense')] : []),
   ]
 }
 
@@ -61,45 +63,42 @@ function isInsecure(origin: string): boolean {
  * poleceniami; pokazywana razem z jednorazowym tokenem bota.
  */
 export function AssistantConnect({ token, scopes, origin = window.location.origin }: { token: string; scopes: readonly Scope[]; origin?: string }) {
+  const { t } = useTranslation('settings')
   const url = mcpUrl(origin)
   const prompts = examplePrompts(scopes)
   return (
     <section className={styles.connect} aria-labelledby="assistant-connect">
-      <h3 id="assistant-connect">Podłącz do asystenta AI</h3>
-      <p className={styles.connectLead}>
-        Denar ma serwer MCP — asystent (np. Claude) czyta przez niego dane i dopisuje wydatki z uprawnieniami tego bota.
-        Polecenia poniżej zawierają token, więc też skopiuj je teraz.
-      </p>
+      <h3 id="assistant-connect">{t('assistant.title')}</h3>
+      <p className={styles.connectLead}>{t('assistant.lead')}</p>
       {isInsecure(origin) && (
-        <Callout tone="warn" title="Połączenie bez HTTPS">
-          Token pójdzie przez sieć niezaszyfrowany. Udostępnij Denara przez HTTPS (np. za reverse proxy), zanim podłączysz
-          asystenta spoza tego komputera.
+        <Callout tone="warn" title={t('assistant.insecureTitle')}>
+          {t('assistant.insecureBody')}
         </Callout>
       )}
-      <CopyField label="Adres serwera MCP" value={url} hint="Transport: Streamable HTTP." />
-      <CopyField label="Nagłówek uwierzytelnienia" value={`Authorization: Bearer ${token}`} />
-      <CopyBlock label="Claude Code — polecenie w terminalu" value={claudeCodeCommand(url, token)} />
+      <CopyField label={t('assistant.url')} value={url} hint={t('assistant.urlHint')} />
+      <CopyField label={t('assistant.header')} value={`Authorization: Bearer ${token}`} />
+      <CopyBlock label={t('assistant.claudeCode')} value={claudeCodeCommand(url, token)} />
       <details className={styles.connectMore}>
-        <summary>Inne klienty: konfiguracja JSON</summary>
+        <summary>{t('assistant.otherClients')}</summary>
         <div className={styles.connectBody}>
           <CopyBlock
-            label="Klient ze zdalnym MCP (HTTP z nagłówkami)"
+            label={t('assistant.remoteHttp')}
             value={remoteHttpConfig(url, token)}
-            hint="Np. plik .mcp.json Claude Code albo konfiguracja Cursora."
+            hint={t('assistant.remoteHttpHint')}
           />
           <CopyBlock
-            label="Klient bez nagłówków — most mcp-remote"
+            label={t('assistant.mcpRemote')}
             value={mcpRemoteConfig(url, token)}
-            hint="Np. claude_desktop_config.json w Claude Desktop. Wymaga Node.js (npx)."
+            hint={t('assistant.mcpRemoteHint')}
           />
         </div>
       </details>
       {prompts.length > 0 && (
         <div>
-          <p className={styles.connectLead}>Potem zapytaj na przykład:</p>
+          <p className={styles.connectLead}>{t('assistant.thenAsk')}</p>
           <ul className={styles.prompts}>
             {prompts.map((prompt) => (
-              <li key={prompt}>„{prompt}”</li>
+              <li key={prompt}>{t('assistant.quoted', { prompt })}</li>
             ))}
           </ul>
         </div>
