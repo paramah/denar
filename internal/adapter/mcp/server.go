@@ -66,6 +66,7 @@ type useCases struct {
 	recordTransaction  *usecase.RecordTransaction
 	createTransfer     *usecase.CreateTransfer
 	listPayees         *usecase.ListPayees
+	listImports        *usecase.ListImports
 
 	listEnvelopeGroups   *usecase.ListEnvelopeGroups
 	listEnvelopes        *usecase.ListEnvelopes
@@ -104,6 +105,7 @@ func newUseCases(d usecase.Deps) useCases {
 		recordTransaction:  usecase.NewRecordTransaction(d),
 		createTransfer:     usecase.NewCreateTransfer(d),
 		listPayees:         usecase.NewListPayees(d),
+		listImports:        usecase.NewListImports(d),
 
 		listEnvelopeGroups:   usecase.NewListEnvelopeGroups(d),
 		listEnvelopes:        usecase.NewListEnvelopes(d),

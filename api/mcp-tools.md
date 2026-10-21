@@ -1,6 +1,6 @@
 # Kontrakt narzędzi MCP
 
-Serwer MCP działa pod `/mcp` (Streamable HTTP). Asystent uwierzytelnia się tokenem bota gospodarstwa: `Authorization: Bearer dnr_…`. Implementacja: etapy `006-mcp` i `005-notifications` (`list_notifications`), `internal/adapter/mcp`; każde narzędzie woła use case, a reguły (scope'y, rola twórcy, lista portfeli, rozpoznawanie nazw, audyt) zostają w `internal/usecase`. Opisy narzędzi i pól widoczne dla modelu są po angielsku; ten dokument jest ich źródłem i opisem zachowania.
+Serwer MCP działa pod `/mcp` (Streamable HTTP). Asystent uwierzytelnia się tokenem bota gospodarstwa: `Authorization: Bearer dnr_…`. Implementacja: etapy `006-mcp`, `005-notifications` (`list_notifications`) i `008-import` (`list_imports`), `internal/adapter/mcp`; każde narzędzie woła use case, a reguły (scope'y, rola twórcy, lista portfeli, rozpoznawanie nazw, audyt) zostają w `internal/usecase`. Opisy narzędzi i pól widoczne dla modelu są po angielsku; ten dokument jest ich źródłem i opisem zachowania.
 
 ## Uwierzytelnianie i transport
 
@@ -80,6 +80,7 @@ Serwer MCP działa pod `/mcp` (Streamable HTTP). Asystent uwierzytelnia się tok
 | `get_balances` | `include_archived?: bool` | `{ wallets: (Wallet & { balance, cleared, base_balance: Money, base_pending: bool })[], total_base: Money, base_pending: bool }` | `wallets:read` |
 | `search_transactions` | `wallet?`, `payee?`, `envelope?`, `from?`, `to?`, `text?`, `kind?`, `status?`, `tag?`, `limit?`, `cursor?` | `{ transactions: Transaction[], next_cursor: string \| null }` | `transactions:read` |
 | `list_payees` | — | `{ payees: { id, name, patterns: string[], default_envelope_id }[] }` | `transactions:read` |
+| `list_imports` | `wallet?`, `limit?`, `cursor?` | `{ imports: { id, wallet_id, source: "csv"\|"connection", source_ref, status: "completed"\|"reverted", rows, created, duplicates, failed, matched, reverted, created_at, reverted_at }[], next_cursor: string \| null }` | `transactions:read` |
 | `spending_by` | `group_by`, `from?`, `to?`, `wallet?` | `SpendingReport` (niżej) | `reports:read` |
 | `list_vendors` | — | `{ vendors: { key, name }[] }` | — |
 

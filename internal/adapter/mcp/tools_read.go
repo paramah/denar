@@ -9,6 +9,7 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"git.eiac.dev/tools/denar/internal/domain/imports"
 	"git.eiac.dev/tools/denar/internal/domain/money"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
@@ -77,6 +78,44 @@ type spendingByIn struct {
 	From    string `json:"from,omitempty" jsonschema:"first day, YYYY-MM-DD; the start of the budget month of 'to' by default"`
 	To      string `json:"to,omitempty" jsonschema:"last day, YYYY-MM-DD; today by default; at most 366 days after 'from'"`
 	Wallet  string `json:"wallet,omitempty" jsonschema:"only this wallet, by id or name"`
+}
+
+type listImportsIn struct {
+	Wallet string `json:"wallet,omitempty" jsonschema:"wallet id or name; all your wallets when omitted"`
+	Limit  int    `json:"limit,omitempty" jsonschema:"page size, 1 to 200; 50 by default"`
+	Cursor string `json:"cursor,omitempty" jsonschema:"next_cursor of the previous page, with the same filters"`
+}
+
+type importsOut struct {
+	Imports    []importOut `json:"imports"`
+	NextCursor *string     `json:"next_cursor"`
+}
+
+type importOut struct {
+	ID         string  `json:"id"`
+	WalletID   string  `json:"wallet_id"`
+	Source     string  `json:"source"`
+	SourceRef  string  `json:"source_ref"`
+	Status     string  `json:"status"`
+	Rows       int     `json:"rows"`
+	Created    int     `json:"created"`
+	Duplicates int     `json:"duplicates"`
+	Failed     int     `json:"failed"`
+	Matched    int     `json:"matched"`
+	Reverted   int     `json:"reverted"`
+	CreatedAt  string  `json:"created_at"`
+	RevertedAt *string `json:"reverted_at"`
+}
+
+func importView(b imports.Batch) importOut {
+	out := importOut{ID: string(b.ID), WalletID: string(b.WalletID), Source: string(b.Source), SourceRef: b.SourceRef, Status: string(b.Status),
+		Rows: b.Rows, Created: b.Created, Duplicates: b.Duplicates, Failed: b.Failed, Matched: b.Matched, Reverted: b.Reverted,
+		CreatedAt: b.CreatedAt.UTC().Format("2006-01-02T15:04:05Z")}
+	if !b.RevertedAt.IsZero() {
+		at := b.RevertedAt.UTC().Format("2006-01-02T15:04:05Z")
+		out.RevertedAt = &at
+	}
+	return out
 }
 
 type vendorsOut struct {
@@ -211,6 +250,27 @@ func (s *server) addReadTools(m *sdk.Server) {
 			out := payeesOut{Payees: []payeeOut{}}
 			for _, pe := range ps {
 				out.Payees = append(out.Payees, payeeView(pe))
+			}
+			return out, nil
+		})
+
+	addTool(s, m, "list_imports",
+		"List the import batches (CSV files, bank syncs) of your wallets, newest first, with how many rows each had, created, "+
+			"skipped as duplicates, failed and matched to subscription charges. Pass next_cursor as cursor for the next page. "+
+			"Needs transactions:read.",
+		true, func(ctx context.Context, p usecase.Principal, hid domain.ID, in listImportsIn) (any, error) {
+			w, err := s.uc.resolve.Wallet(ctx, p, hid, "wallet", in.Wallet, bot.ScopeTransactionsRead)
+			if err != nil {
+				return nil, err
+			}
+			page, err := s.uc.listImports.Do(ctx, p, hid, usecase.ListImportsInput{WalletID: string(w.ID), Cursor: in.Cursor,
+				Limit: optLimit(in.Limit)})
+			if err != nil {
+				return nil, err
+			}
+			out := importsOut{Imports: []importOut{}, NextCursor: optString(page.NextCursor)}
+			for _, b := range page.Items {
+				out.Imports = append(out.Imports, importView(b))
 			}
 			return out, nil
 		})

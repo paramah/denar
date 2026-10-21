@@ -6,6 +6,7 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"git.eiac.dev/tools/denar/internal/domain/imports"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
 
@@ -168,4 +169,35 @@ func TestListVendors(t *testing.T) {
 	if a.str("vendors", 0, "key") != "openai" || a.str("vendors", 0, "name") != "OpenAI" {
 		t.Errorf("vendors = %s", a.raw)
 	}
+}
+
+func TestListImportsTool(t *testing.T) {
+	w := newWorld(t)
+	_, err := usecase.NewImportTransactions(w.deps).Do(ctx, usecase.Principal{User: w.member}, "h1", usecase.ImportInput{
+		WalletID: "w-card", Source: imports.SourceCSV, SourceRef: "wyciag.csv",
+		Rows: []usecase.ImportedTransaction{{Row: 1, Date: mustDate("2026-10-20"), Amount: "-5.00", PayeeRaw: "Kiosk"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := w.connect(w.addBot("b1", w.member, []bot.Scope{bot.ScopeTransactionsRead}))
+	a := ok(t, s, "list_imports", map[string]any{"wallet": "Karta"})
+	if len(a.list("imports")) != 1 || a.str("imports", 0, "source_ref") != "wyciag.csv" || a.get("imports", 0, "created") != float64(1) ||
+		a.get("imports", 0, "reverted_at") != nil || a.get("next_cursor") != nil {
+		t.Errorf("imports = %s", a.raw)
+	}
+	a = ok(t, s, "list_imports", map[string]any{"wallet": "Gotówka"})
+	if len(a.list("imports")) != 0 {
+		t.Errorf("cash imports = %s", a.raw)
+	}
+	refused(t, s, "list_imports", map[string]any{"wallet": "Oszczędności"}, codeNotFound)
+	s = w.connect(w.addBot("b2", w.member, []bot.Scope{bot.ScopeWalletsRead}))
+	refused(t, s, "list_imports", nil, codeForbidden)
+}
+
+func mustDate(s string) domain.Date {
+	d, err := domain.ParseDate(s)
+	if err != nil {
+		panic(err)
+	}
+	return d
 }
