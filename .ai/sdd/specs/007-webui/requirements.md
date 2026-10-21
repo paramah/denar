@@ -269,3 +269,45 @@ Część C3a pokazuje, jak podłączyć asystenta AI do serwera MCP etapu 006, i
 - **FR-E12** Nieznany adres w gospodarstwie (`/h/:id/…`) SHALL pokazywać stronę „Nie ma takiej strony” w powłoce aplikacji (z nawigacją i powrotem na pulpit); poza gospodarstwem — osobną stronę z powrotem na start.
 - **FR-E13** WHEN formularz zostanie wysłany z błędami walidacji THE SYSTEM SHALL przenieść focus na pierwsze błędne pole.
 - **NFR-E01** Testy: Vitest (tłumaczenia komunikatów, fragmenty konfiguracji MCP, dialog tokenu, dziennik, 404, focus), Playwright na binarium (token z dialogu działa z `/mcp` — `tools/call whoami`; axe na dialogu tokenu i 404 w motywie jasnym, ciemnym i na telefonie, bez poziomego przewijania).
+
+---
+
+# Część C3b — powiadomienia (F07C3b)
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `.ai/sdd/specs/005-notifications/` (sekcja „Dla etapu 007 (Web UI)”), `api/openapi.yaml` (tag `notifications`)
+> Last Updated: 2026-10-21
+
+Część C3b daje interfejs etapowi 005: dzwonek z licznikiem, skrzynkę powiadomień, kanały i preferencje (ustawienia osobiste, każda rola) oraz wysyłkę zaproszeń e-mailem. Zastępuje ostatni `ComingSoonPage`.
+
+## Non-Goals (część C3b)
+
+- Zmiany backendu i `api/openapi.yaml`; powiadomienia na żywo (SSE/WebSocket, push przeglądarki) — UI odpytuje licznik (005 Non-Goals).
+- Historia dostaw kanału (API jej nie udostępnia; jest tylko `verified_at`/`last_error`).
+
+## Requirements (EARS)
+
+### Dzwonek
+
+- **FR-F01** Nawigacja gospodarstwa SHALL mieć dzwonek z liczbą nieprzeczytanych powiadomień ze wszystkich gospodarstw użytkownika (`GET /me/notifications/unread-count`), odświeżaną co 60 s i przy powrocie do okna; nazwa dostępna „Powiadomienia, N nieprzeczytane”.
+- **FR-F02** WHEN użytkownik otworzy dzwonek THE SYSTEM SHALL pokazać panel z ostatnimi powiadomieniami (ikona typu, tytuł, treść, czas względny, przy kilku gospodarstwach — nazwa gospodarstwa), przyciskiem „Oznacz wszystkie jako przeczytane” i linkami do skrzynki i ustawień; Escape i klik poza panelem go zamykają.
+- **FR-F03** WHEN użytkownik kliknie powiadomienie THE SYSTEM SHALL przejść pod jego `link` w SPA (tylko ścieżki tej aplikacji; inne — pulpit gospodarstwa) i oznaczyć je jako przeczytane.
+
+### Skrzynka
+
+- **FR-F10** Strona `/h/:hid/notifications` SHALL listować powiadomienia od najnowszych, pogrupowane po dniu („Dziś”, „Wczoraj”, data), stronicowane kursorem („Pokaż starsze”), z ikoną per typ (odnowienie, okres próbny, zmiana ceny, przegapiona płatność, przekroczona koperta, termin celu).
+- **FR-F11** Strona SHALL mieć filtr „Tylko nieprzeczytane”, przy kilku gospodarstwach — filtr gospodarstwa, przycisk oznaczenia pojedynczego powiadomienia i „Oznacz wszystkie jako przeczytane” (w zakresie filtra gospodarstwa).
+- **FR-F12** Pulpit SHALL pokazywać trzy ostatnie powiadomienia gospodarstwa, gdy jakieś są.
+
+### Ustawienia → Powiadomienia (osobiste, każda rola)
+
+- **FR-F20** Zakładka SHALL listować kanały użytkownika: nazwa, typ, cel (adres/temat/pokój), „z sekretem”, stan (włączony/wyłączony, zweryfikowany z datą / niezweryfikowany, ostatni błąd z datą) i akcje: „Wyślij test” (wynik w wierszu), włącz/wyłącz, edytuj, usuń (z potwierdzeniem).
+- **FR-F21** Formularz kanału SHALL być budowany z `GET /me/channel-types` (`config_fields`, `secret_fields`, `required`); typy niedostępne SHALL być wyszarzone z powodem (brak SMTP, brak `DENAR_MASTER_KEY`); każdy typ SHALL mieć podpowiedzi konfiguracji (ntfy: serwer i temat; Telegram: jak zdobyć `chat_id`; Matrix: `room_id`; webhook: opis podpisu `X-Denar-Signature`).
+- **FR-F22** Sekrety SHALL być polami hasła i nigdy nie są wyświetlane; przy edycji kanału z sekretem SHALL być wybór „Zostaw bez zmian” (PATCH bez `secrets`), „Zmień” (obiekt) i „Usuń” (`null`, tylko gdy żaden sekret nie jest wymagany). Bez klucza głównego pola sekretów SHALL być zablokowane z wyjaśnieniem.
+- **FR-F23** Zakładka SHALL mieć macierz preferencji bieżącego gospodarstwa: wiersze — typy zdarzeń, kolumny — „W aplikacji” i każdy kanał; zapis `PUT` całości, przycisk aktywny tylko po zmianie.
+
+### Zaproszenia i komunikaty
+
+- **FR-F30** WHEN serwer ma SMTP (typ `email` dostępny) THE SYSTEM SHALL pokazać w zaproszeniu checkbox „Wyślij link e-mailem” (domyślnie zaznaczony) i po utworzeniu — informację o wysłaniu albo błąd `email_error` obok linku.
+- **FR-F31** Komunikaty walidacji i konfliktów etapu 005 (`secrets-unavailable`, `smtp-not-configured`, `too-many-channels`, `human-only`, pola `config.*`/`secrets.*`/`items.*`) SHALL być po polsku.
+- **NFR-F01** Testy: Vitest+MSW (dynamiczny formularz, sekrety przy edycji, macierz, dzwonek, skrzynka, zaproszenie e-mailem), Playwright na binarium (kanał webhook do atrapy → test z poprawnym podpisem → preferencja → subskrypcja z przypomnieniem → powiadomienie w dzwonku i dostawa na webhook), axe na nowych ekranach w motywie jasnym, ciemnym i na telefonie, bez poziomego przewijania.
