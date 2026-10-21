@@ -90,6 +90,10 @@ const (
 // ForbiddenError is a refusal with a known reason. It matches ErrForbidden.
 type ForbiddenError struct {
 	Reason ForbiddenReason
+	// Scope names the bot scope the operation needs, when that is what is
+	// missing (ForbiddenScope, or ForbiddenRole for a scope the role does
+	// not permit); "" otherwise.
+	Scope string
 }
 
 func (e ForbiddenError) Error() string { return "forbidden: " + string(e.Reason) }

@@ -173,12 +173,12 @@ func requireRole(s HouseholdScope, min membership.Role) error {
 func requireScope(s HouseholdScope, scope bot.Scope) error {
 	if s.IsBot() {
 		if !slices.Contains(s.Scopes, scope) {
-			return domain.ForbiddenError{Reason: domain.ForbiddenScope}
+			return domain.ForbiddenError{Reason: domain.ForbiddenScope, Scope: string(scope)}
 		}
 		return nil
 	}
 	if !bot.RolePermits(s.Role, scope) {
-		return domain.ForbiddenError{Reason: domain.ForbiddenRole}
+		return domain.ForbiddenError{Reason: domain.ForbiddenRole, Scope: string(scope)}
 	}
 	return nil
 }

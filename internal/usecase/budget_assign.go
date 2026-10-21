@@ -77,7 +77,7 @@ func (uc *SetAssignment) Do(ctx context.Context, p Principal, householdID, envel
 		if err != nil {
 			return err
 		}
-		m, monthErr := budget.ParseMonth("month", in.Month)
+		m, monthErr := uc.d.parseMonth(s.Household, in.Month)
 		amount, amountErr := parseBaseMoney("amount", in.Amount, s.Household.BaseCurrency)
 		if err := errors.Join(monthErr, amountErr); err != nil {
 			return err
@@ -116,7 +116,7 @@ func (uc *MoveBetweenEnvelopes) Do(ctx context.Context, p Principal, householdID
 			return err
 		}
 		from, to := domain.ID(strings.TrimSpace(in.FromEnvelopeID)), domain.ID(strings.TrimSpace(in.ToEnvelopeID))
-		m, monthErr := budget.ParseMonth("month", in.Month)
+		m, monthErr := uc.d.parseMonth(s.Household, in.Month)
 		amount, amountErr := parseBaseMoney("amount", in.Amount, s.Household.BaseCurrency)
 		if amountErr == nil && amount.Sign() <= 0 {
 			amountErr = domain.ValidationError{Field: "amount.amount", Message: "must be greater than zero"}

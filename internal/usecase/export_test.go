@@ -20,3 +20,11 @@ func RequireRole(s HouseholdScope, min membership.Role) error { return requireRo
 
 // FormatMinorForTest writes minor units as "12.34 PLN".
 func FormatMinorForTest(amount int64, code string) string { return formatMinor(amount, code) }
+
+// SetSpendingScanLimit lowers how many transactions a spending report
+// reads; call the returned function to restore it.
+func SetSpendingScanLimit(n int) (restore func()) {
+	old := spendingScanLimit
+	spendingScanLimit = n
+	return func() { spendingScanLimit = old }
+}

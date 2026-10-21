@@ -169,7 +169,7 @@ func (uc *GetBudgetMonth) Do(ctx context.Context, p Principal, householdID domai
 	if err != nil {
 		return BudgetMonthView{}, err
 	}
-	m, err := budget.ParseMonth("month", month)
+	m, err := uc.d.parseMonth(s.Household, month)
 	if err != nil {
 		return BudgetMonthView{}, err
 	}
@@ -232,4 +232,14 @@ func (uc *ListEnvelopeActivity) Do(ctx context.Context, p Principal, householdID
 		out.Items[i] = v.view(t)
 	}
 	return out, nil
+}
+
+// parseMonth reads the month of a budget operation; an empty one is the
+// household's current budget month, in its time zone and from its start
+// day (AD-606).
+func (d Deps) parseMonth(h household.Household, month string) (budget.Month, error) {
+	if month == "" {
+		return budget.MonthOf(today(h, d.Clock.Now()), h.MonthStartDay), nil
+	}
+	return budget.ParseMonth("month", month)
 }
