@@ -7,7 +7,7 @@ import { server } from '../../test/msw/server.ts'
 import { apiUrl } from '../../test/msw/url.ts'
 import { renderApp } from '../../test/render.tsx'
 
-const plain = (value: string | null | undefined) => value?.replace(/[  ]/g, ' ')
+const plain = (value: string | null | undefined) => value?.replace(/[\u00a0\u202f]/g, ' ')
 
 const konto = f.wallet()
 const oszczednosci = f.wallet({ id: 'w-osz', name: 'Oszczędności', on_budget: false })
