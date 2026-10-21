@@ -15,7 +15,7 @@ var allKeys = []string{
 	"DENAR_ADMIN_NAME", "DENAR_LOCAL_LOGIN", "DENAR_BASE_URL", "DENAR_SESSION_TTL", "DENAR_INVITE_TTL",
 	"DENAR_OIDC_ISSUER", "DENAR_OIDC_CLIENT_ID", "DENAR_OIDC_CLIENT_SECRET", "DENAR_OIDC_AUTO_CREATE",
 	"DENAR_AUTO_MIGRATE", "DENAR_TRUSTED_PROXIES", "DENAR_INSTANCE_NAME", "DENAR_BOT_RATE",
-	"DENAR_NBP_URL", "DENAR_FX_INTERVAL",
+	"DENAR_NBP_URL", "DENAR_FX_INTERVAL", "DENAR_CHARGE_HORIZON", "DENAR_SUBSCRIPTION_INTERVAL",
 }
 
 // clean unsets every variable for the test.
@@ -36,7 +36,8 @@ func TestDefaults(t *testing.T) {
 	if cfg.Addr != ":8080" || cfg.DatabasePath != "denar.db" || !cfg.LocalLogin || cfg.AutoMigrate ||
 		cfg.SessionTTL != 168*time.Hour || cfg.InviteTTL != 168*time.Hour || cfg.BaseURL != "http://localhost:8080" ||
 		cfg.InstanceName != "Denar" || cfg.BotRate != 120 || cfg.OIDCAutoCreate || cfg.HasAdmin() || cfg.OIDCEnabled() ||
-		cfg.NBPURL != "https://api.nbp.pl" || cfg.FxInterval != 30*time.Minute {
+		cfg.NBPURL != "https://api.nbp.pl" || cfg.FxInterval != 30*time.Minute || cfg.ChargeHorizonDays != 90 ||
+		cfg.SubscriptionInterval != time.Hour {
 		t.Errorf("defaults = %+v", cfg)
 	}
 }
@@ -150,5 +151,30 @@ func TestNBP(t *testing.T) {
 		if _, err := FromEnv(); err == nil || !strings.Contains(err.Error(), key) {
 			t.Errorf("%s=%s: err = %v", key, bad, err)
 		}
+	}
+}
+
+func TestSubscriptions(t *testing.T) {
+	clean(t)
+	t.Setenv("DENAR_CHARGE_HORIZON", "120")
+	t.Setenv("DENAR_SUBSCRIPTION_INTERVAL", "15m")
+	cfg, err := FromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ChargeHorizonDays != 120 || cfg.SubscriptionInterval != 15*time.Minute {
+		t.Errorf("cfg = %+v", cfg)
+	}
+	for key, bad := range map[string]string{"DENAR_CHARGE_HORIZON": "6", "DENAR_SUBSCRIPTION_INTERVAL": "soon"} {
+		clean(t)
+		t.Setenv(key, bad)
+		if _, err := FromEnv(); err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s=%s: err = %v", key, bad, err)
+		}
+	}
+	clean(t)
+	t.Setenv("DENAR_CHARGE_HORIZON", "731")
+	if _, err := FromEnv(); err == nil {
+		t.Error("horizon of 731 days")
 	}
 }

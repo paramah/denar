@@ -68,6 +68,13 @@ type Config struct {
 	// FxInterval is how often missing base amounts are filled in
 	// (DENAR_FX_INTERVAL).
 	FxInterval time.Duration
+
+	// ChargeHorizonDays is how many days ahead subscription charges are
+	// expected (DENAR_CHARGE_HORIZON, 7 to 730).
+	ChargeHorizonDays int
+	// SubscriptionInterval is how often the subscription jobs run
+	// (DENAR_SUBSCRIPTION_INTERVAL).
+	SubscriptionInterval time.Duration
 }
 
 // FromEnv reads and checks the whole configuration, falling back to
@@ -124,6 +131,12 @@ func FromEnv() (Config, error) {
 	if cfg.FxInterval, err = duration("DENAR_FX_INTERVAL", "30m"); err != nil {
 		errs = append(errs, err)
 	}
+	if cfg.ChargeHorizonDays, err = chargeHorizon(); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.SubscriptionInterval, err = duration("DENAR_SUBSCRIPTION_INTERVAL", "1h"); err != nil {
+		errs = append(errs, err)
+	}
 
 	if len(errs) > 0 {
 		return Config{}, errors.Join(errs...)
@@ -165,6 +178,8 @@ func (c Config) LogValue() slog.Value {
 		slog.Int("bot_rate", c.BotRate),
 		slog.String("nbp_url", c.NBPURL),
 		slog.Duration("fx_interval", c.FxInterval),
+		slog.Int("charge_horizon_days", c.ChargeHorizonDays),
+		slog.Duration("subscription_interval", c.SubscriptionInterval),
 	)
 }
 
@@ -216,6 +231,21 @@ func duration(key, fallback string) (time.Duration, error) {
 		return 0, fmt.Errorf("%s must be a positive duration such as %s", key, fallback)
 	}
 	return d, nil
+}
+
+// Limits of the charge horizon, in days.
+const (
+	minChargeHorizon = 7
+	maxChargeHorizon = 730
+)
+
+func chargeHorizon() (int, error) {
+	const key = "DENAR_CHARGE_HORIZON"
+	days, err := strconv.Atoi(env(key, "90"))
+	if err != nil || days < minChargeHorizon || days > maxChargeHorizon {
+		return 0, fmt.Errorf("%s must be a number of days between %d and %d", key, minChargeHorizon, maxChargeHorizon)
+	}
+	return days, nil
 }
 
 func botRate() (int, error) {

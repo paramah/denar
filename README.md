@@ -65,6 +65,27 @@ curl -s -b jar $B/months/2026-10                              # grupy → kopert
 
 Przeniesienie: `POST $B/months/<M>/moves` (`from_envelope_id`, `to_envelope_id`, `amount`); transakcje koperty: `GET $B/months/<M>/envelopes/<ENVELOPE>/transactions`. Koperty z transakcjami nie da się usunąć — ukryj ją (`PATCH … {"hidden":true}`). Boty potrzebują `budget:read`/`budget:write`.
 
+### Subskrypcje
+
+Subskrypcja ma dostawcę ze słownika (`GET /api/vendors`: openai, anthropic, apple, netflix…, `other`), cenę w dowolnej walucie (nie musi być walutą portfela), cykl `{unit: day|week|month|year, every, anchor}` liczony zawsze od `anchor` (31 → 28/29.02 → 31.03, bez dryfu), opcjonalny trial, portfel płatności i kopertę. Z subskrypcji powstają **oczekiwane obciążenia** (`charges`) do horyzontu `DENAR_CHARGE_HORIZON` dni; job (co `DENAR_SUBSCRIPTION_INTERVAL`) dopisuje kolejne, oznacza nieopłacone po oknie jako `missed` i zapisuje przypomnienia w outboxie zdarzeń (wysyłka — etap 005).
+
+```sh
+S=localhost:8080/api/households/<ID>
+curl -s -b jar -H 'Content-Type: application/json' -d '{"name":"ChatGPT Plus","vendor":"openai",
+  "price":{"amount":"20.00","currency":"USD"},"cycle":{"unit":"month","anchor":"2026-01-31"},
+  "wallet_id":"<WALLET>","envelope_id":"<ENVELOPE>","reminder_offsets":[7,1]}' $S/subscriptions
+curl -s -b jar "$S/charges?status=expected&status=missed"          # kolejka obciążeń
+curl -s -b jar $S/charges/<CHARGE>/suggestions                     # transakcje z punktacją 0–100
+curl -s -b jar -H 'Content-Type: application/json' -d '{"transaction_id":"<TX>"}' $S/charges/<CHARGE>/match
+curl -s -b jar -X POST $S/charges/<CHARGE>/post                    # albo: zaksięguj wydatek z obciążenia
+curl -s -b jar -H 'Content-Type: application/json' \
+  -d '{"effective_from":"2026-12-01","price":{"amount":"25.00","currency":"USD"}}' $S/subscriptions/<SUB>/prices
+curl -s -b jar $S/subscriptions/summary                            # koszt mies./rocz. w walucie bazowej
+curl -s -b jar "$S/subscriptions/upcoming?days=7"                  # co się odnawia
+```
+
+Statusy subskrypcji: `trial` (obciążenia od `trial_ends_at`), `active`, `paused` (bez obciążeń), `cancelled` (bez obciążeń od `ends_at`). Obciążenia: `expected`, `matched`, `missed`, `skipped` (`POST …/skip`), `posted`; `POST …/unmatch` odłącza transakcję. Dla wydatku zapisanego ręcznie pasujące obciążenia daje `GET $S/transactions/<TX>/charge-suggestions`. Subskrypcja z portfelem jest widoczna tylko dla widzących ten portfel; bez portfela — dla całego gospodarstwa. Boty potrzebują `subscriptions:read`/`subscriptions:write` (sugestie i potwierdzenie także `transactions:read`, zaksięgowanie `transactions:write`).
+
 Token bota z CLI (bez UI): `./denar token create --household <ID> --name cron --scopes reports:read [--as email] [--expires 2027-01-01T00:00:00Z]` — token trafia na stdout.
 
 Docker: `cp .env.example .env`, ustaw hasło, `task compose:up` (port 8080 na 127.0.0.1, dane w wolumenie `denar-data`).
@@ -97,6 +118,8 @@ Docker: `cp .env.example .env`, ustaw hasło, `task compose:up` (port 8080 na 12
 | `DENAR_INSTANCE_NAME` | `Denar` | nazwa na ekranie logowania |
 | `DENAR_BOT_RATE` | `120` | limit żądań bota na minutę |
 | `DENAR_NBP_URL` | `https://api.nbp.pl` | API kursów NBP (tabela A) |
+| `DENAR_CHARGE_HORIZON` | `90` | na ile dni naprzód generować oczekiwane obciążenia subskrypcji (7–730) |
+| `DENAR_SUBSCRIPTION_INTERVAL` | `1h` | co ile uruchamiać joby subskrypcji (obciążenia, przegapione, przypomnienia) |
 | `DENAR_FX_INTERVAL` | `30m` | co ile uzupełniać kwoty bazowe transakcji zapisanych bez kursu |
 
 ## Rozwój

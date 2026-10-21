@@ -33,6 +33,8 @@ type app struct {
 	deps    usecase.Deps
 	// fillRates runs the job that fills in missing base amounts once.
 	fillRates func(ctx context.Context) (int, error)
+	// runSubscriptions runs the subscription jobs once.
+	runSubscriptions func(ctx context.Context) (usecase.SubscriptionJobResult, error)
 
 	db             *sqlite.DB
 	stopBackground context.CancelFunc
@@ -47,6 +49,9 @@ type appOptions struct {
 	clock usecase.Clock // nil means the system clock
 	// rates replaces the NBP provider; nil means NBP at cfg.NBPURL.
 	rates usecase.RateProvider
+	// noSubscriptionJobs leaves the subscription jobs to the test, which
+	// runs them with app.runSubscriptions.
+	noSubscriptionJobs bool
 }
 
 func newApp(ctx context.Context, cfg config.Config, log *slog.Logger, panel fs.FS) (*app, error) {
@@ -91,6 +96,10 @@ func useCaseDeps(db *sqlite.DB, log *slog.Logger, c usecase.Clock, rates usecase
 		Envelopes:      sqlite.NewEnvelopeRepository(db),
 		Assignments:    sqlite.NewAssignmentRepository(db),
 
+		Subscriptions: sqlite.NewSubscriptionRepository(db),
+		Charges:       sqlite.NewChargeRepository(db),
+		Events:        sqlite.NewEventOutbox(db),
+
 		Rates:  rates,
 		IDs:    id.New(),
 		Tokens: token.Generator{},
@@ -117,6 +126,7 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 		rates = nbp.New(nbp.Config{BaseURL: cfg.NBPURL})
 	}
 	d := useCaseDeps(db, rest.WithRequestID(log), opts.clock, rates)
+	d.ChargeHorizonDays = cfg.ChargeHorizonDays
 	states := sqlite.NewOIDCStateRepository(db)
 	provider := oidc.New(oidc.Config{
 		Issuer:       cfg.OIDCIssuer,
@@ -242,11 +252,16 @@ func wire(ctx context.Context, cfg config.Config, log *slog.Logger, db *sqlite.D
 	}
 	fill := usecase.NewFillPendingRates(d)
 	a.fillRates = func(ctx context.Context) (int, error) { return fill.Do(ctx) }
+	subscriptionJobs := usecase.NewRunSubscriptionJobs(d)
+	a.runSubscriptions = subscriptionJobs.Do
 	go func() {
 		defer close(a.backgroundDone)
 		var wg sync.WaitGroup
 		wg.Go(func() { cleanExpired(backgroundCtx, log, d.Clock, d.Sessions, states) })
 		wg.Go(func() { fillPendingRates(backgroundCtx, log, cfg.FxInterval, fill) })
+		if !opts.noSubscriptionJobs {
+			wg.Go(func() { runSubscriptionJobs(backgroundCtx, log, cfg.SubscriptionInterval, subscriptionJobs) })
+		}
 		wg.Wait()
 	}()
 	return a, nil
@@ -323,6 +338,28 @@ func fillPendingRates(ctx context.Context, log *slog.Logger, interval time.Durat
 			log.Error("filling in exchange rates", "error", err.Error())
 		case n > 0:
 			log.Info("exchange rates filled in", "transactions", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+// runSubscriptionJobs keeps the charges of subscriptions up to the
+// horizon, marks missed ones and puts reminders in the outbox (stage 004)
+// now and once per interval, until ctx is done.
+func runSubscriptionJobs(ctx context.Context, log *slog.Logger, interval time.Duration, jobs *usecase.RunSubscriptionJobs) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		r, err := jobs.Do(ctx)
+		switch {
+		case err != nil && ctx.Err() == nil:
+			log.Error("running the subscription jobs", "error", err.Error())
+		case r != (usecase.SubscriptionJobResult{}):
+			log.Info("subscription jobs", "charges_created", r.Created, "charges_missed", r.Missed, "reminders", r.Reminders)
 		}
 		select {
 		case <-ctx.Done():

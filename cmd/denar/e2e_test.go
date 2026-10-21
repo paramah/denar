@@ -64,6 +64,7 @@ func setEnv(t *testing.T, extra ...string) string {
 		"DENAR_ADMIN_PASSWORD_FILE": "", "DENAR_ADMIN_NAME": "",
 		// Nothing listens there: tests never reach the real NBP.
 		"DENAR_NBP_URL": "http://127.0.0.1:1", "DENAR_FX_INTERVAL": "",
+		"DENAR_CHARGE_HORIZON": "", "DENAR_SUBSCRIPTION_INTERVAL": "",
 	}
 	for i := 0; i+1 < len(extra); i += 2 {
 		vars[extra[i]] = extra[i+1]
@@ -98,13 +99,19 @@ type e2e struct {
 
 func startE2E(t *testing.T) *e2e {
 	t.Helper()
+	return startE2EWith(t, appOptions{})
+}
+
+// startE2EWith starts the server with parts replaced.
+func startE2EWith(t *testing.T, opts appOptions) *e2e {
+	t.Helper()
 	logs := &syncBuffer{}
 	cfg := mustConfig(t)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := newApp(context.Background(), cfg, slog.New(slog.NewJSONHandler(logs, nil)), testPanel())
+	a, err := newAppWith(context.Background(), cfg, slog.New(slog.NewJSONHandler(logs, nil)), testPanel(), opts)
 	if err != nil {
 		listener.Close()
 		t.Fatal(err)
