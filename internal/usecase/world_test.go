@@ -23,11 +23,13 @@ type world struct {
 	t *testing.T
 	*fakes.Repos
 	deps usecase.Deps
+	// vars keeps ids a test set up, by name.
+	vars map[string]domain.ID
 }
 
 func newWorld(t *testing.T) *world {
 	r := fakes.NewRepos()
-	return &world{t: t, Repos: r, deps: r.Deps()}
+	return &world{t: t, Repos: r, deps: r.Deps(), vars: map[string]domain.ID{}}
 }
 
 func (w *world) must(err error) {
@@ -73,10 +75,15 @@ func (w *world) addBot(id, householdID domain.ID, creator user.User, scopes ...b
 }
 
 // addWallet adds a PLN checking wallet on budget; a private one is seen by
-// its creator only.
+// its creator and the members given.
 func (w *world) addWallet(id, householdID domain.ID, creator user.User, v wallet.Visibility, members ...domain.ID) wallet.Wallet {
 	w.t.Helper()
-	wl := wallet.Wallet{ID: id, HouseholdID: householdID, Name: "Wallet " + string(id), Type: wallet.TypeChecking, Currency: "PLN",
+	return w.addWalletIn("PLN", id, householdID, creator, v, members...)
+}
+
+func (w *world) addWalletIn(currency string, id, householdID domain.ID, creator user.User, v wallet.Visibility, members ...domain.ID) wallet.Wallet {
+	w.t.Helper()
+	wl := wallet.Wallet{ID: id, HouseholdID: householdID, Name: "Wallet " + string(id), Type: wallet.TypeChecking, Currency: currency,
 		OnBudget: true, Visibility: v, MemberIDs: members, CreatedBy: creator.ID, CreatedAt: w.Clock.Now()}.Normalize()
 	w.must(w.Wallets.Create(ctx, wl))
 	return wl
@@ -159,4 +166,47 @@ func (w *world) actions() []string {
 		out = append(out, e.Action)
 	}
 	return out
+}
+
+func day(s string) domain.Date {
+	d, err := domain.ParseDate(s)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
+func pln(amount string) usecase.MoneyInput { return usecase.MoneyInput{Amount: amount, Currency: "PLN"} }
+
+func usd(amount string) usecase.MoneyInput { return usecase.MoneyInput{Amount: amount, Currency: "USD"} }
+
+func wantField(t *testing.T, err error, field string) {
+	t.Helper()
+	if !errors.Is(err, domain.ErrInvalid) || !hasField(err, field) {
+		t.Fatalf("err = %v, want a validation error on %s", err, field)
+	}
+}
+
+func hasField(err error, field string) bool {
+	switch e := err.(type) {
+	case domain.ValidationError:
+		return e.Field == field
+	case interface{ Unwrap() []error }:
+		for _, c := range e.Unwrap() {
+			if hasField(c, field) {
+				return true
+			}
+		}
+	case interface{ Unwrap() error }:
+		return hasField(e.Unwrap(), field)
+	}
+	return false
+}
+
+// spend records an expense in the wallet as the principal.
+func (w *world) spend(p usecase.Principal, walletID string, amount usecase.MoneyInput, date string) usecase.TransactionView {
+	w.t.Helper()
+	v, err := usecase.NewRecordTransaction(w.deps).Do(ctx, p, "h1", usecase.RecordTransactionInput{WalletID: walletID, Amount: amount, Date: day(date)})
+	w.must(err)
+	return v
 }
