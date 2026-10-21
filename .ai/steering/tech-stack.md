@@ -14,7 +14,8 @@
 
 - **Framework:** React 19 + Vite + TypeScript (SPA osadzona w binarium).
 - **State/data:** `@tanstack/react-query`, `openapi-fetch`; typy z `api/openapi.yaml` przez `openapi-typescript`.
-- **UI/Styling:** do ustalenia w specyfikacji `007-webui`.
+- **UI/Styling:** własne komponenty „Mennica” (007-webui).
+- **i18n:** `i18next` + `react-i18next`, zasoby `web/src/i18n/{pl,en}/*.json` (013-i18n).
 
 ## Backend
 
@@ -64,6 +65,8 @@
 | TD-006 | Kursy z NBP z cache | Darmowe, wiarygodne źródło dla PLN | PLAN.md |
 | TD-007 | Integracje zewnętrzne tylko przez porty `BankConnector`/`BillingConnector` i wspólny `ImportTransactions` | Gotowość na banki/dostawców bez zmian domeny | PLAN.md |
 | TD-008 | Powiadomienia przez transakcyjny outbox | Niezawodna dostawa, retry | PLAN.md |
+| TD-009 | i18n: i18next + react-i18next w web, `Render(locale)` w domenie powiadomień; języki pl/en, preferencja w profilu | UI i powiadomienia po polsku i angielsku | specs/013-i18n |
+| TD-010 | Repozytorium `github.com/paramah/denar`, licencja MIT, GitHub Actions (CI, release: binaria + GHCR), akcje przypięte do SHA | Publikacja open source | README.md |
 
 ## Open Questions
 

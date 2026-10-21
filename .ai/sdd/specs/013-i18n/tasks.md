@@ -10,5 +10,5 @@
 - [x] **T-1304 Pozostałe teksty serwera** — zaproszenie, stopka SMTP, test kanału, angielskie błędy dostarczania. FR-1308.
 - [x] **T-1305 Fundament web** — i18next, `locale.ts`, formattery per locale, labels, messages, test zgodności kluczy. FR-1303, FR-1305, FR-1306, FR-1310.
 - [x] **T-1306 Profil i przełącznik** — `/profile`, menu, ekran logowania, `PATCH /me`. FR-1304.
-- [ ] **T-1307 Ekstrakcja napisów** — wszystkie `features/**`, komponenty wspólne. FR-1309.
-- [ ] **T-1308 E2E i zamknięcie** — `e2e/i18n.spec.ts`, `task verify`, `task web:e2e`, INDEX/PLAN.
+- [x] **T-1307 Ekstrakcja napisów** — wszystkie `features/**`, komponenty wspólne. FR-1309.
+- [x] **T-1308 E2E i zamknięcie** — `e2e/i18n.spec.ts`, `task verify`, `task web:e2e`, INDEX/PLAN.

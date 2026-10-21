@@ -202,3 +202,11 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 009-hardening-demo | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 009-hardening-demo | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 009-hardening-demo | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+
+## Po MVP (2026-10-21)
+
+Zatwierdzone przez użytkownika planem „wiele języków, GitHub, MIT, pipeline”:
+
+- Moduł Go przemianowany na `github.com/paramah/denar`; remote `git@github.com:paramah/denar.git`.
+- `LICENSE` (MIT), `README.md` (EN) i `README.pl.md` (PL), `Dockerfile` budujący Web UI, `.github/workflows/{ci,release}.yml`, Dependabot.
+- Etap 013-i18n: Web UI i powiadomienia po polsku i angielsku (spec w `.ai/sdd/specs/013-i18n/`).
