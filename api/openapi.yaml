@@ -3,7 +3,7 @@ info:
   title: denar REST API
   version: 0.1.0
   description: |
-    Kontrakt REST Denara (etap 001-core). Źródło typów Go (oapi-codegen) i TS
+    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions). Źródło typów Go (oapi-codegen) i TS
     (openapi-typescript, etap 007).
 
     Uwierzytelnianie: sesja w cookie `denar_session` (logowanie hasłem lub
@@ -32,6 +32,14 @@ info:
 
     Listy stronicowane przyjmują cursor i limit (domyślnie 50, maks. 200)
     i zwracają next_cursor (null na ostatniej stronie).
+
+    Kwoty (etap 002) to obiekty Money {amount: "-12.34", currency: "PLN",
+    minor: -1234} — amount jest stringiem dziesiętnym z liczbą miejsc
+    waluty; na wejściu MoneyInput {amount, currency}, gdzie waluta musi być
+    walutą portfela. Portfel prywatny, którego wywołujący nie widzi (także
+    owner), i portfel spoza listy bota dają 404. Dodatkowe powody 403:
+    wallet (druga noga przelewu w niewidocznym portfelu); 409:
+    duplicate-external-id, wallet-archived.
 servers:
   - url: /api
 security:
@@ -45,6 +53,10 @@ tags:
   - name: invitations
   - name: bots
   - name: audit
+  - name: wallets
+  - name: transactions
+  - name: payees
+  - name: fx
 
 paths:
   /auth/config:
@@ -518,6 +530,326 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /households/{householdId}/wallets:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [wallets]
+      operationId: listWallets
+      summary: Portfele widoczne dla wywołującego, z saldami (wallets:read)
+      parameters:
+        - { name: include_archived, in: query, schema: { type: boolean } }
+      responses:
+        "200":
+          description: Portfele według nazwy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WalletList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [wallets]
+      operationId: createWallet
+      summary: Tworzy portfel (wallets:write); saldo otwarcia staje się pierwszą transakcją
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WalletCreate" }
+      responses:
+        "201":
+          description: Portfel
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Wallet" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/wallets/{walletId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/WalletId"
+    get:
+      tags: [wallets]
+      operationId: getWallet
+      responses:
+        "200":
+          description: Portfel
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Wallet" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [wallets]
+      operationId: updateWallet
+      summary: Zmienia portfel; widoczność i członków zmienia tylko człowiek (twórca, a dla shared także owner/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WalletUpdate" }
+      responses:
+        "200":
+          description: Zmieniony portfel
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Wallet" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /households/{householdId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [transactions]
+      operationId: searchTransactions
+      summary: Transakcje widocznych portfeli od najnowszych (transactions:read)
+      parameters:
+        - { name: wallet_id, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: payee_id, in: query, schema: { type: string } }
+        - { name: envelope_id, in: query, schema: { type: string }, description: Koperta transakcji lub jednej z linii splitu }
+        - { name: q, in: query, schema: { type: string }, description: Tekst w notatce lub nazwie kontrahenta }
+        - { name: kind, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        "200":
+          description: Strona transakcji
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransactionPage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [transactions]
+      operationId: createTransaction
+      summary: Zapisuje wydatek lub przychód (transactions:write); bez kursu — rate_pending
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransactionCreate" }
+      responses:
+        "201":
+          description: Transakcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transaction" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/transactions/{transactionId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/TransactionId"
+    get:
+      tags: [transactions]
+      operationId: getTransaction
+      responses:
+        "200":
+          description: Transakcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transaction" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [transactions]
+      operationId: updateTransaction
+      summary: Zmienia transakcję; noga przelewu — tylko data (obu nóg), status, notatka, tagi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransactionUpdate" }
+      responses:
+        "200":
+          description: Zmieniona transakcja
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transaction" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [transactions]
+      operationId: deleteTransaction
+      summary: Usuwa transakcję; przelew — obie nogi
+      responses:
+        "204": { description: Usunięta }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/transfers:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    post:
+      tags: [transactions]
+      operationId: createTransfer
+      summary: Przelew między portfelami — dwie transakcje kind=transfer z jednym transfer_pair_id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransferCreate" }
+      responses:
+        "201":
+          description: Obie nogi przelewu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transfer" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /households/{householdId}/payees:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [payees]
+      operationId: listPayees
+      summary: Kontrahenci według nazwy (transactions:read)
+      responses:
+        "200":
+          description: Kontrahenci
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PayeeList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [payees]
+      operationId: createPayee
+      summary: Tworzy kontrahenta (transactions:write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PayeeCreate" }
+      responses:
+        "201":
+          description: Kontrahent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payee" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/payees/{payeeId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/PayeeId"
+    patch:
+      tags: [payees]
+      operationId: updatePayee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PayeeUpdate" }
+      responses:
+        "200":
+          description: Zmieniony kontrahent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payee" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [payees]
+      operationId: deletePayee
+      summary: Usuwa kontrahenta; jego transakcje zostają bez kontrahenta
+      responses:
+        "204": { description: Usunięty }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /households/{householdId}/fx-rates:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [fx]
+      operationId: quoteFxRate
+      summary: Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
+      description: Brak kursu (np. brak sieci) to source=unavailable i rate=null, nie błąd.
+      parameters:
+        - { name: currency, in: query, required: true, schema: { type: string } }
+        - { name: date, in: query, schema: { type: string, format: date }, description: Domyślnie dziś w strefie gospodarstwa }
+      responses:
+        "200":
+          description: Kurs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FxQuote" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/fx-rates/overrides:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [fx]
+      operationId: listFxOverrides
+      summary: Kursy ustawione ręcznie (transactions:read)
+      responses:
+        "200":
+          description: Kursy od najnowszego dnia
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FxOverrideList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [fx]
+      operationId: setFxOverride
+      summary: Ustawia kurs waluty na dzień (owner, admin; nie bot) i uzupełnia nim oczekujące transakcje
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FxOverrideSet" }
+      responses:
+        "200":
+          description: Kurs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FxOverride" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     session:
@@ -536,6 +868,21 @@ components:
       schema: { type: string }
     BotId:
       name: botId
+      in: path
+      required: true
+      schema: { type: string }
+    WalletId:
+      name: walletId
+      in: path
+      required: true
+      schema: { type: string }
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema: { type: string }
+    PayeeId:
+      name: payeeId
       in: path
       required: true
       schema: { type: string }
@@ -862,3 +1209,291 @@ components:
           type: array
           items: { $ref: "#/components/schemas/AuditEntry" }
         next_cursor: { type: [string, "null"] }
+    Money:
+      type: object
+      description: Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+      required: [amount, currency, minor]
+      properties:
+        amount: { type: string, pattern: "^-?[0-9]+(\\.[0-9]+)?$", examples: ["-12.34"] }
+        currency: { type: string, description: Kod ISO 4217 }
+        minor: { type: integer, format: int64 }
+    MoneyInput:
+      type: object
+      description: Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+      required: [amount, currency]
+      properties:
+        amount: { type: string, examples: ["12.34"] }
+        currency: { type: string }
+    WalletType:
+      type: string
+      enum: [cash, checking, card, savings, investment, loan]
+    Visibility:
+      type: string
+      enum: [shared, private]
+    Wallet:
+      type: object
+      required: [id, name, type, currency, on_budget, visibility, member_ids, created_by, created_at, archived_at, balance,
+        cleared_balance, base_balance, rate_pending]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { $ref: "#/components/schemas/WalletType" }
+        currency: { type: string, description: Niezmienna }
+        on_budget: { type: boolean, description: Czy portfel wchodzi do budżetu kopertowego }
+        visibility: { $ref: "#/components/schemas/Visibility" }
+        member_ids:
+          type: array
+          description: Kto widzi portfel prywatny (twórca zawsze); pusta dla shared
+          items: { type: string }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        archived_at: { type: [string, "null"], format: date-time }
+        balance: { $ref: "#/components/schemas/Money" }
+        cleared_balance:
+          description: Suma transakcji cleared i reconciled
+          $ref: "#/components/schemas/Money"
+        base_balance:
+          description: Suma kwot bazowych (waluta gospodarstwa); częściowa, gdy rate_pending
+          $ref: "#/components/schemas/Money"
+        rate_pending: { type: boolean, description: Część transakcji czeka na kurs }
+    WalletList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Wallet" }
+    WalletCreate:
+      type: object
+      required: [name, type, currency]
+      properties:
+        name: { type: string }
+        type: { type: string }
+        currency: { type: string }
+        on_budget: { type: boolean, description: Domyślnie true }
+        visibility: { type: string, description: "shared (domyślnie) lub private" }
+        member_ids:
+          type: array
+          items: { type: string }
+        opening_balance: { $ref: "#/components/schemas/MoneyInput" }
+        opened_on: { type: string, format: date, description: Data transakcji otwarcia; domyślnie dziś }
+    WalletUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        on_budget: { type: boolean }
+        visibility: { type: string }
+        member_ids:
+          type: array
+          items: { type: string }
+        archived: { type: boolean }
+    TransactionKind:
+      type: string
+      enum: [expense, income, transfer]
+    TransactionStatus:
+      type: string
+      enum: [pending, cleared, reconciled]
+    TransactionSource:
+      type: string
+      enum: [manual, import, subscription, bot]
+    Split:
+      type: object
+      required: [envelope_id, amount, base_amount, note]
+      properties:
+        envelope_id: { type: [string, "null"] }
+        amount: { $ref: "#/components/schemas/Money" }
+        base_amount:
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+        note: { type: string }
+    Transaction:
+      type: object
+      required: [id, wallet_id, date, amount, base_amount, fx_rate, rate_pending, payee_id, payee_name, envelope_id, kind,
+        status, source, tags, note, external_id, transfer_pair_id, transfer_wallet_id, splits, created_by, created_at, updated_at]
+      properties:
+        id: { type: string }
+        wallet_id: { type: string }
+        date: { type: string, format: date }
+        amount:
+          description: W walucie portfela; ujemna — wypływ
+          $ref: "#/components/schemas/Money"
+        base_amount:
+          description: W walucie bazowej po kursie z dnia transakcji; null, gdy rate_pending
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+        fx_rate: { type: [string, "null"], description: Użyty kurs (1 waluta portfela = fx_rate waluty bazowej) }
+        rate_pending: { type: boolean }
+        payee_id: { type: [string, "null"] }
+        payee_name: { type: [string, "null"] }
+        envelope_id: { type: [string, "null"] }
+        kind: { $ref: "#/components/schemas/TransactionKind" }
+        status: { $ref: "#/components/schemas/TransactionStatus" }
+        source: { $ref: "#/components/schemas/TransactionSource" }
+        tags:
+          type: array
+          items: { type: string }
+        note: { type: string }
+        external_id: { type: [string, "null"] }
+        transfer_pair_id: { type: [string, "null"] }
+        transfer_wallet_id: { type: [string, "null"], description: Portfel drugiej nogi; null, gdy niewidoczny }
+        splits:
+          type: array
+          items: { $ref: "#/components/schemas/Split" }
+        created_by: { $ref: "#/components/schemas/Actor" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TransactionPage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Transaction" }
+        next_cursor: { type: [string, "null"] }
+    SplitInput:
+      type: object
+      required: [amount]
+      properties:
+        envelope_id: { type: string }
+        amount: { $ref: "#/components/schemas/MoneyInput" }
+        note: { type: string }
+    TransactionCreate:
+      type: object
+      required: [wallet_id, amount]
+      properties:
+        wallet_id: { type: string }
+        date: { type: string, format: date, description: Domyślnie dziś w strefie gospodarstwa }
+        amount: { $ref: "#/components/schemas/MoneyInput" }
+        payee_id: { type: string }
+        payee_name: { type: string, description: Kontrahent po nazwie lub wzorcu; tworzony, gdy brak }
+        envelope_id: { type: string }
+        kind: { type: string, description: "expense (domyślnie) lub income" }
+        status: { type: string, description: "pending, cleared (domyślnie), reconciled" }
+        tags:
+          type: array
+          items: { type: string }
+        note: { type: string }
+        external_id: { type: string, description: Unikalny w portfelu }
+        splits:
+          type: array
+          items: { $ref: "#/components/schemas/SplitInput" }
+    TransactionUpdate:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        amount: { $ref: "#/components/schemas/MoneyInput" }
+        payee_id: { type: [string, "null"], description: null usuwa kontrahenta }
+        payee_name: { type: string }
+        envelope_id: { type: [string, "null"] }
+        kind: { type: string }
+        status: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        note: { type: string }
+        external_id: { type: [string, "null"] }
+        splits:
+          type: array
+          description: Pusta lista usuwa split
+          items: { $ref: "#/components/schemas/SplitInput" }
+    TransferCreate:
+      type: object
+      required: [from_wallet_id, to_wallet_id, amount]
+      properties:
+        from_wallet_id: { type: string }
+        to_wallet_id: { type: string }
+        date: { type: string, format: date }
+        amount:
+          description: Dodatnia kwota w walucie portfela źródłowego
+          $ref: "#/components/schemas/MoneyInput"
+        to_amount:
+          description: Kwota w walucie portfela docelowego; wymagana przy różnych walutach
+          $ref: "#/components/schemas/MoneyInput"
+        envelope_id: { type: string, description: Tylko między portfelem on-budget a off-budget; trafia na nogę on-budget }
+        status: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        note: { type: string }
+    Transfer:
+      type: object
+      required: [from, to]
+      properties:
+        from: { $ref: "#/components/schemas/Transaction" }
+        to: { $ref: "#/components/schemas/Transaction" }
+    Payee:
+      type: object
+      required: [id, name, patterns, default_envelope_id, created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        patterns:
+          type: array
+          description: Podciągi (bez wielkości liter) rozpoznające kontrahenta w tekście
+          items: { type: string }
+        default_envelope_id: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    PayeeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Payee" }
+    PayeeCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        patterns:
+          type: array
+          items: { type: string }
+        default_envelope_id: { type: string }
+    PayeeUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        patterns:
+          type: array
+          items: { type: string }
+        default_envelope_id: { type: [string, "null"] }
+    FxSource:
+      type: string
+      enum: [identity, manual, nbp, unavailable]
+    FxQuote:
+      type: object
+      required: [currency, base_currency, date, rate, rate_date, source]
+      properties:
+        currency: { type: string }
+        base_currency: { type: string }
+        date: { type: string, format: date }
+        rate: { type: [string, "null"], description: "1 currency = rate base_currency" }
+        rate_date: { type: [string, "null"], format: date, description: Dzień notowania (ostatni roboczy ≤ date) }
+        source: { $ref: "#/components/schemas/FxSource" }
+    FxOverride:
+      type: object
+      required: [currency, date, rate, created_by, created_at]
+      properties:
+        currency: { type: string }
+        date: { type: string, format: date }
+        rate: { type: string, description: "1 currency = rate waluty bazowej" }
+        created_by: { $ref: "#/components/schemas/Actor" }
+        created_at: { type: string, format: date-time }
+    FxOverrideList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/FxOverride" }
+    FxOverrideSet:
+      type: object
+      required: [currency, date, rate]
+      properties:
+        currency: { type: string }
+        date: { type: string, format: date }
+        rate: { type: string, examples: ["4.2512"] }

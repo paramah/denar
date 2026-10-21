@@ -15,6 +15,7 @@ import (
 
 	"github.com/pb33f/libopenapi"
 
+	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/usecase"
 )
@@ -161,6 +162,28 @@ func then(setups ...setupFunc) setupFunc {
 	}
 }
 
+// botScopes gives b1 these scopes instead of wallets:read.
+func botScopes(scopes ...bot.Scope) setupFunc {
+	return func(t *testing.T, w *world, _ http.Handler, _ *client) {
+		b, err := w.Bots.ByID(context.Background(), "b1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b.Scopes = scopes
+		w.must(w.Bots.Update(context.Background(), b))
+	}
+}
+
+// archived archives the wallet w1.
+func archived(t *testing.T, w *world, _ http.Handler, _ *client) {
+	wl, err := w.Wallets.ByID(context.Background(), "h1", "w1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wl.ArchivedAt = w.Clock.Now()
+	w.must(w.Wallets.Update(context.Background(), wl))
+}
+
 const badLogin = `{"email":"owner@example.com","password":"not the password"}`
 
 // conformanceCases covers, for every operation, every response the
@@ -304,6 +327,125 @@ var conformanceCases = map[string][]conformanceCase{
 		{status: 200, as: "member", target: "/api/households/h1/bots/b1/token"},
 		{status: 403, as: "viewer", target: "/api/households/h1/bots/b1/token"},
 		{status: 404, as: "member", target: "/api/households/h1/bots/nope/token"},
+	},
+	"listWallets": {
+		{status: 200, as: "viewer", target: "/api/households/h1/wallets?include_archived=true"},
+		{status: 200, as: "bot", target: "/api/households/h1/wallets"},
+		{status: 403, as: "bot", target: "/api/households/h1/wallets", setup: botScopes(bot.ScopeReportsRead)},
+		{status: 404, as: "outsider", target: "/api/households/h1/wallets"},
+	},
+	"createWallet": {
+		{status: 201, as: "member", target: "/api/households/h1/wallets",
+			body: `{"name":"Karta","type":"card","currency":"EUR","on_budget":false,"visibility":"private","member_ids":["viewer"],"opening_balance":{"amount":"-120.50","currency":"EUR"},"opened_on":"2026-10-01"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/wallets", body: `{"name":"X","type":"cash","currency":"PLN"}`},
+		{status: 404, as: "outsider", target: "/api/households/h1/wallets", body: `{"name":"X","type":"cash","currency":"PLN"}`},
+		{status: 409, as: "member", target: "/api/households/h1/wallets", body: `{"name":"konto","type":"cash","currency":"PLN"}`},
+		{status: 422, as: "member", target: "/api/households/h1/wallets", body: `{"name":"X","type":"piggy","currency":"PLN","opening_balance":{"amount":"1.234","currency":"PLN"}}`},
+	},
+	"getWallet": {
+		{status: 200, as: "viewer", target: "/api/households/h1/wallets/w1"},
+		{status: 200, as: "owner", target: "/api/households/h1/wallets/w2"},
+		{status: 403, as: "bot", target: "/api/households/h1/wallets/w1", setup: botScopes(bot.ScopeReportsRead)},
+		{status: 404, as: "member", target: "/api/households/h1/wallets/w2"},
+	},
+	"updateWallet": {
+		{status: 200, as: "member", target: "/api/households/h1/wallets/w1", body: `{"name":"Konto główne","archived":true,"on_budget":false,"type":"savings"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/wallets/w1", body: `{"name":"X"}`},
+		{status: 404, as: "member", target: "/api/households/h1/wallets/w2", body: `{"name":"X"}`},
+		{status: 409, as: "owner", target: "/api/households/h1/wallets/w1", body: `{"name":"Dolary"}`},
+		{status: 422, as: "owner", target: "/api/households/h1/wallets/w1", body: `{"type":"piggy"}`},
+	},
+	"searchTransactions": {
+		{status: 200, as: "viewer", target: "/api/households/h1/transactions?wallet_id=w1&from=2026-10-01&to=2026-10-31&q=zak&tag=food&kind=expense&status=cleared&payee_id=p1&envelope_id=e1&limit=1"},
+		{status: 200, as: "owner", target: "/api/households/h1/transactions"},
+		{status: 403, as: "bot", target: "/api/households/h1/transactions"},
+		{status: 404, as: "member", target: "/api/households/h1/transactions?wallet_id=w2"},
+		{status: 422, as: "member", target: "/api/households/h1/transactions?kind=gift"},
+		{status: 422, as: "member", target: "/api/households/h1/transactions?from=yesterday"},
+	},
+	"createTransaction": {
+		{status: 201, as: "member", target: "/api/households/h1/transactions",
+			body: `{"wallet_id":"w1","date":"2026-10-20","amount":{"amount":"-30.00","currency":"PLN"},"payee_name":"Biedronka","tags":["food"],"note":"x","external_id":"ext-2","status":"pending","splits":[{"envelope_id":"e1","amount":{"amount":"-10.00","currency":"PLN"}},{"amount":{"amount":"-20.00","currency":"PLN"},"note":"reszta"}]}`},
+		{status: 201, as: "owner", target: "/api/households/h1/transactions",
+			body: `{"wallet_id":"w2","date":"2026-10-20","amount":{"amount":"-10.00","currency":"USD"},"kind":"income"}`},
+		{status: 201, as: "bot", target: "/api/households/h1/transactions", setup: botScopes(bot.ScopeTransactionsWrite),
+			body: `{"wallet_id":"w1","amount":{"amount":"-1","currency":"PLN"}}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/transactions", body: `{"wallet_id":"w1","amount":{"amount":"-1","currency":"PLN"}}`},
+		{status: 404, as: "member", target: "/api/households/h1/transactions", body: `{"wallet_id":"w2","amount":{"amount":"-1","currency":"USD"}}`},
+		{status: 409, as: "member", target: "/api/households/h1/transactions", body: `{"wallet_id":"w1","amount":{"amount":"-1","currency":"PLN"},"external_id":"ext-1"}`},
+		{status: 409, as: "member", target: "/api/households/h1/transactions", body: `{"wallet_id":"w1","amount":{"amount":"-1","currency":"PLN"}}`, setup: archived},
+		{status: 422, as: "member", target: "/api/households/h1/transactions", body: `{"wallet_id":"w1","amount":{"amount":"-1","currency":"USD"}}`},
+	},
+	"getTransaction": {
+		{status: 200, as: "viewer", target: "/api/households/h1/transactions/t1"},
+		{status: 403, as: "bot", target: "/api/households/h1/transactions/t1"},
+		{status: 404, as: "member", target: "/api/households/h1/transactions/nope"},
+	},
+	"updateTransaction": {
+		{status: 200, as: "member", target: "/api/households/h1/transactions/t1",
+			body: `{"date":"2026-10-19","amount":{"amount":"-5","currency":"PLN"},"payee_id":null,"envelope_id":null,"kind":"expense","status":"reconciled","tags":[],"note":"","external_id":null,"splits":[]}`},
+		{status: 200, as: "member", target: "/api/households/h1/transactions/t1", body: `{"payee_name":"Żabka"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/transactions/t1", body: `{"note":"x"}`},
+		{status: 404, as: "member", target: "/api/households/h1/transactions/nope", body: `{"note":"x"}`},
+		{status: 409, as: "member", target: "/api/households/h1/transactions/t1", body: `{"note":"x"}`, setup: archived},
+		{status: 422, as: "member", target: "/api/households/h1/transactions/t1", body: `{"kind":"transfer"}`},
+	},
+	"deleteTransaction": {
+		{status: 204, as: "member", target: "/api/households/h1/transactions/t1"},
+		{status: 403, as: "viewer", target: "/api/households/h1/transactions/t1"},
+		{status: 404, as: "member", target: "/api/households/h1/transactions/nope"},
+		{status: 409, as: "member", target: "/api/households/h1/transactions/t1", setup: archived},
+	},
+	"createTransfer": {
+		{status: 201, as: "owner", target: "/api/households/h1/transfers",
+			body: `{"from_wallet_id":"w1","to_wallet_id":"w2","date":"2026-10-20","amount":{"amount":"400.00","currency":"PLN"},"to_amount":{"amount":"100.00","currency":"USD"},"note":"wymiana","tags":["fx"],"status":"cleared"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/transfers", body: `{"from_wallet_id":"w1","to_wallet_id":"w2","amount":{"amount":"1","currency":"PLN"}}`},
+		{status: 404, as: "member", target: "/api/households/h1/transfers", body: `{"from_wallet_id":"w1","to_wallet_id":"w2","amount":{"amount":"1","currency":"PLN"}}`},
+		{status: 409, as: "owner", target: "/api/households/h1/transfers", body: `{"from_wallet_id":"w1","to_wallet_id":"w2","amount":{"amount":"1","currency":"PLN"},"to_amount":{"amount":"1","currency":"USD"}}`, setup: archived},
+		{status: 422, as: "owner", target: "/api/households/h1/transfers", body: `{"from_wallet_id":"w1","to_wallet_id":"w2","amount":{"amount":"1","currency":"PLN"}}`},
+	},
+	"listPayees": {
+		{status: 200, as: "viewer", target: "/api/households/h1/payees"},
+		{status: 403, as: "bot", target: "/api/households/h1/payees"},
+		{status: 404, as: "outsider", target: "/api/households/h1/payees"},
+	},
+	"createPayee": {
+		{status: 201, as: "member", target: "/api/households/h1/payees", body: `{"name":"Biedronka","patterns":["JMP S.A."],"default_envelope_id":"groceries"}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/payees", body: `{"name":"X"}`},
+		{status: 404, as: "outsider", target: "/api/households/h1/payees", body: `{"name":"X"}`},
+		{status: 409, as: "member", target: "/api/households/h1/payees", body: `{"name":"lidl"}`},
+		{status: 422, as: "member", target: "/api/households/h1/payees", body: `{"name":" "}`},
+	},
+	"updatePayee": {
+		{status: 200, as: "member", target: "/api/households/h1/payees/p1", body: `{"name":"Lidl PL","patterns":[],"default_envelope_id":null}`},
+		{status: 403, as: "viewer", target: "/api/households/h1/payees/p1", body: `{"name":"X"}`},
+		{status: 404, as: "member", target: "/api/households/h1/payees/nope", body: `{"name":"X"}`},
+		{status: 409, as: "member", target: "/api/households/h1/payees/p1", body: `{"name":"ALDI"}`},
+		{status: 422, as: "member", target: "/api/households/h1/payees/p1", body: `{"name":""}`},
+	},
+	"deletePayee": {
+		{status: 204, as: "member", target: "/api/households/h1/payees/p1"},
+		{status: 403, as: "viewer", target: "/api/households/h1/payees/p1"},
+		{status: 404, as: "member", target: "/api/households/h1/payees/nope"},
+	},
+	"quoteFxRate": {
+		{status: 200, as: "viewer", target: "/api/households/h1/fx-rates?currency=USD&date=2026-10-20"},
+		{status: 200, as: "viewer", target: "/api/households/h1/fx-rates?currency=EUR"},
+		{status: 403, as: "bot", target: "/api/households/h1/fx-rates?currency=USD"},
+		{status: 404, as: "outsider", target: "/api/households/h1/fx-rates?currency=USD"},
+		{status: 422, as: "viewer", target: "/api/households/h1/fx-rates?currency=XYZ"},
+		{status: 422, as: "viewer", target: "/api/households/h1/fx-rates"},
+	},
+	"listFxOverrides": {
+		{status: 200, as: "viewer", target: "/api/households/h1/fx-rates/overrides"},
+		{status: 403, as: "bot", target: "/api/households/h1/fx-rates/overrides"},
+		{status: 404, as: "outsider", target: "/api/households/h1/fx-rates/overrides"},
+	},
+	"setFxOverride": {
+		{status: 200, as: "admin", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"4.2512"}`},
+		{status: 403, as: "member", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"4"}`},
+		{status: 404, as: "outsider", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"4"}`},
+		{status: 422, as: "admin", target: "/api/households/h1/fx-rates/overrides", body: `{"currency":"USD","date":"2026-10-19","rate":"-4"}`},
 	},
 	"listAudit": {
 		{status: 200, as: "admin", target: "/api/households/h1/audit?limit=1&resource_type=invitation", setup: then(invited, invited)},

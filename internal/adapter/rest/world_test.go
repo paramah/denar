@@ -19,7 +19,10 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
+	"git.eiac.dev/tools/denar/internal/domain/payee"
+	"git.eiac.dev/tools/denar/internal/domain/transaction"
 	"git.eiac.dev/tools/denar/internal/domain/user"
+	"git.eiac.dev/tools/denar/internal/domain/wallet"
 	"git.eiac.dev/tools/denar/internal/usecase"
 	"git.eiac.dev/tools/denar/internal/usecase/fakes"
 )
@@ -90,6 +93,27 @@ func newWorld(t *testing.T) *world {
 		DeleteBot:      usecase.NewDeleteBot(d),
 
 		ListAudit: usecase.NewListAudit(d),
+
+		ListWallets:  usecase.NewListWallets(d),
+		CreateWallet: usecase.NewCreateWallet(d),
+		GetWallet:    usecase.NewGetWallet(d),
+		UpdateWallet: usecase.NewUpdateWallet(d),
+
+		SearchTransactions: usecase.NewSearchTransactions(d),
+		RecordTransaction:  usecase.NewRecordTransaction(d),
+		GetTransaction:     usecase.NewGetTransaction(d),
+		UpdateTransaction:  usecase.NewUpdateTransaction(d),
+		DeleteTransaction:  usecase.NewDeleteTransaction(d),
+		CreateTransfer:     usecase.NewCreateTransfer(d),
+
+		ListPayees:  usecase.NewListPayees(d),
+		CreatePayee: usecase.NewCreatePayee(d),
+		UpdatePayee: usecase.NewUpdatePayee(d),
+		DeletePayee: usecase.NewDeletePayee(d),
+
+		QuoteFxRate:     usecase.NewQuoteFxRate(d),
+		ListFxOverrides: usecase.NewListFxOverrides(d),
+		SetFxOverride:   usecase.NewSetFxOverride(d),
 	}
 	owner := w.addUser("owner")
 	w.addHousehold("h1", owner)
@@ -101,7 +125,30 @@ func newWorld(t *testing.T) *world {
 	}
 	w.addHousehold("h2", w.addUser("outsider"))
 	w.addBot("b1", "h1", "member", bot.ScopeWalletsRead)
+	w.addFinances()
 	return w
+}
+
+// addFinances gives h1 a shared PLN wallet w1 "Konto" and a private USD
+// wallet w2 "Dolary" of owner, payees p1 "Lidl" and p2 "Aldi", and an
+// expense t1 of 12.34 PLN in w1 at Lidl. NBP knows USD on 2026-10-20.
+func (w *world) addFinances() {
+	w.t.Helper()
+	ctx := context.Background()
+	now := w.Clock.Now()
+	w.must(w.Wallets.Create(ctx, wallet.Wallet{ID: "w1", HouseholdID: "h1", Name: "Konto", Type: wallet.TypeChecking, Currency: "PLN",
+		OnBudget: true, Visibility: wallet.Shared, MemberIDs: []domain.ID{}, CreatedBy: "owner", CreatedAt: now}))
+	w.must(w.Wallets.Create(ctx, wallet.Wallet{ID: "w2", HouseholdID: "h1", Name: "Dolary", Type: wallet.TypeCash, Currency: "USD",
+		OnBudget: true, Visibility: wallet.Private, MemberIDs: []domain.ID{"owner"}, CreatedBy: "owner", CreatedAt: now}))
+	for id, name := range map[domain.ID]string{"p1": "Lidl", "p2": "Aldi"} {
+		w.must(w.Payees.Create(ctx, payee.Payee{ID: id, HouseholdID: "h1", Name: name, Patterns: []string{"LIDL SP"}, CreatedAt: now, UpdatedAt: now}))
+	}
+	d, _ := domain.ParseDate("2026-10-20")
+	w.must(w.Transactions.Create(ctx, transaction.Transaction{ID: "t1", HouseholdID: "h1", WalletID: "w1", Date: d, Amount: -1234,
+		Currency: "PLN", BaseAmount: -1234, PayeeID: "p1", EnvelopeID: "e1", Kind: transaction.Expense, Status: transaction.Cleared,
+		Source: transaction.SourceManual, Tags: []string{"food"}, Note: "zakupy", ExternalID: "ext-1",
+		Splits: []transaction.Split{}, CreatedBy: domain.Actor{Kind: domain.ActorUser, ID: "member"}, CreatedAt: now, UpdatedAt: now}))
+	w.Rates.Set("USD", "2026-10-20", "4.0000")
 }
 
 func (w *world) must(err error) {

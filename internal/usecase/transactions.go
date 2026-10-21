@@ -31,12 +31,15 @@ func sourceOf(p Principal) transaction.Source {
 type TransactionView struct {
 	Transaction transaction.Transaction
 	PayeeName   string
+	// BaseCurrency is the household's, the currency of the base amounts.
+	BaseCurrency string
 }
 
 // viewer turns transactions into views for one principal.
 type viewer struct {
 	payees  map[domain.ID]string
 	visible map[domain.ID]bool
+	base    string
 }
 
 func (d Deps) viewer(ctx context.Context, s HouseholdScope, p Principal) (viewer, error) {
@@ -48,7 +51,7 @@ func (d Deps) viewer(ctx context.Context, s HouseholdScope, p Principal) (viewer
 	if err != nil {
 		return viewer{}, err
 	}
-	v := viewer{payees: map[domain.ID]string{}, visible: map[domain.ID]bool{}}
+	v := viewer{payees: map[domain.ID]string{}, visible: map[domain.ID]bool{}, base: s.Household.BaseCurrency}
 	for _, pe := range ps {
 		v.payees[pe.ID] = pe.Name
 	}
@@ -62,7 +65,7 @@ func (v viewer) view(t transaction.Transaction) TransactionView {
 	if t.TransferWalletID != "" && !v.visible[t.TransferWalletID] {
 		t.TransferWalletID = ""
 	}
-	return TransactionView{Transaction: t, PayeeName: v.payees[t.PayeeID]}
+	return TransactionView{Transaction: t, PayeeName: v.payees[t.PayeeID], BaseCurrency: v.base}
 }
 
 func (d Deps) viewOne(ctx context.Context, s HouseholdScope, p Principal, t transaction.Transaction) (TransactionView, error) {

@@ -64,4 +64,25 @@ type Deps struct {
 	DeleteBot      *usecase.DeleteBot
 
 	ListAudit *usecase.ListAudit
+
+	ListWallets  *usecase.ListWallets
+	CreateWallet *usecase.CreateWallet
+	GetWallet    *usecase.GetWallet
+	UpdateWallet *usecase.UpdateWallet
+
+	SearchTransactions *usecase.SearchTransactions
+	RecordTransaction  *usecase.RecordTransaction
+	GetTransaction     *usecase.GetTransaction
+	UpdateTransaction  *usecase.UpdateTransaction
+	DeleteTransaction  *usecase.DeleteTransaction
+	CreateTransfer     *usecase.CreateTransfer
+
+	ListPayees  *usecase.ListPayees
+	CreatePayee *usecase.CreatePayee
+	UpdatePayee *usecase.UpdatePayee
+	DeletePayee *usecase.DeletePayee
+
+	QuoteFxRate     *usecase.QuoteFxRate
+	ListFxOverrides *usecase.ListFxOverrides
+	SetFxOverride   *usecase.SetFxOverride
 }

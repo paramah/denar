@@ -16,6 +16,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for ActorKind.
@@ -39,24 +40,48 @@ func (e ActorKind) Valid() bool {
 	}
 }
 
+// Defines values for FxSource.
+const (
+	FxSourceIdentity    FxSource = "identity"
+	FxSourceManual      FxSource = "manual"
+	FxSourceNbp         FxSource = "nbp"
+	FxSourceUnavailable FxSource = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the FxSource enum.
+func (e FxSource) Valid() bool {
+	switch e {
+	case FxSourceIdentity:
+		return true
+	case FxSourceManual:
+		return true
+	case FxSourceNbp:
+		return true
+	case FxSourceUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InvitationState.
 const (
-	Accepted InvitationState = "accepted"
-	Expired  InvitationState = "expired"
-	Pending  InvitationState = "pending"
-	Revoked  InvitationState = "revoked"
+	InvitationStateAccepted InvitationState = "accepted"
+	InvitationStateExpired  InvitationState = "expired"
+	InvitationStatePending  InvitationState = "pending"
+	InvitationStateRevoked  InvitationState = "revoked"
 )
 
 // Valid indicates whether the value is a known member of the InvitationState enum.
 func (e InvitationState) Valid() bool {
 	switch e {
-	case Accepted:
+	case InvitationStateAccepted:
 		return true
-	case Expired:
+	case InvitationStateExpired:
 		return true
-	case Pending:
+	case InvitationStatePending:
 		return true
-	case Revoked:
+	case InvitationStateRevoked:
 		return true
 	default:
 		return false
@@ -183,6 +208,120 @@ func (e Scope) Valid() bool {
 	}
 }
 
+// Defines values for TransactionKind.
+const (
+	TransactionKindExpense  TransactionKind = "expense"
+	TransactionKindIncome   TransactionKind = "income"
+	TransactionKindTransfer TransactionKind = "transfer"
+)
+
+// Valid indicates whether the value is a known member of the TransactionKind enum.
+func (e TransactionKind) Valid() bool {
+	switch e {
+	case TransactionKindExpense:
+		return true
+	case TransactionKindIncome:
+		return true
+	case TransactionKindTransfer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TransactionSource.
+const (
+	TransactionSourceBot          TransactionSource = "bot"
+	TransactionSourceImport       TransactionSource = "import"
+	TransactionSourceManual       TransactionSource = "manual"
+	TransactionSourceSubscription TransactionSource = "subscription"
+)
+
+// Valid indicates whether the value is a known member of the TransactionSource enum.
+func (e TransactionSource) Valid() bool {
+	switch e {
+	case TransactionSourceBot:
+		return true
+	case TransactionSourceImport:
+		return true
+	case TransactionSourceManual:
+		return true
+	case TransactionSourceSubscription:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TransactionStatus.
+const (
+	TransactionStatusCleared    TransactionStatus = "cleared"
+	TransactionStatusPending    TransactionStatus = "pending"
+	TransactionStatusReconciled TransactionStatus = "reconciled"
+)
+
+// Valid indicates whether the value is a known member of the TransactionStatus enum.
+func (e TransactionStatus) Valid() bool {
+	switch e {
+	case TransactionStatusCleared:
+		return true
+	case TransactionStatusPending:
+		return true
+	case TransactionStatusReconciled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Visibility.
+const (
+	Private Visibility = "private"
+	Shared  Visibility = "shared"
+)
+
+// Valid indicates whether the value is a known member of the Visibility enum.
+func (e Visibility) Valid() bool {
+	switch e {
+	case Private:
+		return true
+	case Shared:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalletType.
+const (
+	Card       WalletType = "card"
+	Cash       WalletType = "cash"
+	Checking   WalletType = "checking"
+	Investment WalletType = "investment"
+	Loan       WalletType = "loan"
+	Savings    WalletType = "savings"
+)
+
+// Valid indicates whether the value is a known member of the WalletType enum.
+func (e WalletType) Valid() bool {
+	switch e {
+	case Card:
+		return true
+	case Cash:
+		return true
+	case Checking:
+		return true
+	case Investment:
+		return true
+	case Loan:
+		return true
+	case Savings:
+		return true
+	default:
+		return false
+	}
+}
+
 // Actor defines model for Actor.
 type Actor struct {
 	Id   string    `json:"id"`
@@ -293,6 +432,48 @@ type Currency struct {
 type CurrencyList struct {
 	Items []Currency `json:"items"`
 }
+
+// FxOverride defines model for FxOverride.
+type FxOverride struct {
+	CreatedAt time.Time          `json:"created_at"`
+	CreatedBy Actor              `json:"created_by"`
+	Currency  string             `json:"currency"`
+	Date      openapi_types.Date `json:"date"`
+
+	// Rate 1 currency = rate waluty bazowej
+	Rate string `json:"rate"`
+}
+
+// FxOverrideList defines model for FxOverrideList.
+type FxOverrideList struct {
+	Items []FxOverride `json:"items"`
+}
+
+// FxOverrideSet defines model for FxOverrideSet.
+type FxOverrideSet struct {
+	Currency string             `json:"currency"`
+	Date     openapi_types.Date `json:"date"`
+
+	// Rate Examples: 4.2512
+	Rate string `json:"rate"`
+}
+
+// FxQuote defines model for FxQuote.
+type FxQuote struct {
+	BaseCurrency string             `json:"base_currency"`
+	Currency     string             `json:"currency"`
+	Date         openapi_types.Date `json:"date"`
+
+	// Rate 1 currency = rate base_currency
+	Rate nullable.Nullable[string] `json:"rate"`
+
+	// RateDate Dzień notowania (ostatni roboczy ≤ date)
+	RateDate nullable.Nullable[openapi_types.Date] `json:"rate_date"`
+	Source   FxSource                              `json:"source"`
+}
+
+// FxSource defines model for FxSource.
+type FxSource string
 
 // Household defines model for Household.
 type Household struct {
@@ -430,6 +611,54 @@ type MemberUpdate struct {
 	Role string `json:"role"`
 }
 
+// Money Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+type Money struct {
+	// Amount Examples: -12.34
+	Amount string `json:"amount"`
+
+	// Currency Kod ISO 4217
+	Currency string `json:"currency"`
+	Minor    int64  `json:"minor"`
+}
+
+// MoneyInput Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+type MoneyInput struct {
+	// Amount Examples: 12.34
+	Amount   string `json:"amount"`
+	Currency string `json:"currency"`
+}
+
+// Payee defines model for Payee.
+type Payee struct {
+	CreatedAt         time.Time                 `json:"created_at"`
+	DefaultEnvelopeId nullable.Nullable[string] `json:"default_envelope_id"`
+	Id                string                    `json:"id"`
+	Name              string                    `json:"name"`
+
+	// Patterns Podciągi (bez wielkości liter) rozpoznające kontrahenta w tekście
+	Patterns  []string  `json:"patterns"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// PayeeCreate defines model for PayeeCreate.
+type PayeeCreate struct {
+	DefaultEnvelopeId *string   `json:"default_envelope_id,omitempty"`
+	Name              string    `json:"name"`
+	Patterns          *[]string `json:"patterns,omitempty"`
+}
+
+// PayeeList defines model for PayeeList.
+type PayeeList struct {
+	Items []Payee `json:"items"`
+}
+
+// PayeeUpdate defines model for PayeeUpdate.
+type PayeeUpdate struct {
+	DefaultEnvelopeId nullable.Nullable[string] `json:"default_envelope_id,omitempty"`
+	Name              *string                   `json:"name,omitempty"`
+	Patterns          *[]string                 `json:"patterns,omitempty"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	Code   ProblemCode `json:"code"`
@@ -462,6 +691,142 @@ type Role string
 // Scope defines model for Scope.
 type Scope string
 
+// Split defines model for Split.
+type Split struct {
+	// Amount Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Amount     Money                     `json:"amount"`
+	BaseAmount nullable.Nullable[Money]  `json:"base_amount"`
+	EnvelopeId nullable.Nullable[string] `json:"envelope_id"`
+	Note       string                    `json:"note"`
+}
+
+// SplitInput defines model for SplitInput.
+type SplitInput struct {
+	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Amount     MoneyInput `json:"amount"`
+	EnvelopeId *string    `json:"envelope_id,omitempty"`
+	Note       *string    `json:"note,omitempty"`
+}
+
+// Transaction defines model for Transaction.
+type Transaction struct {
+	// Amount W walucie portfela; ujemna — wypływ
+	Amount Money `json:"amount"`
+
+	// BaseAmount W walucie bazowej po kursie z dnia transakcji; null, gdy rate_pending
+	BaseAmount nullable.Nullable[Money]  `json:"base_amount"`
+	CreatedAt  time.Time                 `json:"created_at"`
+	CreatedBy  Actor                     `json:"created_by"`
+	Date       openapi_types.Date        `json:"date"`
+	EnvelopeId nullable.Nullable[string] `json:"envelope_id"`
+	ExternalId nullable.Nullable[string] `json:"external_id"`
+
+	// FxRate Użyty kurs (1 waluta portfela = fx_rate waluty bazowej)
+	FxRate         nullable.Nullable[string] `json:"fx_rate"`
+	Id             string                    `json:"id"`
+	Kind           TransactionKind           `json:"kind"`
+	Note           string                    `json:"note"`
+	PayeeId        nullable.Nullable[string] `json:"payee_id"`
+	PayeeName      nullable.Nullable[string] `json:"payee_name"`
+	RatePending    bool                      `json:"rate_pending"`
+	Source         TransactionSource         `json:"source"`
+	Splits         []Split                   `json:"splits"`
+	Status         TransactionStatus         `json:"status"`
+	Tags           []string                  `json:"tags"`
+	TransferPairId nullable.Nullable[string] `json:"transfer_pair_id"`
+
+	// TransferWalletId Portfel drugiej nogi; null
+	TransferWalletId nullable.Nullable[string] `json:"transfer_wallet_id"`
+	UpdatedAt        time.Time                 `json:"updated_at"`
+	WalletId         string                    `json:"wallet_id"`
+}
+
+// TransactionCreate defines model for TransactionCreate.
+type TransactionCreate struct {
+	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Amount MoneyInput `json:"amount"`
+
+	// Date Domyślnie dziś w strefie gospodarstwa
+	Date       *openapi_types.Date `json:"date,omitempty"`
+	EnvelopeId *string             `json:"envelope_id,omitempty"`
+
+	// ExternalId Unikalny w portfelu
+	ExternalId *string `json:"external_id,omitempty"`
+
+	// Kind expense (domyślnie) lub income
+	Kind    *string `json:"kind,omitempty"`
+	Note    *string `json:"note,omitempty"`
+	PayeeId *string `json:"payee_id,omitempty"`
+
+	// PayeeName Kontrahent po nazwie lub wzorcu; tworzony
+	PayeeName *string       `json:"payee_name,omitempty"`
+	Splits    *[]SplitInput `json:"splits,omitempty"`
+
+	// Status pending, cleared (domyślnie), reconciled
+	Status   *string   `json:"status,omitempty"`
+	Tags     *[]string `json:"tags,omitempty"`
+	WalletId string    `json:"wallet_id"`
+}
+
+// TransactionKind defines model for TransactionKind.
+type TransactionKind string
+
+// TransactionPage defines model for TransactionPage.
+type TransactionPage struct {
+	Items      []Transaction             `json:"items"`
+	NextCursor nullable.Nullable[string] `json:"next_cursor"`
+}
+
+// TransactionSource defines model for TransactionSource.
+type TransactionSource string
+
+// TransactionStatus defines model for TransactionStatus.
+type TransactionStatus string
+
+// TransactionUpdate defines model for TransactionUpdate.
+type TransactionUpdate struct {
+	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Amount     *MoneyInput               `json:"amount,omitempty"`
+	Date       *openapi_types.Date       `json:"date,omitempty"`
+	EnvelopeId nullable.Nullable[string] `json:"envelope_id,omitempty"`
+	ExternalId nullable.Nullable[string] `json:"external_id,omitempty"`
+	Kind       *string                   `json:"kind,omitempty"`
+	Note       *string                   `json:"note,omitempty"`
+
+	// PayeeId null usuwa kontrahenta
+	PayeeId   nullable.Nullable[string] `json:"payee_id,omitempty"`
+	PayeeName *string                   `json:"payee_name,omitempty"`
+
+	// Splits Pusta lista usuwa split
+	Splits *[]SplitInput `json:"splits,omitempty"`
+	Status *string       `json:"status,omitempty"`
+	Tags   *[]string     `json:"tags,omitempty"`
+}
+
+// Transfer defines model for Transfer.
+type Transfer struct {
+	From Transaction `json:"from"`
+	To   Transaction `json:"to"`
+}
+
+// TransferCreate defines model for TransferCreate.
+type TransferCreate struct {
+	// Amount Dodatnia kwota w walucie portfela źródłowego
+	Amount MoneyInput          `json:"amount"`
+	Date   *openapi_types.Date `json:"date,omitempty"`
+
+	// EnvelopeId Tylko między portfelem on-budget a off-budget; trafia na nogę on-budget
+	EnvelopeId   *string   `json:"envelope_id,omitempty"`
+	FromWalletId string    `json:"from_wallet_id"`
+	Note         *string   `json:"note,omitempty"`
+	Status       *string   `json:"status,omitempty"`
+	Tags         *[]string `json:"tags,omitempty"`
+
+	// ToAmount Kwota w walucie portfela docelowego; wymagana przy różnych walutach
+	ToAmount   *MoneyInput `json:"to_amount,omitempty"`
+	ToWalletId string      `json:"to_wallet_id"`
+}
+
 // User defines model for User.
 type User struct {
 	CreatedAt time.Time `json:"created_at"`
@@ -473,11 +838,93 @@ type User struct {
 	Name          string `json:"name"`
 }
 
+// Visibility defines model for Visibility.
+type Visibility string
+
+// Wallet defines model for Wallet.
+type Wallet struct {
+	ArchivedAt nullable.Nullable[time.Time] `json:"archived_at"`
+
+	// Balance Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Balance Money `json:"balance"`
+
+	// BaseBalance Suma kwot bazowych (waluta gospodarstwa); częściowa, gdy rate_pending
+	BaseBalance Money `json:"base_balance"`
+
+	// ClearedBalance Suma transakcji cleared i reconciled
+	ClearedBalance Money     `json:"cleared_balance"`
+	CreatedAt      time.Time `json:"created_at"`
+	CreatedBy      string    `json:"created_by"`
+
+	// Currency Niezmienna
+	Currency string `json:"currency"`
+	Id       string `json:"id"`
+
+	// MemberIds Kto widzi portfel prywatny (twórca zawsze); pusta dla shared
+	MemberIds []string `json:"member_ids"`
+	Name      string   `json:"name"`
+
+	// OnBudget Czy portfel wchodzi do budżetu kopertowego
+	OnBudget bool `json:"on_budget"`
+
+	// RatePending Część transakcji czeka na kurs
+	RatePending bool       `json:"rate_pending"`
+	Type        WalletType `json:"type"`
+	Visibility  Visibility `json:"visibility"`
+}
+
+// WalletCreate defines model for WalletCreate.
+type WalletCreate struct {
+	Currency  string    `json:"currency"`
+	MemberIds *[]string `json:"member_ids,omitempty"`
+	Name      string    `json:"name"`
+
+	// OnBudget Domyślnie true
+	OnBudget *bool `json:"on_budget,omitempty"`
+
+	// OpenedOn Data transakcji otwarcia; domyślnie dziś
+	OpenedOn *openapi_types.Date `json:"opened_on,omitempty"`
+
+	// OpeningBalance Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	OpeningBalance *MoneyInput `json:"opening_balance,omitempty"`
+	Type           string      `json:"type"`
+
+	// Visibility shared (domyślnie) lub private
+	Visibility *string `json:"visibility,omitempty"`
+}
+
+// WalletList defines model for WalletList.
+type WalletList struct {
+	Items []Wallet `json:"items"`
+}
+
+// WalletType defines model for WalletType.
+type WalletType string
+
+// WalletUpdate defines model for WalletUpdate.
+type WalletUpdate struct {
+	Archived   *bool     `json:"archived,omitempty"`
+	MemberIds  *[]string `json:"member_ids,omitempty"`
+	Name       *string   `json:"name,omitempty"`
+	OnBudget   *bool     `json:"on_budget,omitempty"`
+	Type       *string   `json:"type,omitempty"`
+	Visibility *string   `json:"visibility,omitempty"`
+}
+
 // BotId defines model for BotId.
 type BotId = string
 
 // HouseholdId defines model for HouseholdId.
 type HouseholdId = string
+
+// PayeeId defines model for PayeeId.
+type PayeeId = string
+
+// TransactionId defines model for TransactionId.
+type TransactionId = string
+
+// WalletId defines model for WalletId.
+type WalletId = string
 
 // RateLimited defines model for RateLimited.
 type RateLimited = Problem
@@ -507,6 +954,38 @@ type ListAuditParams struct {
 	ResourceType *string    `form:"resource_type,omitempty" json:"resource_type,omitempty"`
 }
 
+// QuoteFxRateParams defines parameters for QuoteFxRate.
+type QuoteFxRateParams struct {
+	Currency string `form:"currency" json:"currency"`
+
+	// Date Domyślnie dziś w strefie gospodarstwa
+	Date *openapi_types.Date `form:"date,omitempty" json:"date,omitempty"`
+}
+
+// SearchTransactionsParams defines parameters for SearchTransactions.
+type SearchTransactionsParams struct {
+	WalletId *string             `form:"wallet_id,omitempty" json:"wallet_id,omitempty"`
+	From     *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+	To       *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+	PayeeId  *string             `form:"payee_id,omitempty" json:"payee_id,omitempty"`
+
+	// EnvelopeId Koperta transakcji lub jednej z linii splitu
+	EnvelopeId *string `form:"envelope_id,omitempty" json:"envelope_id,omitempty"`
+
+	// Q Tekst w notatce lub nazwie kontrahenta
+	Q      *string `form:"q,omitempty" json:"q,omitempty"`
+	Kind   *string `form:"kind,omitempty" json:"kind,omitempty"`
+	Status *string `form:"status,omitempty" json:"status,omitempty"`
+	Tag    *string `form:"tag,omitempty" json:"tag,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListWalletsParams defines parameters for ListWallets.
+type ListWalletsParams struct {
+	IncludeArchived *bool `form:"include_archived,omitempty" json:"include_archived,omitempty"`
+}
+
 // LoginLocalJSONRequestBody defines body for LoginLocal for application/json ContentType.
 type LoginLocalJSONRequestBody = LocalLogin
 
@@ -522,11 +1001,35 @@ type CreateBotJSONRequestBody = BotCreate
 // UpdateBotJSONRequestBody defines body for UpdateBot for application/json ContentType.
 type UpdateBotJSONRequestBody = BotUpdate
 
+// SetFxOverrideJSONRequestBody defines body for SetFxOverride for application/json ContentType.
+type SetFxOverrideJSONRequestBody = FxOverrideSet
+
 // CreateInvitationJSONRequestBody defines body for CreateInvitation for application/json ContentType.
 type CreateInvitationJSONRequestBody = InvitationCreate
 
 // UpdateMemberJSONRequestBody defines body for UpdateMember for application/json ContentType.
 type UpdateMemberJSONRequestBody = MemberUpdate
+
+// CreatePayeeJSONRequestBody defines body for CreatePayee for application/json ContentType.
+type CreatePayeeJSONRequestBody = PayeeCreate
+
+// UpdatePayeeJSONRequestBody defines body for UpdatePayee for application/json ContentType.
+type UpdatePayeeJSONRequestBody = PayeeUpdate
+
+// CreateTransactionJSONRequestBody defines body for CreateTransaction for application/json ContentType.
+type CreateTransactionJSONRequestBody = TransactionCreate
+
+// UpdateTransactionJSONRequestBody defines body for UpdateTransaction for application/json ContentType.
+type UpdateTransactionJSONRequestBody = TransactionUpdate
+
+// CreateTransferJSONRequestBody defines body for CreateTransfer for application/json ContentType.
+type CreateTransferJSONRequestBody = TransferCreate
+
+// CreateWalletJSONRequestBody defines body for CreateWallet for application/json ContentType.
+type CreateWalletJSONRequestBody = WalletCreate
+
+// UpdateWalletJSONRequestBody defines body for UpdateWallet for application/json ContentType.
+type UpdateWalletJSONRequestBody = WalletUpdate
 
 // AcceptInvitationJSONRequestBody defines body for AcceptInvitation for application/json ContentType.
 type AcceptInvitationJSONRequestBody = InvitationToken
@@ -593,6 +1096,15 @@ type ServerInterface interface {
 	// RotateBotToken Wymienia token bota; stary przestaje działać natychmiast
 	// (POST /households/{householdId}/bots/{botId}/token)
 	RotateBotToken(w http.ResponseWriter, r *http.Request, householdId HouseholdId, botId BotId)
+	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
+	// (GET /households/{householdId}/fx-rates)
+	QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams)
+	// ListFxOverrides Kursy ustawione ręcznie (transactions:read)
+	// (GET /households/{householdId}/fx-rates/overrides)
+	ListFxOverrides(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// SetFxOverride Ustawia kurs waluty na dzień (owner, admin; nie bot) i uzupełnia nim oczekujące transakcje
+	// (PUT /households/{householdId}/fx-rates/overrides)
+	SetFxOverride(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
 	// ListInvitations Zaproszenia od najnowszego (owner, admin)
 	// (GET /households/{householdId}/invitations)
 	ListInvitations(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
@@ -611,6 +1123,48 @@ type ServerInterface interface {
 	// UpdateMember Zmienia rolę członka
 	// (PATCH /households/{householdId}/members/{userId})
 	UpdateMember(w http.ResponseWriter, r *http.Request, householdId HouseholdId, userId string)
+	// ListPayees Kontrahenci według nazwy (transactions:read)
+	// (GET /households/{householdId}/payees)
+	ListPayees(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// CreatePayee Tworzy kontrahenta (transactions:write)
+	// (POST /households/{householdId}/payees)
+	CreatePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// DeletePayee Usuwa kontrahenta; jego transakcje zostają bez kontrahenta
+	// (DELETE /households/{householdId}/payees/{payeeId})
+	DeletePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId, payeeId PayeeId)
+
+	// (PATCH /households/{householdId}/payees/{payeeId})
+	UpdatePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId, payeeId PayeeId)
+	// SearchTransactions Transakcje widocznych portfeli od najnowszych (transactions:read)
+	// (GET /households/{householdId}/transactions)
+	SearchTransactions(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params SearchTransactionsParams)
+	// CreateTransaction Zapisuje wydatek lub przychód (transactions:write); bez kursu — rate_pending
+	// (POST /households/{householdId}/transactions)
+	CreateTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// DeleteTransaction Usuwa transakcję; przelew — obie nogi
+	// (DELETE /households/{householdId}/transactions/{transactionId})
+	DeleteTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId)
+
+	// (GET /households/{householdId}/transactions/{transactionId})
+	GetTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId)
+	// UpdateTransaction Zmienia transakcję; noga przelewu — tylko data (obu nóg), status, notatka, tagi
+	// (PATCH /households/{householdId}/transactions/{transactionId})
+	UpdateTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId)
+	// CreateTransfer Przelew między portfelami — dwie transakcje kind=transfer z jednym transfer_pair_id
+	// (POST /households/{householdId}/transfers)
+	CreateTransfer(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// ListWallets Portfele widoczne dla wywołującego, z saldami (wallets:read)
+	// (GET /households/{householdId}/wallets)
+	ListWallets(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListWalletsParams)
+	// CreateWallet Tworzy portfel (wallets:write); saldo otwarcia staje się pierwszą transakcją
+	// (POST /households/{householdId}/wallets)
+	CreateWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+
+	// (GET /households/{householdId}/wallets/{walletId})
+	GetWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId, walletId WalletId)
+	// UpdateWallet Zmienia portfel; widoczność i członków zmienia tylko człowiek (twórca, a dla shared także owner/admin)
+	// (PATCH /households/{householdId}/wallets/{walletId})
+	UpdateWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId, walletId WalletId)
 	// AcceptInvitation Przyjęcie zaproszenia przez zalogowanego człowieka
 	// (POST /invitations/accept)
 	AcceptInvitation(w http.ResponseWriter, r *http.Request)
@@ -1187,6 +1741,113 @@ func (siw *ServerInterfaceWrapper) RotateBotToken(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// QuoteFxRate operation middleware
+func (siw *ServerInterfaceWrapper) QuoteFxRate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params QuoteFxRateParams
+
+	// ------------- Required query parameter "currency" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "currency", r.URL.Query(), &params.Currency, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "currency"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "currency", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "date", r.URL.Query(), &params.Date, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "date"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "date", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.QuoteFxRate(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFxOverrides operation middleware
+func (siw *ServerInterfaceWrapper) ListFxOverrides(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFxOverrides(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetFxOverride operation middleware
+func (siw *ServerInterfaceWrapper) SetFxOverride(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetFxOverride(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListInvitations operation middleware
 func (siw *ServerInterfaceWrapper) ListInvitations(w http.ResponseWriter, r *http.Request) {
 
@@ -1361,6 +2022,595 @@ func (siw *ServerInterfaceWrapper) UpdateMember(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateMember(w, r, householdId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPayees operation middleware
+func (siw *ServerInterfaceWrapper) ListPayees(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPayees(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePayee operation middleware
+func (siw *ServerInterfaceWrapper) CreatePayee(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePayee(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePayee operation middleware
+func (siw *ServerInterfaceWrapper) DeletePayee(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "payeeId" -------------
+	var payeeId PayeeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "payeeId", r.PathValue("payeeId"), &payeeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "payeeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePayee(w, r, householdId, payeeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePayee operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePayee(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "payeeId" -------------
+	var payeeId PayeeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "payeeId", r.PathValue("payeeId"), &payeeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "payeeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePayee(w, r, householdId, payeeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SearchTransactions operation middleware
+func (siw *ServerInterfaceWrapper) SearchTransactions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchTransactionsParams
+
+	// ------------- Optional query parameter "wallet_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wallet_id", r.URL.Query(), &params.WalletId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wallet_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wallet_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "payee_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "payee_id", r.URL.Query(), &params.PayeeId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "payee_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "payee_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "envelope_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "envelope_id", r.URL.Query(), &params.EnvelopeId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "envelope_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "envelope_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "tag" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "tag", r.URL.Query(), &params.Tag, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "tag"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tag", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchTransactions(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTransaction operation middleware
+func (siw *ServerInterfaceWrapper) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTransaction(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTransaction operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "transactionId" -------------
+	var transactionId TransactionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transactionId", r.PathValue("transactionId"), &transactionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "transactionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTransaction(w, r, householdId, transactionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTransaction operation middleware
+func (siw *ServerInterfaceWrapper) GetTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "transactionId" -------------
+	var transactionId TransactionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transactionId", r.PathValue("transactionId"), &transactionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "transactionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTransaction(w, r, householdId, transactionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTransaction operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "transactionId" -------------
+	var transactionId TransactionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transactionId", r.PathValue("transactionId"), &transactionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "transactionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTransaction(w, r, householdId, transactionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTransfer operation middleware
+func (siw *ServerInterfaceWrapper) CreateTransfer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTransfer(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWallets operation middleware
+func (siw *ServerInterfaceWrapper) ListWallets(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListWalletsParams
+
+	// ------------- Optional query parameter "include_archived" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_archived", r.URL.Query(), &params.IncludeArchived, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_archived"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_archived", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWallets(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateWallet operation middleware
+func (siw *ServerInterfaceWrapper) CreateWallet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateWallet(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWallet operation middleware
+func (siw *ServerInterfaceWrapper) GetWallet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "walletId" -------------
+	var walletId WalletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "walletId", r.PathValue("walletId"), &walletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "walletId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWallet(w, r, householdId, walletId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateWallet operation middleware
+func (siw *ServerInterfaceWrapper) UpdateWallet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "walletId" -------------
+	var walletId WalletId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "walletId", r.PathValue("walletId"), &walletId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "walletId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateWallet(w, r, householdId, walletId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1574,6 +2824,23 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/bots/{botId}", wrapper.UpdateBot)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/bots/{botId}/token", wrapper.RotateBotToken)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/audit", wrapper.ListAudit)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/wallets", wrapper.ListWallets)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/wallets", wrapper.CreateWallet)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/wallets/{walletId}", wrapper.GetWallet)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/wallets/{walletId}", wrapper.UpdateWallet)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/transactions", wrapper.SearchTransactions)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/transactions", wrapper.CreateTransaction)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/transactions/{transactionId}", wrapper.DeleteTransaction)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/transactions/{transactionId}", wrapper.GetTransaction)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/transactions/{transactionId}", wrapper.UpdateTransaction)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/transfers", wrapper.CreateTransfer)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/payees", wrapper.ListPayees)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/payees", wrapper.CreatePayee)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/payees/{payeeId}", wrapper.DeletePayee)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/payees/{payeeId}", wrapper.UpdatePayee)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/fx-rates", wrapper.QuoteFxRate)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/fx-rates/overrides", wrapper.ListFxOverrides)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/households/{householdId}/fx-rates/overrides", wrapper.SetFxOverride)
 
 	return m
 }
@@ -2665,6 +3932,234 @@ func (response RotateBotToken404ApplicationProblemPlusJSONResponse) VisitRotateB
 	return err
 }
 
+type QuoteFxRateRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      QuoteFxRateParams
+}
+
+type QuoteFxRateResponseObject interface {
+	VisitQuoteFxRateResponse(w http.ResponseWriter) error
+}
+
+type QuoteFxRate200JSONResponse FxQuote
+
+func (response QuoteFxRate200JSONResponse) VisitQuoteFxRateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type QuoteFxRate401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response QuoteFxRate401ApplicationProblemPlusJSONResponse) VisitQuoteFxRateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type QuoteFxRate403ApplicationProblemPlusJSONResponse Problem
+
+func (response QuoteFxRate403ApplicationProblemPlusJSONResponse) VisitQuoteFxRateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type QuoteFxRate404ApplicationProblemPlusJSONResponse Problem
+
+func (response QuoteFxRate404ApplicationProblemPlusJSONResponse) VisitQuoteFxRateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type QuoteFxRate422ApplicationProblemPlusJSONResponse Problem
+
+func (response QuoteFxRate422ApplicationProblemPlusJSONResponse) VisitQuoteFxRateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFxOverridesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+}
+
+type ListFxOverridesResponseObject interface {
+	VisitListFxOverridesResponse(w http.ResponseWriter) error
+}
+
+type ListFxOverrides200JSONResponse FxOverrideList
+
+func (response ListFxOverrides200JSONResponse) VisitListFxOverridesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFxOverrides401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFxOverrides401ApplicationProblemPlusJSONResponse) VisitListFxOverridesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFxOverrides403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListFxOverrides403ApplicationProblemPlusJSONResponse) VisitListFxOverridesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFxOverrides404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListFxOverrides404ApplicationProblemPlusJSONResponse) VisitListFxOverridesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetFxOverrideRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *SetFxOverrideJSONRequestBody
+}
+
+type SetFxOverrideResponseObject interface {
+	VisitSetFxOverrideResponse(w http.ResponseWriter) error
+}
+
+type SetFxOverride200JSONResponse FxOverride
+
+func (response SetFxOverride200JSONResponse) VisitSetFxOverrideResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetFxOverride401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetFxOverride401ApplicationProblemPlusJSONResponse) VisitSetFxOverrideResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetFxOverride403ApplicationProblemPlusJSONResponse Problem
+
+func (response SetFxOverride403ApplicationProblemPlusJSONResponse) VisitSetFxOverrideResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetFxOverride404ApplicationProblemPlusJSONResponse Problem
+
+func (response SetFxOverride404ApplicationProblemPlusJSONResponse) VisitSetFxOverrideResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetFxOverride422ApplicationProblemPlusJSONResponse Problem
+
+func (response SetFxOverride422ApplicationProblemPlusJSONResponse) VisitSetFxOverrideResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListInvitationsRequestObject struct {
 	HouseholdId HouseholdId `json:"householdId"`
 }
@@ -3134,6 +4629,1158 @@ func (response UpdateMember422ApplicationProblemPlusJSONResponse) VisitUpdateMem
 	return err
 }
 
+type ListPayeesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+}
+
+type ListPayeesResponseObject interface {
+	VisitListPayeesResponse(w http.ResponseWriter) error
+}
+
+type ListPayees200JSONResponse PayeeList
+
+func (response ListPayees200JSONResponse) VisitListPayeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPayees401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListPayees401ApplicationProblemPlusJSONResponse) VisitListPayeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPayees403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListPayees403ApplicationProblemPlusJSONResponse) VisitListPayeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPayees404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListPayees404ApplicationProblemPlusJSONResponse) VisitListPayeesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePayeeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreatePayeeJSONRequestBody
+}
+
+type CreatePayeeResponseObject interface {
+	VisitCreatePayeeResponse(w http.ResponseWriter) error
+}
+
+type CreatePayee201JSONResponse Payee
+
+func (response CreatePayee201JSONResponse) VisitCreatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePayee401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePayee401ApplicationProblemPlusJSONResponse) VisitCreatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePayee403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePayee403ApplicationProblemPlusJSONResponse) VisitCreatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePayee404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePayee404ApplicationProblemPlusJSONResponse) VisitCreatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePayee409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePayee409ApplicationProblemPlusJSONResponse) VisitCreatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePayee422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePayee422ApplicationProblemPlusJSONResponse) VisitCreatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePayeeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	PayeeId     PayeeId     `json:"payeeId"`
+}
+
+type DeletePayeeResponseObject interface {
+	VisitDeletePayeeResponse(w http.ResponseWriter) error
+}
+
+type DeletePayee204Response struct {
+}
+
+func (response DeletePayee204Response) VisitDeletePayeeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePayee401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeletePayee401ApplicationProblemPlusJSONResponse) VisitDeletePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePayee403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeletePayee403ApplicationProblemPlusJSONResponse) VisitDeletePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePayee404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeletePayee404ApplicationProblemPlusJSONResponse) VisitDeletePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePayeeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	PayeeId     PayeeId     `json:"payeeId"`
+	Body        *UpdatePayeeJSONRequestBody
+}
+
+type UpdatePayeeResponseObject interface {
+	VisitUpdatePayeeResponse(w http.ResponseWriter) error
+}
+
+type UpdatePayee200JSONResponse Payee
+
+func (response UpdatePayee200JSONResponse) VisitUpdatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePayee401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePayee401ApplicationProblemPlusJSONResponse) VisitUpdatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePayee403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePayee403ApplicationProblemPlusJSONResponse) VisitUpdatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePayee404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePayee404ApplicationProblemPlusJSONResponse) VisitUpdatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePayee409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePayee409ApplicationProblemPlusJSONResponse) VisitUpdatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePayee422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdatePayee422ApplicationProblemPlusJSONResponse) VisitUpdatePayeeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchTransactionsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      SearchTransactionsParams
+}
+
+type SearchTransactionsResponseObject interface {
+	VisitSearchTransactionsResponse(w http.ResponseWriter) error
+}
+
+type SearchTransactions200JSONResponse TransactionPage
+
+func (response SearchTransactions200JSONResponse) VisitSearchTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchTransactions401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SearchTransactions401ApplicationProblemPlusJSONResponse) VisitSearchTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchTransactions403ApplicationProblemPlusJSONResponse Problem
+
+func (response SearchTransactions403ApplicationProblemPlusJSONResponse) VisitSearchTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchTransactions404ApplicationProblemPlusJSONResponse Problem
+
+func (response SearchTransactions404ApplicationProblemPlusJSONResponse) VisitSearchTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchTransactions422ApplicationProblemPlusJSONResponse Problem
+
+func (response SearchTransactions422ApplicationProblemPlusJSONResponse) VisitSearchTransactionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransactionRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreateTransactionJSONRequestBody
+}
+
+type CreateTransactionResponseObject interface {
+	VisitCreateTransactionResponse(w http.ResponseWriter) error
+}
+
+type CreateTransaction201JSONResponse Transaction
+
+func (response CreateTransaction201JSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransaction401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTransaction401ApplicationProblemPlusJSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransaction403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransaction403ApplicationProblemPlusJSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransaction404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransaction404ApplicationProblemPlusJSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransaction409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransaction409ApplicationProblemPlusJSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransaction422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransaction422ApplicationProblemPlusJSONResponse) VisitCreateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTransactionRequestObject struct {
+	HouseholdId   HouseholdId   `json:"householdId"`
+	TransactionId TransactionId `json:"transactionId"`
+}
+
+type DeleteTransactionResponseObject interface {
+	VisitDeleteTransactionResponse(w http.ResponseWriter) error
+}
+
+type DeleteTransaction204Response struct {
+}
+
+func (response DeleteTransaction204Response) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTransaction401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTransaction401ApplicationProblemPlusJSONResponse) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTransaction403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteTransaction403ApplicationProblemPlusJSONResponse) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTransaction404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteTransaction404ApplicationProblemPlusJSONResponse) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTransaction409ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteTransaction409ApplicationProblemPlusJSONResponse) VisitDeleteTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTransactionRequestObject struct {
+	HouseholdId   HouseholdId   `json:"householdId"`
+	TransactionId TransactionId `json:"transactionId"`
+}
+
+type GetTransactionResponseObject interface {
+	VisitGetTransactionResponse(w http.ResponseWriter) error
+}
+
+type GetTransaction200JSONResponse Transaction
+
+func (response GetTransaction200JSONResponse) VisitGetTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTransaction401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetTransaction401ApplicationProblemPlusJSONResponse) VisitGetTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTransaction403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetTransaction403ApplicationProblemPlusJSONResponse) VisitGetTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTransaction404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetTransaction404ApplicationProblemPlusJSONResponse) VisitGetTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransactionRequestObject struct {
+	HouseholdId   HouseholdId   `json:"householdId"`
+	TransactionId TransactionId `json:"transactionId"`
+	Body          *UpdateTransactionJSONRequestBody
+}
+
+type UpdateTransactionResponseObject interface {
+	VisitUpdateTransactionResponse(w http.ResponseWriter) error
+}
+
+type UpdateTransaction200JSONResponse Transaction
+
+func (response UpdateTransaction200JSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransaction401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTransaction401ApplicationProblemPlusJSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransaction403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateTransaction403ApplicationProblemPlusJSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransaction404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateTransaction404ApplicationProblemPlusJSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransaction409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateTransaction409ApplicationProblemPlusJSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTransaction422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateTransaction422ApplicationProblemPlusJSONResponse) VisitUpdateTransactionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransferRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreateTransferJSONRequestBody
+}
+
+type CreateTransferResponseObject interface {
+	VisitCreateTransferResponse(w http.ResponseWriter) error
+}
+
+type CreateTransfer201JSONResponse Transfer
+
+func (response CreateTransfer201JSONResponse) VisitCreateTransferResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransfer401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTransfer401ApplicationProblemPlusJSONResponse) VisitCreateTransferResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransfer403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransfer403ApplicationProblemPlusJSONResponse) VisitCreateTransferResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransfer404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransfer404ApplicationProblemPlusJSONResponse) VisitCreateTransferResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransfer409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransfer409ApplicationProblemPlusJSONResponse) VisitCreateTransferResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTransfer422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateTransfer422ApplicationProblemPlusJSONResponse) VisitCreateTransferResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWalletsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      ListWalletsParams
+}
+
+type ListWalletsResponseObject interface {
+	VisitListWalletsResponse(w http.ResponseWriter) error
+}
+
+type ListWallets200JSONResponse WalletList
+
+func (response ListWallets200JSONResponse) VisitListWalletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWallets401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListWallets401ApplicationProblemPlusJSONResponse) VisitListWalletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWallets403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListWallets403ApplicationProblemPlusJSONResponse) VisitListWalletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWallets404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListWallets404ApplicationProblemPlusJSONResponse) VisitListWalletsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateWalletRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreateWalletJSONRequestBody
+}
+
+type CreateWalletResponseObject interface {
+	VisitCreateWalletResponse(w http.ResponseWriter) error
+}
+
+type CreateWallet201JSONResponse Wallet
+
+func (response CreateWallet201JSONResponse) VisitCreateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateWallet401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateWallet401ApplicationProblemPlusJSONResponse) VisitCreateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateWallet403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateWallet403ApplicationProblemPlusJSONResponse) VisitCreateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateWallet404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateWallet404ApplicationProblemPlusJSONResponse) VisitCreateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateWallet409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateWallet409ApplicationProblemPlusJSONResponse) VisitCreateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateWallet422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateWallet422ApplicationProblemPlusJSONResponse) VisitCreateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalletRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	WalletId    WalletId    `json:"walletId"`
+}
+
+type GetWalletResponseObject interface {
+	VisitGetWalletResponse(w http.ResponseWriter) error
+}
+
+type GetWallet200JSONResponse Wallet
+
+func (response GetWallet200JSONResponse) VisitGetWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWallet401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetWallet401ApplicationProblemPlusJSONResponse) VisitGetWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWallet403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetWallet403ApplicationProblemPlusJSONResponse) VisitGetWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWallet404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetWallet404ApplicationProblemPlusJSONResponse) VisitGetWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateWalletRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	WalletId    WalletId    `json:"walletId"`
+	Body        *UpdateWalletJSONRequestBody
+}
+
+type UpdateWalletResponseObject interface {
+	VisitUpdateWalletResponse(w http.ResponseWriter) error
+}
+
+type UpdateWallet200JSONResponse Wallet
+
+func (response UpdateWallet200JSONResponse) VisitUpdateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateWallet401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateWallet401ApplicationProblemPlusJSONResponse) VisitUpdateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateWallet403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateWallet403ApplicationProblemPlusJSONResponse) VisitUpdateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateWallet404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateWallet404ApplicationProblemPlusJSONResponse) VisitUpdateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateWallet409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateWallet409ApplicationProblemPlusJSONResponse) VisitUpdateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateWallet422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateWallet422ApplicationProblemPlusJSONResponse) VisitUpdateWalletResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type AcceptInvitationRequestObject struct {
 	Body *AcceptInvitationJSONRequestBody
 }
@@ -3463,6 +6110,15 @@ type StrictServerInterface interface {
 	// RotateBotToken Wymienia token bota; stary przestaje działać natychmiast
 	// (POST /households/{householdId}/bots/{botId}/token)
 	RotateBotToken(ctx context.Context, request RotateBotTokenRequestObject) (RotateBotTokenResponseObject, error)
+	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
+	// (GET /households/{householdId}/fx-rates)
+	QuoteFxRate(ctx context.Context, request QuoteFxRateRequestObject) (QuoteFxRateResponseObject, error)
+	// ListFxOverrides Kursy ustawione ręcznie (transactions:read)
+	// (GET /households/{householdId}/fx-rates/overrides)
+	ListFxOverrides(ctx context.Context, request ListFxOverridesRequestObject) (ListFxOverridesResponseObject, error)
+	// SetFxOverride Ustawia kurs waluty na dzień (owner, admin; nie bot) i uzupełnia nim oczekujące transakcje
+	// (PUT /households/{householdId}/fx-rates/overrides)
+	SetFxOverride(ctx context.Context, request SetFxOverrideRequestObject) (SetFxOverrideResponseObject, error)
 	// ListInvitations Zaproszenia od najnowszego (owner, admin)
 	// (GET /households/{householdId}/invitations)
 	ListInvitations(ctx context.Context, request ListInvitationsRequestObject) (ListInvitationsResponseObject, error)
@@ -3481,6 +6137,48 @@ type StrictServerInterface interface {
 	// UpdateMember Zmienia rolę członka
 	// (PATCH /households/{householdId}/members/{userId})
 	UpdateMember(ctx context.Context, request UpdateMemberRequestObject) (UpdateMemberResponseObject, error)
+	// ListPayees Kontrahenci według nazwy (transactions:read)
+	// (GET /households/{householdId}/payees)
+	ListPayees(ctx context.Context, request ListPayeesRequestObject) (ListPayeesResponseObject, error)
+	// CreatePayee Tworzy kontrahenta (transactions:write)
+	// (POST /households/{householdId}/payees)
+	CreatePayee(ctx context.Context, request CreatePayeeRequestObject) (CreatePayeeResponseObject, error)
+	// DeletePayee Usuwa kontrahenta; jego transakcje zostają bez kontrahenta
+	// (DELETE /households/{householdId}/payees/{payeeId})
+	DeletePayee(ctx context.Context, request DeletePayeeRequestObject) (DeletePayeeResponseObject, error)
+
+	// (PATCH /households/{householdId}/payees/{payeeId})
+	UpdatePayee(ctx context.Context, request UpdatePayeeRequestObject) (UpdatePayeeResponseObject, error)
+	// SearchTransactions Transakcje widocznych portfeli od najnowszych (transactions:read)
+	// (GET /households/{householdId}/transactions)
+	SearchTransactions(ctx context.Context, request SearchTransactionsRequestObject) (SearchTransactionsResponseObject, error)
+	// CreateTransaction Zapisuje wydatek lub przychód (transactions:write); bez kursu — rate_pending
+	// (POST /households/{householdId}/transactions)
+	CreateTransaction(ctx context.Context, request CreateTransactionRequestObject) (CreateTransactionResponseObject, error)
+	// DeleteTransaction Usuwa transakcję; przelew — obie nogi
+	// (DELETE /households/{householdId}/transactions/{transactionId})
+	DeleteTransaction(ctx context.Context, request DeleteTransactionRequestObject) (DeleteTransactionResponseObject, error)
+
+	// (GET /households/{householdId}/transactions/{transactionId})
+	GetTransaction(ctx context.Context, request GetTransactionRequestObject) (GetTransactionResponseObject, error)
+	// UpdateTransaction Zmienia transakcję; noga przelewu — tylko data (obu nóg), status, notatka, tagi
+	// (PATCH /households/{householdId}/transactions/{transactionId})
+	UpdateTransaction(ctx context.Context, request UpdateTransactionRequestObject) (UpdateTransactionResponseObject, error)
+	// CreateTransfer Przelew między portfelami — dwie transakcje kind=transfer z jednym transfer_pair_id
+	// (POST /households/{householdId}/transfers)
+	CreateTransfer(ctx context.Context, request CreateTransferRequestObject) (CreateTransferResponseObject, error)
+	// ListWallets Portfele widoczne dla wywołującego, z saldami (wallets:read)
+	// (GET /households/{householdId}/wallets)
+	ListWallets(ctx context.Context, request ListWalletsRequestObject) (ListWalletsResponseObject, error)
+	// CreateWallet Tworzy portfel (wallets:write); saldo otwarcia staje się pierwszą transakcją
+	// (POST /households/{householdId}/wallets)
+	CreateWallet(ctx context.Context, request CreateWalletRequestObject) (CreateWalletResponseObject, error)
+
+	// (GET /households/{householdId}/wallets/{walletId})
+	GetWallet(ctx context.Context, request GetWalletRequestObject) (GetWalletResponseObject, error)
+	// UpdateWallet Zmienia portfel; widoczność i członków zmienia tylko człowiek (twórca, a dla shared także owner/admin)
+	// (PATCH /households/{householdId}/wallets/{walletId})
+	UpdateWallet(ctx context.Context, request UpdateWalletRequestObject) (UpdateWalletResponseObject, error)
 	// AcceptInvitation Przyjęcie zaproszenia przez zalogowanego człowieka
 	// (POST /invitations/accept)
 	AcceptInvitation(ctx context.Context, request AcceptInvitationRequestObject) (AcceptInvitationResponseObject, error)
@@ -4030,6 +6728,92 @@ func (sh *strictHandler) RotateBotToken(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
+// QuoteFxRate operation middleware
+func (sh *strictHandler) QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams) {
+	var request QuoteFxRateRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.QuoteFxRate(ctx, request.(QuoteFxRateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "QuoteFxRate")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(QuoteFxRateResponseObject); ok {
+		if err := validResponse.VisitQuoteFxRateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFxOverrides operation middleware
+func (sh *strictHandler) ListFxOverrides(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request ListFxOverridesRequestObject
+
+	request.HouseholdId = householdId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFxOverrides(ctx, request.(ListFxOverridesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFxOverrides")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFxOverridesResponseObject); ok {
+		if err := validResponse.VisitListFxOverridesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetFxOverride operation middleware
+func (sh *strictHandler) SetFxOverride(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request SetFxOverrideRequestObject
+
+	request.HouseholdId = householdId
+
+	var body SetFxOverrideJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetFxOverride(ctx, request.(SetFxOverrideRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetFxOverride")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetFxOverrideResponseObject); ok {
+		if err := validResponse.VisitSetFxOverrideResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListInvitations operation middleware
 func (sh *strictHandler) ListInvitations(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
 	var request ListInvitationsRequestObject
@@ -4196,6 +6980,428 @@ func (sh *strictHandler) UpdateMember(w http.ResponseWriter, r *http.Request, ho
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateMemberResponseObject); ok {
 		if err := validResponse.VisitUpdateMemberResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPayees operation middleware
+func (sh *strictHandler) ListPayees(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request ListPayeesRequestObject
+
+	request.HouseholdId = householdId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPayees(ctx, request.(ListPayeesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPayees")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPayeesResponseObject); ok {
+		if err := validResponse.VisitListPayeesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePayee operation middleware
+func (sh *strictHandler) CreatePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreatePayeeRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreatePayeeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePayee(ctx, request.(CreatePayeeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePayee")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePayeeResponseObject); ok {
+		if err := validResponse.VisitCreatePayeeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePayee operation middleware
+func (sh *strictHandler) DeletePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId, payeeId PayeeId) {
+	var request DeletePayeeRequestObject
+
+	request.HouseholdId = householdId
+	request.PayeeId = payeeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePayee(ctx, request.(DeletePayeeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePayee")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePayeeResponseObject); ok {
+		if err := validResponse.VisitDeletePayeeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePayee operation middleware
+func (sh *strictHandler) UpdatePayee(w http.ResponseWriter, r *http.Request, householdId HouseholdId, payeeId PayeeId) {
+	var request UpdatePayeeRequestObject
+
+	request.HouseholdId = householdId
+	request.PayeeId = payeeId
+
+	var body UpdatePayeeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePayee(ctx, request.(UpdatePayeeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePayee")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePayeeResponseObject); ok {
+		if err := validResponse.VisitUpdatePayeeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SearchTransactions operation middleware
+func (sh *strictHandler) SearchTransactions(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params SearchTransactionsParams) {
+	var request SearchTransactionsRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SearchTransactions(ctx, request.(SearchTransactionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SearchTransactions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SearchTransactionsResponseObject); ok {
+		if err := validResponse.VisitSearchTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTransaction operation middleware
+func (sh *strictHandler) CreateTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreateTransactionRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreateTransactionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTransaction(ctx, request.(CreateTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTransactionResponseObject); ok {
+		if err := validResponse.VisitCreateTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTransaction operation middleware
+func (sh *strictHandler) DeleteTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId) {
+	var request DeleteTransactionRequestObject
+
+	request.HouseholdId = householdId
+	request.TransactionId = transactionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTransaction(ctx, request.(DeleteTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTransactionResponseObject); ok {
+		if err := validResponse.VisitDeleteTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTransaction operation middleware
+func (sh *strictHandler) GetTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId) {
+	var request GetTransactionRequestObject
+
+	request.HouseholdId = householdId
+	request.TransactionId = transactionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTransaction(ctx, request.(GetTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTransactionResponseObject); ok {
+		if err := validResponse.VisitGetTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateTransaction operation middleware
+func (sh *strictHandler) UpdateTransaction(w http.ResponseWriter, r *http.Request, householdId HouseholdId, transactionId TransactionId) {
+	var request UpdateTransactionRequestObject
+
+	request.HouseholdId = householdId
+	request.TransactionId = transactionId
+
+	var body UpdateTransactionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTransaction(ctx, request.(UpdateTransactionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTransaction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateTransactionResponseObject); ok {
+		if err := validResponse.VisitUpdateTransactionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTransfer operation middleware
+func (sh *strictHandler) CreateTransfer(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreateTransferRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreateTransferJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTransfer(ctx, request.(CreateTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTransfer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTransferResponseObject); ok {
+		if err := validResponse.VisitCreateTransferResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListWallets operation middleware
+func (sh *strictHandler) ListWallets(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListWalletsParams) {
+	var request ListWalletsRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListWallets(ctx, request.(ListWalletsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListWallets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListWalletsResponseObject); ok {
+		if err := validResponse.VisitListWalletsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateWallet operation middleware
+func (sh *strictHandler) CreateWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreateWalletRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreateWalletJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateWallet(ctx, request.(CreateWalletRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateWallet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateWalletResponseObject); ok {
+		if err := validResponse.VisitCreateWalletResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWallet operation middleware
+func (sh *strictHandler) GetWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId, walletId WalletId) {
+	var request GetWalletRequestObject
+
+	request.HouseholdId = householdId
+	request.WalletId = walletId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWallet(ctx, request.(GetWalletRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWallet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWalletResponseObject); ok {
+		if err := validResponse.VisitGetWalletResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateWallet operation middleware
+func (sh *strictHandler) UpdateWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId, walletId WalletId) {
+	var request UpdateWalletRequestObject
+
+	request.HouseholdId = householdId
+	request.WalletId = walletId
+
+	var body UpdateWalletJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateWallet(ctx, request.(UpdateWalletRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateWallet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateWalletResponseObject); ok {
+		if err := validResponse.VisitUpdateWalletResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
