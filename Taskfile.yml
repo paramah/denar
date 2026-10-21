@@ -80,6 +80,42 @@ tasks:
       - mkdir -p .dev
       - go run ./cmd/denar serve
 
+  dev:
+    desc: Rozwój — API (task dev:api) i Vite na :5173 (task web:dev) naraz
+    deps: [dev:api, web:dev]
+
+  demo:
+    desc: "Lokalne demo: buduje, seeduje .dev/demo.db (konto demo@denar.local) i uruchamia serwer na :8080"
+    deps: [build]
+    env:
+      DENAR_DB: .dev/demo.db
+      DENAR_ADDR: '{{.DEMO_ADDR | default ":8080"}}'
+      DENAR_BASE_URL: '{{.DEMO_BASE_URL | default "http://localhost:8080"}}'
+      DENAR_MASTER_KEY: ""
+      DENAR_MASTER_KEY_FILE: .dev/master.key
+      DENAR_INSTANCE_NAME: Denar (demo)
+      DENAR_AUTO_MIGRATE: "true"
+      DENAR_LOCAL_LOGIN: "true"
+      # Konto demo tworzy `denar demo`; konto startowe z otoczenia pominięte.
+      DENAR_ADMIN_EMAIL: ""
+      DENAR_ADMIN_PASSWORD: ""
+      DENAR_ADMIN_PASSWORD_FILE: ""
+      DENAR_OIDC_ISSUER: ""
+      # Lokalnie wolno wysłać webhook do n8n/ntfy na tym komputerze (009, SSRF).
+      DENAR_NOTIFY_ALLOW_PRIVATE: "true"
+      DENAR_DEV_FAKE_CONNECTOR: "true"
+    cmds:
+      - mkdir -p .dev
+      - cmd: |
+          if [ ! -s .dev/master.key ]; then
+            openssl rand -base64 32 > .dev/master.key
+            chmod 600 .dev/master.key
+            echo "Wygenerowano klucz deweloperski .dev/master.key"
+          fi
+        silent: true
+      - ./denar demo --reset
+      - ./denar serve
+
   compose:up:
     desc: Buduje obraz i uruchamia kontener (wymaga pliku .env)
     cmds:

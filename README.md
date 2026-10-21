@@ -2,18 +2,54 @@
 
 Self-hosted budżet domowy: gospodarstwa, portfele, transakcje, koperty (YNAB), subskrypcje. Jedno binarium Go (Clean Architecture, SQLite), REST + MCP, Web UI osadzone w binarium (od etapu 007).
 
-Stan: **etapy 001-core, 002-wallets-transactions, 003-envelope-budget, 004-subscriptions i 006-mcp** — serwer MCP dla asystentów AI (sekcja „MCP”); konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda; budżet kopertowy (grupy, koperty z celami, przydziały, przeniesienia, auto-przydział, Ready-to-Assign z regułą overspendingu YNAB). Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
+Stan: **etapy 001–008** (rdzeń, portfele i transakcje, budżet kopertowy, subskrypcje, powiadomienia, MCP, Web UI, import CSV) i **009-hardening-demo** (ochrona SSRF kanałów, dane demo) — serwer MCP dla asystentów AI (sekcja „MCP”); konta (hasło argon2id, OIDC z PKCE), sesje, gospodarstwa z rolami `owner/admin/member/viewer`, zaproszenia, boty z tokenami `dnr_…` i scope'ami, Bearer w REST, audit log; portfele w wielu walutach (współdzielone i prywatne), transakcje z kwotą bazową po kursie NBP (cache, ręczny kurs, praca offline), przelewy, splity, kontrahenci, salda; budżet kopertowy (grupy, koperty z celami, przydziały, przeniesienia, auto-przydział, Ready-to-Assign z regułą overspendingu YNAB). Szczegóły: `.ai/sdd/PLAN.md`, `.ai/sdd/specs/`.
 
 ## Szybki start (lokalnie)
 
-Wymagania: Go 1.27, [Task](https://taskfile.dev).
+Wymagania: Go 1.27, Node.js (Web UI), [Task](https://taskfile.dev), `openssl`.
+
+```sh
+task demo
+```
+
+To buduje binarium z Web UI, tworzy (albo odtwarza) bazę `.dev/demo.db` z danymi demo i uruchamia serwer na **http://localhost:8080**. Zaloguj się:
+
+| Login | Hasło |
+|---|---|
+| `demo@denar.local` | `denar-demo-2026` |
+
+> **Uwaga:** hasło demo jest stałe i jawne (README, kod) — tylko do lokalnego oglądania. Nie wystawiaj instancji demo do sieci. Inne hasło: `./denar demo --password …` albo `DENAR_DEMO_PASSWORD` (działa przy pierwszym utworzeniu konta).
+
+`task demo` wypisuje na końcu token bota „Asystent AI” (odczyt + zapis transakcji) i gotowe polecenie dla Claude Code:
+
+```sh
+claude mcp add --transport http denar http://localhost:8080/mcp --header "Authorization: Bearer dnr_…"
+```
+
+Każde uruchomienie `task demo` robi gospodarstwo demo od nowa (`denar demo --reset`), więc token bota się zmienia. Klucz sekretów kanałów (`.dev/master.key`) powstaje przy pierwszym uruchomieniu.
+
+Co obejrzeć w gospodarstwie „Dom (demo)” (PLN, ~3 miesiące historii):
+
+- **Pulpit** — salda sześciu portfeli (konto, karta, gotówka, konto USD, gotówka EUR, prywatne oszczędności poza budżetem), Ready-to-Assign, nadchodzące odnowienia, koszt subskrypcji.
+- **Budżet** — grupy Stałe / Codzienne / Subskrypcje / Cele / Przyjemności z przydziałami na każdy miesiąc; w bieżącym miesiącu koperta **Restauracje** jest przekroczona; cele: Wakacje (kwota do daty) i Poduszka finansowa (miesięcznie).
+- **Portfele i transakcje** — pensja, czynsz, zakupy (Biedronka, Lidl), paliwo (Orlen), media, restauracje, przelewy na oszczędności i spłata karty, wymiana PLN → USD i PLN → EUR, kolacja w Berlinie w EUR. Kursy USD/EUR są ustawione ręcznie na każdy dzień (działa bez sieci, bez NBP).
+- **Subskrypcje** — Netflix, Spotify (z podwyżką ceny), ChatGPT Plus i Claude Pro (20 USD z konta USD), iCloud+ (jedna przegapiona płatność), YouTube Premium w okresie próbnym kończącym się za kilka dni, Adobe (anulowana); kolejka dopasowań z najnowszymi płatnościami do potwierdzenia.
+- **Powiadomienia** — dzwonek z nieprzeczytanymi: zbliżające się odnowienia, koniec okresu próbnego, brak płatności, przekroczona koperta (starsze są przeczytane).
+- **Ustawienia** — członkowie, bot „Asystent AI”, kanały powiadomień (lokalnie `DENAR_NOTIFY_ALLOW_PRIVATE=true`, więc webhook do n8n na tym komputerze zadziała).
+- **MCP** — po `claude mcp add …` zapytaj np. „co odnawia się w tym tygodniu?” albo „ile wydałem na restauracje w tym miesiącu?”.
+
+Dane demo na dowolnej bazie: `DENAR_DB=moja.db ./denar demo` (odmawia, gdy gospodarstwo demo już jest; `--reset` je usuwa i tworzy od nowa).
+
+### Rozwój (API + Vite)
 
 ```sh
 cp .env.dev.example .env.dev      # ustaw DENAR_ADMIN_PASSWORD (min. 12 znaków)
-task dev:api                      # migruje bazę (.dev/denar.db) i startuje na :8080
+task dev                          # API na :8080 (baza .dev/denar.db) i Vite z HMR na http://localhost:5173
 ```
 
-Albo bez Taska:
+Samo API: `task dev:api`; sam frontend: `task web:dev`. Dane demo w bazie deweloperskiej: `DENAR_DB=.dev/denar.db go run ./cmd/denar demo`.
+
+### Bez Taska
 
 ```sh
 go build -o denar ./cmd/denar
@@ -190,6 +226,7 @@ curl -s -b jar -X DELETE localhost:8080/api/households/$H/imports/<ID>   # cofni
 | `denar serve` | serwer HTTP (`/api`, `/healthz`, Web UI pod `/`) |
 | `denar migrate` | aktualizuje schemat bazy; `serve` bez `DENAR_AUTO_MIGRATE` odmawia startu na starym schemacie |
 | `denar token create …` | tworzy bota i wypisuje jego token |
+| `denar demo [--reset] [--password …]` | migruje bazę i tworzy gospodarstwo demo z kontem `demo@denar.local` (tylko lokalnie) |
 | `denar version` | wersja |
 
 ## Zmienne środowiskowe

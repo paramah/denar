@@ -1,7 +1,7 @@
 // Package connection describes links to outside services that feed
 // transactions in: banks (PSD2 aggregators) and billing of providers
 // (OpenAI, Apple receipts). Stage 008 holds the model only; the connectors
-// come in stages 009-011.
+// come in stages 010-012.
 package connection
 
 import (

@@ -30,6 +30,7 @@ commands:
   serve          run the HTTP server
   migrate        bring the database schema up to date
   token create   create a bot token (see denar token create -h)
+  demo           fill the database with a demo household (see denar demo -h)
   version        print the version`
 
 func main() {
@@ -48,7 +49,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return errors.New("missing command\n" + usage)
 	}
 	switch args[0] {
-	case "serve", "migrate", "token":
+	case "serve", "migrate", "token", "demo":
 	case "version":
 		fmt.Fprintln(stdout, version)
 		return nil
@@ -65,6 +66,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return migrate(ctx, cfg, slog.New(slog.NewJSONHandler(stdout, nil)))
 	case "token":
 		return tokenCommand(ctx, cfg, args[1:], stdout, stderr)
+	case "demo":
+		return demoCommand(ctx, cfg, args[1:], stdout, stderr)
 	}
 	return serve(ctx, cfg, slog.New(slog.NewJSONHandler(stdout, nil)), nil)
 }
