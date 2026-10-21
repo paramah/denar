@@ -179,3 +179,60 @@ Część C1 wypełnia sekcję „Budżet” i włącza koperty w formularzach cz
 
 - **NFR-C01** Kwoty wyłącznie przez `lib/money.ts` (`bigint`, stringi dziesiętne); porównania i sumy nigdy na `minor`.
 - **NFR-C02** Testy: Vitest + MSW (edycja w miejscu, przeniesienia, auto-przydział, walidacja celów, 409, kolejność, integracja B), Playwright e2e na binarium (wpływ → przydziały → wydatek z kopertą → przekroczenie → następny miesiąc → RTA), axe na nowych ekranach w motywie jasnym, ciemnym i na telefonie.
+
+---
+
+# Część C2 — subskrypcje (F07C2)
+
+> Status: Approved (delegated — orkiestrator z delegacji użytkownika, 2026-10-21)
+> Source: `api/openapi.yaml` (sekcja subscriptions, etap 004), `.ai/sdd/specs/004-subscriptions/`
+> Last Updated: 2026-10-21
+
+Część C2 wypełnia sekcję „Subskrypcje” — główną funkcję produktu — i łączy ją z rejestrem transakcji i pulpitem. Stoi na kontrakcie etapu 004; nie zmienia backendu. Powiadomienia (005) i UI związane z MCP (006) to część C3.
+
+## Non-Goals (część C2)
+
+- Zmiany backendu i `api/openapi.yaml`; skrzynka powiadomień i preferencje (005); instrukcja podłączenia bota MCP (006).
+- Zewnętrzne logo dostawców (CSP `img-src 'self'`), import CSV i auto-dopasowanie (008).
+- Cofnięcie pominięcia płatności (brak w API).
+
+## Requirements (EARS)
+
+### Przegląd
+
+- **FR-D01** Strona `/h/:id/subscriptions` SHALL pokazywać koszt miesięczny i roczny subskrypcji (aktywne + próbne) w walucie bazowej z `GET subscriptions/summary`, liczby wg statusu i — gdy `incomplete` — ostrzeżenie z brakującymi walutami i (owner/admin) linkiem do ręcznego kursu.
+- **FR-D02** Przegląd SHALL mieć kalendarz najbliższych 30 dni: pasek dni z monetami dostawców w dniach płatności i listę odnowień (termin, „za N dni”, subskrypcja z linkiem, kwota w walucie ceny i szacunek w walucie bazowej).
+- **FR-D03** Przegląd SHALL pokazywać rozbicie kosztu miesięcznego per dostawca i per koperta (słupki w CSS, długość liczona na `bigint`), kończące się okresy próbne (14 dni) i zmiany cen (90 dni, stara → nowa).
+- **FR-D04** Bez subskrypcji przegląd SHALL być pustym stanem z akcją „Dodaj pierwszą subskrypcję” (member+).
+
+### Lista
+
+- **FR-D10** Zakładka „Wszystkie” (`subscriptions/list`) SHALL listować subskrypcje z filtrami status, dostawca i portfel (w adresie strony → `status`, `vendor`, `wallet_id`).
+- **FR-D11** Karta subskrypcji SHALL mieć monogram dostawcy (bez zewnętrznych obrazków), nazwę (link), dostawcę, cykl po polsku („co miesiąc, 31.”, „co 2 tygodnie, w środę”, „co rok, 14 lutego”), portfel, status (próbna/aktywna/wstrzymana/anulowana, z końcem okresu próbnego lub dostępu), cenę w walucie oryginalnej, szacunek w walucie bazowej po dzisiejszym kursie i następną płatność („za N dni”).
+
+### Formularz
+
+- **FR-D20** Member+ SHALL tworzyć i edytować subskrypcję: dostawca ze słownika `/vendors` z autouzupełnianiem (nazwa subskrypcji podąża za dostawcą, dopóki jej nie zmieniono), nazwa, cena i waluta (tylko przy tworzeniu), cykl (co ile 1–365, jednostka, dzień płatności) z podglądem opisu i trzech najbliższych terminów, okres próbny, portfel płatności, koperta (`EnvelopeField`), przypomnienia (chipy dni przed, najwyżej 5), notatka i adres zarządzania (http/https).
+- **FR-D21** Sekcja „Zaawansowane” SHALL zawierać regułę dopasowania: wzorzec kontrahenta, tolerancję kwoty 0–50 % i okno dat 0–15 dni.
+- **FR-D22** Walidacja klienta (nazwa, znany dostawca, kwota i miejsca waluty, cykl, data końca triala, liczba przypomnień, tolerancja, okno, URL) SHALL blokować wysłanie; błędy 422 trafiają do pól, 409 `duplicate-name` — do nazwy. Edycja SHALL wysyłać tylko zmienione pola (`null` czyści portfel, kopertę, trial, URL).
+
+### Szczegóły
+
+- **FR-D30** Strona `subscriptions/:id` SHALL pokazywać cenę, cykl (z uwagą o krótszych miesiącach), następną płatność, koszt miesięczny i roczny (z szacunkiem w walucie bazowej), szczegóły (portfel, koperta, przypomnienia, dopasowanie, okres próbny, adres zarządzania, notatka); nieznana/ukryta — „Nie znaleziono subskrypcji”.
+- **FR-D31** Member+ SHALL wstrzymać i wznowić subskrypcję, anulować ją (potwierdzenie; dostęp do końca opłaconego okresu) i usunąć (potwierdzenie; powrót do listy).
+- **FR-D32** Historia cen SHALL listować punkty od najnowszego (obowiązująca, zaplanowana, różnica do poprzedniej w tej samej walucie); member+ SHALL zapisać zmianę ceny od dnia (domyślnie dziś, dowolna waluta).
+- **FR-D33** Harmonogram płatności SHALL listować obciążenia subskrypcji ze statusem (oczekiwana/dopasowana/przegapiona/pominięta/zaksięgowana) i akcjami: dla otwartych — „Dopasuj” (sugestie z punktacją → potwierdzenie), „Zaksięguj” (portfel, kwota w walucie portfela — wymagana, gdy waluta portfela ≠ waluta płatności, data, kontrahent, notatka), „Pomiń” (potwierdzenie); dla powiązanych — „Cofnij dopasowanie”.
+
+### Kolejka dopasowań
+
+- **FR-D40** Zakładka „Do dopasowania” (`subscriptions/charges`) SHALL listować otwarte obciążenia z terminem do dziś (`expected` i `missed`), przegapione najpierw, każde z trzema najlepszymi sugestiami i przyciskiem „Potwierdź” oraz akcjami „Zaksięguj” i „Pomiń”; zakładka SHALL pokazywać ich liczbę.
+
+### Integracja
+
+- **FR-D50** Rejestr transakcji SHALL przy wydatku bez powiązania pokazywać akcję „Powiąż z subskrypcją” (dialog z `transactions/{id}/charge-suggestions` i potwierdzeniem), a przy transakcji powiązanej z obciążeniem — plakietkę „Subskrypcja: <nazwa>” z linkiem do subskrypcji.
+- **FR-D51** Pulpit SHALL pokazywać kafelek „Subskrypcje — koszt/mies.” (z kosztem rocznym) i „Najbliższe odnowienia” (do 4 pozycji i pasek 30 dni); bez subskrypcji — jedno zdanie z linkiem.
+
+### Jakość
+
+- **NFR-D01** Kwoty wyłącznie przez `lib/money.ts` (`bigint`; szacunek w walucie bazowej przez `convertAmount` z half-even); cykle i terminy przez `lib/subscriptions.ts` (ta sama arytmetyka co 004 FR-302).
+- **NFR-D02** Testy: Vitest + MSW (formularz cyklu i walidacja, edycja tylko zmian, zmiana ceny, akcje obciążeń, kolejka, rejestr, pulpit, lista z filtrami, `lib/subscriptions`, `convertAmount`), Playwright e2e na binarium z atrapą NBP (OpenAI USD, dzień 31. → obciążenia → wydatek → sugestia i potwierdzenie → zmiana ceny → koszt w PLN; kolejka → zaksięgowanie z kwotą PLN), axe w motywie jasnym, ciemnym i na telefonie, brak poziomego przewijania na 390 px.
