@@ -223,6 +223,9 @@ Schematy: `Notification{id, household_id, type, title, body, link, resource_type
 | AD-514 | Retencja: przeczytane powiadomienia > 180 dni, zakończone dostawy > 30 dni, rozesłane zdarzenia > 400 dni (AD-406) | Zgodnie z briefem; dostawy to dane techniczne |
 | AD-515 | `GET /me/channel-types` zwraca dostępność typów, żeby UI nie zgadywało konfiguracji serwera | UI potrzebuje wiedzieć o SMTP i kluczu głównym |
 | AD-516 | Link w powiadomieniu in-app to ścieżka względna (`/h/…`); kanały dostają `{DENAR_BASE_URL}{link}` | SPA nawiguje ścieżką, zewnętrzne kanały potrzebują pełnego adresu |
+| AD-517 | `InvitationCreated.email_sent` opcjonalne w kontrakcie (serwer zawsze je podaje), `email_error` nullable | Zgodność wstecz z mockami Web UI (etap 007 w osobnym worktree) |
+| AD-518 | Limit 20 kanałów na osobę → 409 `too-many-channels` | Ochrona przed nadużyciem; wystarczy dla osoby |
+| AD-519 | `DeliveryRepository.ByID` dodane do portu | Odczyt dostawy w testach i diagnostyce workera |
 
 ## Ograniczenia
 
@@ -230,3 +233,11 @@ Schematy: `Notification{id, household_id, type, title, body, link, resource_type
 - Overspent wykrywany z opóźnieniem do `DENAR_BUDGET_CHECK_INTERVAL`; po naprawieniu i ponownym przekroczeniu w tym samym miesiącu nie ma drugiego powiadomienia.
 - Jeden worker dostaw na proces; dwie instancje na jednej bazie mogłyby wysłać dostawę dwukrotnie.
 - Brak powiadomień na żywo (UI odpytuje `unread-count`).
+
+## Dla etapu 007 (Web UI)
+
+- Dzwonek: `GET /api/me/notifications/unread-count[?household_id=]` (odpytywanie), lista `GET /api/me/notifications?household_id=&unread=true&cursor=&limit=` (`NotificationPage{items, next_cursor}`), `POST /api/me/notifications/{id}/read`, `POST /api/me/notifications/read-all` (body `{household_id?}`) → `{updated}`. `link` to ścieżka SPA (`/h/:hid/subscriptions/:sid`, `/h/:hid/subscriptions/charges`, `/h/:hid/budget/:month`).
+- Ustawienia → Kanały: `GET /api/me/channel-types` (formularz z `config_fields`/`secret_fields`, `available`/`unavailable_reason`), `GET|POST /api/me/channels`, `GET|PATCH|DELETE /api/me/channels/{id}`, `POST /api/me/channels/{id}/test` → `{ok, error, tested_at}`. Sekrety tylko na wejściu (`has_secret` w odpowiedzi); `PATCH secrets: null` usuwa, obiekt zastępuje, brak pola zostawia.
+- Preferencje per gospodarstwo: `GET|PUT /api/me/households/{hid}/notification-preferences` — `items[{type, in_app, channel_ids}]` dla 6 typów (`event.Types`); PUT z pominiętym typem przywraca domyślne.
+- Zaproszenie: pole `send_email` w `InvitationCreate` (pokaż, gdy `channel-types` ma `email.available`), odpowiedź `email_sent`/`email_error`.
+- Boty: scope `notifications:read` daje `list_notifications` w MCP i odczyt `/api/me/notifications` (powiadomienia twórcy).

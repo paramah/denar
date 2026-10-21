@@ -179,6 +179,10 @@ Na tej podstawie, wyłącznie dla tego przebiegu:
 | 004-subscriptions | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 004-subscriptions | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 004-subscriptions | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
+| 005-notifications | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 005-notifications | design:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 005-notifications | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
+| 005-notifications | implementation:done | agent etapu (task verify zielone) | 2026-10-21 |
 | 006-mcp | requirements:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 006-mcp | design:approved | orkiestrator (delegacja) | 2026-10-21 |
 | 006-mcp | tasks:approved | orkiestrator (delegacja) | 2026-10-21 |
