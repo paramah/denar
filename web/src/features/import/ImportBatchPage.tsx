@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
 import { classify } from '../../api/errors.ts'
 import { useImportBatch, useRevertImport } from '../../api/hooks/imports.ts'
@@ -16,12 +17,13 @@ import { Skeleton } from '../../components/Skeleton/Skeleton.tsx'
 import { useToast } from '../../components/Toast/Toast.tsx'
 import { formatDateTime } from '../../lib/format.ts'
 import { useActorName } from './ImportHistoryPage.tsx'
-import { batchTitle, countLabel } from './model.ts'
+import { batchTitle } from './model.ts'
 import { BatchCounters, BatchStatus, RowErrors } from './parts.tsx'
 import styles from './import.module.css'
 
 /** Szczegóły partii importu i jej cofnięcie. */
 export function ImportBatchPage() {
+  const { t } = useTranslation('import')
   const { importId = '' } = useParams()
   const { household } = useHousehold()
   const batch = useImportBatch(household.id, importId)
@@ -29,32 +31,34 @@ export function ImportBatchPage() {
     return <MissingBatch />
   }
   return (
-    <QueryState query={batch} errorTitle="Nie udało się wczytać importu" loading={<Skeleton lines={5} />}>
+    <QueryState query={batch} errorTitle={t('batch.loadFailed')} loading={<Skeleton lines={5} />}>
       {(data) => <BatchView batch={data} />}
     </QueryState>
   )
 }
 
 function MissingBatch() {
+  const { t } = useTranslation('import')
   const { household } = useHousehold()
-  useDocumentTitle('Nie znaleziono importu')
+  useDocumentTitle(t('batch.notFound'))
   return (
     <EmptyState
       icon="upload"
       headingLevel={1}
-      title="Nie znaleziono importu"
+      title={t('batch.notFound')}
       action={
         <LinkButton to={householdPath(household.id, 'import/history')} variant="primary">
-          Historia importów
+          {t('batch.history')}
         </LinkButton>
       }
     >
-      <p>Import nie istnieje albo dotyczy portfela, którego nie widzisz.</p>
+      <p>{t('batch.notFoundBody')}</p>
     </EmptyState>
   )
 }
 
 function BatchView({ batch }: { batch: ImportBatch }) {
+  const { t } = useTranslation('import')
   const { household, role } = useHousehold()
   const wallets = useWallets(household.id, { includeArchived: true })
   const wallet = wallets.data?.find((w) => w.id === batch.wallet_id)
@@ -69,20 +73,16 @@ function BatchView({ batch }: { batch: ImportBatch }) {
     <>
       <PageHeader
         title={title}
-        documentTitle={`Import: ${title}`}
-        description={
-          <>
-            Import do portfela {wallet?.name ?? '…'} · {formatDateTime(batch.created_at)}
-          </>
-        }
+        documentTitle={t('batch.documentTitle', { title })}
+        description={t('batch.description', { wallet: wallet?.name ?? '…', date: formatDateTime(batch.created_at) })}
         actions={
           <>
             <LinkButton icon="history" to={householdPath(household.id, 'import/history')}>
-              Historia importów
+              {t('batch.history')}
             </LinkButton>
             {canRevert && (
               <Button variant="danger" icon="undo" onClick={() => setConfirming(true)}>
-                Cofnij import
+                {t('batch.revert')}
               </Button>
             )}
           </>
@@ -91,66 +91,61 @@ function BatchView({ batch }: { batch: ImportBatch }) {
       <div className={styles.page}>
         <section className={styles.panel} aria-labelledby="batch-facts">
           <h2 id="batch-facts" className={styles.stepTitle}>
-            Podsumowanie
+            {t('batch.summary')}
           </h2>
           <dl className={styles.facts}>
             <div>
-              <dt>Status</dt>
+              <dt>{t('batch.status')}</dt>
               <dd>
                 <BatchStatus batch={batch} />
               </dd>
             </div>
             <div>
-              <dt>Źródło</dt>
-              <dd>{batch.source === 'csv' ? 'Plik CSV' : 'Połączenie'}</dd>
+              <dt>{t('batch.source')}</dt>
+              <dd>{batch.source === 'csv' ? t('batch.sourceCsv') : t('batch.sourceConnection')}</dd>
             </div>
             {batch.preset && (
               <div>
-                <dt>Preset</dt>
+                <dt>{t('batch.preset')}</dt>
                 <dd>{batch.preset}</dd>
               </div>
             )}
             <div>
-              <dt>Zaimportował(a)</dt>
-              <dd>
-                {actorName(batch.created_by)}, {formatDateTime(batch.created_at)}
-              </dd>
+              <dt>{t('batch.createdBy')}</dt>
+              <dd>{t('batch.actorAt', { actor: actorName(batch.created_by), date: formatDateTime(batch.created_at) })}</dd>
             </div>
             {batch.reverted_at && batch.reverted_by && (
               <div>
-                <dt>Cofnął(a)</dt>
-                <dd>
-                  {actorName(batch.reverted_by)}, {formatDateTime(batch.reverted_at)}
-                </dd>
+                <dt>{t('batch.revertedBy')}</dt>
+                <dd>{t('batch.actorAt', { actor: actorName(batch.reverted_by), date: formatDateTime(batch.reverted_at) })}</dd>
               </div>
             )}
           </dl>
           <BatchCounters batch={batch} />
           {batch.status === 'reverted' && (
-            <Callout tone="warn" title="Import cofnięty">
-              Usunięto {countLabel(batch.reverted_count, 'transakcję', 'transakcje', 'transakcji')}. Ponowny import tego
-              samego pliku utworzy je od nowa.
+            <Callout tone="warn" title={t('batch.revertedTitle')}>
+              {t('batch.revertedBody', { count: batch.reverted_count })}
             </Callout>
           )}
           <div className={styles.summaryLinks}>
             {wallet && (
               <LinkButton icon="list" to={householdPath(household.id, `wallets/${wallet.id}`)}>
-                Rejestr portfela
+                {t('batch.register')}
               </LinkButton>
             )}
             {batch.matched_count > 0 && (
               <LinkButton icon="repeat" to={householdPath(household.id, 'subscriptions/charges')}>
-                Kolejka dopasowań subskrypcji
+                {t('batch.chargesQueue')}
               </LinkButton>
             )}
           </div>
         </section>
-        <RowErrors errors={batch.errors} total={batch.error_count} label="Pominięte wiersze" />
+        <RowErrors errors={batch.errors} total={batch.error_count} label={t('batch.skippedRows')} />
       </div>
       <ConfirmDialog
         open={confirming}
-        title="Cofnąć ten import?"
-        confirmLabel="Cofnij import"
+        title={t('batch.confirmTitle')}
+        confirmLabel={t('batch.confirmLabel')}
         busy={revert.isPending}
         error={<FormAlert error={revert.error} />}
         onCancel={() => {
@@ -162,16 +157,13 @@ function BatchView({ batch }: { batch: ImportBatch }) {
             onSuccess: (done) => {
               setConfirming(false)
               toast.show({
-                message: `Cofnięto import: usunięto ${countLabel(done.reverted_count, 'transakcję', 'transakcje', 'transakcji')}.`,
+                message: t('batch.revertedToast', { count: done.reverted_count }),
               })
             },
           })
         }
       >
-        <p>
-          Usuniemy {countLabel(batch.created_count, 'transakcję', 'transakcje', 'transakcji')} z tego importu (także te
-          zmienione później). Płatności subskrypcji, które opłacały, wrócą do kolejki dopasowań.
-        </p>
+        <p>{t('batch.confirmBody', { count: batch.created_count })}</p>
       </ConfirmDialog>
     </>
   )

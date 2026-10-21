@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { ImportPreview } from '../../api/types.ts'
 import { useHousehold } from '../../app/household.tsx'
 import { Badge } from '../../components/Badge/Badge.tsx'
@@ -10,6 +11,7 @@ import styles from './import.module.css'
 
 /** Wynik podglądu: co parser wykrył, liczniki, pierwsze wiersze i błędy. */
 export function PreviewView({ preview, currency }: { preview: ImportPreview; currency: string }) {
+  const { t } = useTranslation('import')
   const { household } = useHousehold()
   const envelopes = useEnvelopeNames(household.id)
   const { detected } = preview
@@ -17,26 +19,26 @@ export function PreviewView({ preview, currency }: { preview: ImportPreview; cur
 
   return (
     <div className={styles.preview}>
-      <dl className={styles.detected} aria-label="Wykryto w pliku">
+      <dl className={styles.detected} aria-label={t('preview.detected')}>
         <div>
-          <dt>Separator</dt>
+          <dt>{t('preview.delimiter')}</dt>
           <dd>{delimiterLabel(detected.delimiter)}</dd>
         </div>
         <div>
-          <dt>Kodowanie</dt>
+          <dt>{t('preview.encoding')}</dt>
           <dd>{encodingLabel(detected.encoding)}</dd>
         </div>
         <div>
-          <dt>Nagłówek</dt>
-          <dd>{detected.header_line ? `linia ${detected.header_line}` : 'brak'}</dd>
+          <dt>{t('preview.header')}</dt>
+          <dd>{detected.header_line ? t('preview.headerLine', { line: detected.header_line }) : t('preview.headerNone')}</dd>
         </div>
         {detected.headers.length > 0 && (
           <div className={styles.detectedWide}>
-            <dt>Kolumny</dt>
+            <dt>{t('preview.columns')}</dt>
             <dd>
               <ul className={styles.headerChips}>
                 {detected.headers.map((header, index) => (
-                  <li key={`${index}:${header}`}>{header || `(kolumna ${index + 1})`}</li>
+                  <li key={`${index}:${header}`}>{header || t('preview.unnamedColumn', { n: index + 1 })}</li>
                 ))}
               </ul>
             </dd>
@@ -44,21 +46,21 @@ export function PreviewView({ preview, currency }: { preview: ImportPreview; cur
         )}
       </dl>
 
-      <dl className={styles.counters} aria-label="Liczniki podglądu">
+      <dl className={styles.counters} aria-label={t('preview.counters')}>
         <div>
-          <dt>Wiersze</dt>
+          <dt>{t('preview.rows')}</dt>
           <dd>{preview.total_rows}</dd>
         </div>
         <div className={styles.counterPositive}>
-          <dt>Nowe</dt>
+          <dt>{t('preview.new')}</dt>
           <dd>{preview.new_count}</dd>
         </div>
         <div>
-          <dt>Duplikaty</dt>
+          <dt>{t('preview.duplicates')}</dt>
           <dd>{preview.duplicate_count}</dd>
         </div>
         <div className={preview.error_count > 0 ? styles.counterWarn : undefined}>
-          <dt>Błędy</dt>
+          <dt>{t('preview.errors')}</dt>
           <dd>{preview.error_count}</dd>
         </div>
       </dl>
@@ -66,24 +68,24 @@ export function PreviewView({ preview, currency }: { preview: ImportPreview; cur
       {shownRows > 0 && (
         // Przewijany poziomo na wąskim ekranie: focus pozwala przewijać klawiaturą.
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-        <div className={styles.tableWrap} role="region" aria-label="Wiersze podglądu" tabIndex={0}>
+        <div className={styles.tableWrap} role="region" aria-label={t('preview.rowsRegion')} tabIndex={0}>
           <table className={styles.table}>
             <caption className={styles.caption}>
               {shownRows < preview.total_rows - preview.error_count
-                ? `Pierwsze ${shownRows} z ${preview.total_rows - preview.error_count} poprawnych wierszy`
-                : 'Wszystkie poprawne wiersze'}
+                ? t('preview.captionFirst', { shown: shownRows, total: preview.total_rows - preview.error_count })
+                : t('preview.captionAll')}
             </caption>
             <thead>
               <tr>
-                <th scope="col">Linia</th>
-                <th scope="col">Data</th>
-                <th scope="col">Z pliku</th>
-                <th scope="col">Kontrahent</th>
-                <th scope="col">Koperta</th>
+                <th scope="col">{t('preview.colLine')}</th>
+                <th scope="col">{t('preview.colDate')}</th>
+                <th scope="col">{t('preview.colRaw')}</th>
+                <th scope="col">{t('preview.colPayee')}</th>
+                <th scope="col">{t('preview.colEnvelope')}</th>
                 <th scope="col" className={styles.num}>
-                  Kwota
+                  {t('preview.colAmount')}
                 </th>
-                <th scope="col">Status</th>
+                <th scope="col">{t('preview.colStatus')}</th>
               </tr>
             </thead>
             <tbody>
@@ -97,13 +99,13 @@ export function PreviewView({ preview, currency }: { preview: ImportPreview; cur
                     {row.payee_raw}
                     {row.memo && row.memo !== row.payee_raw && <span className={styles.memo}>{row.memo}</span>}
                   </td>
-                  <td>{row.payee_name ?? <span className={styles.muted}>nie rozpoznano</span>}</td>
-                  <td>{row.envelope_id ? (envelopes.get(row.envelope_id) ?? 'koperta') : <span className={styles.muted}>—</span>}</td>
+                  <td>{row.payee_name ?? <span className={styles.muted}>{t('preview.unrecognized')}</span>}</td>
+                  <td>{row.envelope_id ? (envelopes.get(row.envelope_id) ?? t('preview.envelope')) : <span className={styles.muted}>—</span>}</td>
                   <td className={styles.num}>
                     <Money amount={row.amount.amount} currency={row.amount.currency || currency} signed />
                   </td>
                   <td>
-                    {row.status === 'duplicate' ? <Badge>Duplikat</Badge> : <Badge tone="brand">Nowa</Badge>}
+                    {row.status === 'duplicate' ? <Badge>{t('preview.duplicate')}</Badge> : <Badge tone="brand">{t('preview.newRow')}</Badge>}
                   </td>
                 </tr>
               ))}
