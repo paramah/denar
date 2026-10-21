@@ -177,6 +177,11 @@ Kwoty wejściowe: string dziesiętny (`"12.34"`, kropka; przecinek zamieniany na
 - Limit żądań per proces i osobno dla REST i MCP (bot może wykonać `DENAR_BOT_RATE` żądań na minutę w każdym z nich).
 - `spending_by` liczy na żądanie; powyżej 10 000 transakcji w zakresie wynik ma `truncated: true`.
 - Brak powiadomień MCP o zmianach (serwer bez sesji).
+- Zachowanie z etapu 004 widoczne przez MCP: zmiana ceny z `effective_from` wcześniejszym niż pierwszy punkt historii (anchor nowej subskrypcji) nie zmienia obciążeń od anchor — pierwszy punkt nadal obowiązuje od swojego dnia (AD-404). Do rozważenia w 004.
+
+## Dla etapu 007 (Web UI)
+
+- Ekran botów może pokazać gotowe polecenie `claude mcp add --transport http denar <BASE_URL>/mcp --header "Authorization: Bearer <token>"` przy jednorazowym wyświetleniu tokenu.
 
 ## Dla etapu 005 (powiadomienia)
 

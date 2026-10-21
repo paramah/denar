@@ -28,6 +28,6 @@
 | 003 | envelope-budget | implementation:done (delegated) | `.ai/sdd/specs/003-envelope-budget/` |
 | 004 | subscriptions | implementation:done (delegated) | `.ai/sdd/specs/004-subscriptions/` |
 | 005 | notifications | — | |
-| 006 | mcp | — | |
+| 006 | mcp | implementation:done (delegated) | `.ai/sdd/specs/006-mcp/` |
 | 007 | webui | — | |
 | 008 | import | — | |
