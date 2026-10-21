@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ApiError, fieldErrors } from '../../api/errors.ts'
 import { useCurrencies } from '../../api/hooks/households.ts'
 import { useMembers } from '../../api/hooks/members.ts'
@@ -32,14 +33,21 @@ type Props = {
 }
 
 export function WalletDialog({ open, onClose, wallet, onSaved }: Props) {
+  const { t } = useTranslation('wallets')
   return (
-    <Dialog open={open} title={wallet ? `Edycja portfela ${wallet.name}` : 'Nowy portfel'} onClose={onClose} size="md">
+    <Dialog
+      open={open}
+      title={wallet ? t('dialog.editTitle', { name: wallet.name }) : t('dialog.newTitle')}
+      onClose={onClose}
+      size="md"
+    >
       <WalletForm wallet={wallet} onClose={onClose} onSaved={onSaved} />
     </Dialog>
   )
 }
 
 function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: () => void; onSaved?: (w: Wallet) => void }) {
+  const { t } = useTranslation('wallets')
   const { household, role } = useHousehold()
   const { user } = useSessionUser()
   const currencies = useCurrencies()
@@ -68,7 +76,7 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
   const submit = async () => {
     const next: Record<string, string | undefined> = {}
     if (!name.trim()) {
-      next.name = 'Podaj nazwę portfela.'
+      next.name = t('dialog.nameRequired')
     }
     let openingValue: string | null = null
     if (!wallet && opening.trim()) {
@@ -90,7 +98,7 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
       if (wallet) {
         const body: WalletUpdate = { name: name.trim(), type, on_budget: onBudget, ...privacy }
         saved = await update.mutateAsync({ walletId: wallet.id, body })
-        toast.show({ message: `Zapisano portfel ${saved.name}.` })
+        toast.show({ message: t('dialog.saved', { name: saved.name }) })
       } else {
         const body: WalletCreate = {
           name: name.trim(),
@@ -101,7 +109,7 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
           ...(openingValue ? { opening_balance: { amount: openingValue, currency }, opened_on: openedOn } : {}),
         }
         saved = await create.mutateAsync(body)
-        toast.show({ message: `Dodano portfel ${saved.name}.` })
+        toast.show({ message: t('dialog.added', { name: saved.name }) })
       }
       onSaved?.(saved)
       onClose()
@@ -113,7 +121,7 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
   return (
     <form
       noValidate
-      aria-label={wallet ? 'Edycja portfela' : 'Nowy portfel'}
+      aria-label={wallet ? t('dialog.editForm') : t('dialog.newTitle')}
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault()
@@ -125,10 +133,10 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
         shownFields={['name', 'type', 'currency', 'on_budget', 'visibility', 'member_ids', 'opening_balance', 'opening_balance.amount', 'opened_on']}
       />
       <TextField
-        label="Nazwa"
+        label={t('dialog.name')}
         value={name}
         onChange={(event) => setName(event.target.value)}
-        error={errors.name ?? (duplicate ? 'Portfel o tej nazwie już istnieje.' : server.name)}
+        error={errors.name ?? (duplicate ? t('dialog.duplicate') : server.name)}
         maxLength={100}
         autoComplete="off"
         data-autofocus
@@ -136,22 +144,22 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
       />
       <div className={styles.pair}>
         <SelectField
-          label="Typ"
+          label={t('dialog.type')}
           value={type}
           onChange={(event) => setType(event.target.value as WalletType)}
-          options={walletTypeOrder.map((t) => ({ value: t, label: walletTypeLabels[t] }))}
+          options={walletTypeOrder.map((wt) => ({ value: wt, label: walletTypeLabels[wt] }))}
           error={server.type}
         />
         {wallet ? (
-          <TextField label="Waluta" value={wallet.currency} readOnly hint="Waluty portfela nie można zmienić." />
+          <TextField label={t('dialog.currency')} value={wallet.currency} readOnly hint={t('dialog.currencyLocked')} />
         ) : (
           <SelectField
-            label="Waluta"
+            label={t('dialog.currency')}
             value={currency}
             onChange={(event) => setCurrency(event.target.value)}
             options={(currencies.data ?? [{ code: household.base_currency, decimals: 2 }]).map((c) => ({
               value: c.code,
-              label: c.code === household.base_currency ? `${c.code} (bazowa)` : c.code,
+              label: c.code === household.base_currency ? t('dialog.baseCurrency', { code: c.code }) : c.code,
             }))}
             error={server.currency}
           />
@@ -160,15 +168,15 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
       {!wallet && (
         <div className={styles.pair}>
           <AmountField
-            label="Saldo otwarcia"
+            label={t('dialog.opening')}
             value={opening}
             onChange={setOpening}
             currency={currency}
-            hint="Ile jest dziś na koncie. Dla kredytu wpisz z minusem."
+            hint={t('dialog.openingHint')}
             error={errors.opening_balance ?? pickError(server, 'opening_balance', 'opening_balance.amount')}
           />
           <TextField
-            label="Na dzień"
+            label={t('dialog.openedOn')}
             type="date"
             value={openedOn}
             onChange={(event) => setOpenedOn(event.target.value)}
@@ -177,34 +185,34 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
         </div>
       )}
       <Checkbox
-        label="Portfel w budżecie"
+        label={t('dialog.onBudget')}
         checked={onBudget}
         onChange={(event) => setOnBudget(event.target.checked)}
-        hint="Pieniądze z tego portfela rozdzielasz na koperty. Oszczędności i inwestycje zwykle są poza budżetem."
+        hint={t('dialog.onBudgetHint')}
       />
       {visibilityEditable && (
         <fieldset className={styles.fieldset}>
-          <legend>Kto widzi portfel</legend>
+          <legend>{t('dialog.visibility')}</legend>
           <label className={styles.radio}>
             <input type="radio" name="visibility" checked={visibility === 'shared'} onChange={() => setVisibility('shared')} />
             <span>
-              Całe gospodarstwo
-              <small>Wszyscy członkowie widzą portfel i jego transakcje.</small>
+              {t('dialog.shared')}
+              <small>{t('dialog.sharedHint')}</small>
             </span>
           </label>
           <label className={styles.radio}>
             <input type="radio" name="visibility" checked={visibility === 'private'} onChange={() => setVisibility('private')} />
             <span>
-              Tylko wybrane osoby
-              <small>Nawet właściciel gospodarstwa go nie zobaczy, jeśli go nie wybierzesz.</small>
+              {t('dialog.private')}
+              <small>{t('dialog.privateHint')}</small>
             </span>
           </label>
           {visibility === 'private' && (
-            <ul className={styles.members} aria-label="Kto widzi portfel prywatny">
+            <ul className={styles.members} aria-label={t('dialog.members')}>
               {(members.data ?? []).map((member) => (
                 <li key={member.user_id}>
                   <Checkbox
-                    label={member.user_id === creator ? `${member.name} (twórca — zawsze)` : member.name}
+                    label={member.user_id === creator ? t('dialog.creator', { name: member.name }) : member.name}
                     checked={member.user_id === creator || memberIds.includes(member.user_id)}
                     disabled={member.user_id === creator}
                     onChange={(event) =>
@@ -225,9 +233,9 @@ function WalletForm({ wallet, onClose, onSaved }: { wallet?: Wallet; onClose: ()
         </fieldset>
       )}
       <div className={styles.footer}>
-        <Button onClick={onClose}>Anuluj</Button>
+        <Button onClick={onClose}>{t('dialog.cancel')}</Button>
         <Button type="submit" variant="primary" busy={mutation.isPending}>
-          {wallet ? 'Zapisz zmiany' : 'Dodaj portfel'}
+          {wallet ? t('dialog.saveChanges') : t('dialog.add')}
         </Button>
       </div>
     </form>

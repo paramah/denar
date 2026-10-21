@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useEnvelopeGroups, useEnvelopes } from '../../api/hooks/budget.ts'
 import type { Envelope, EnvelopeGroup } from '../../api/types.ts'
+import { tk } from '../../i18n/translate.ts'
 import { features } from '../../lib/features.ts'
 
 export type EnvelopeOption = { value: string; label: string }
@@ -17,9 +18,10 @@ export function envelopeOptions(envelopes: Envelope[], groups: EnvelopeGroup[]):
     )
     .map(({ envelope }) => {
       const group = names.get(envelope.group_id)
+      const name = envelope.hidden ? tk('transactions:fields.hiddenEnvelope', { name: envelope.name }) : envelope.name
       return {
         value: envelope.id,
-        label: `${group ? `${group} · ` : ''}${envelope.name}${envelope.hidden ? ' (ukryta)' : ''}`,
+        label: `${group ? `${group} · ` : ''}${name}`,
       }
     })
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useHousehold } from '../../app/household.tsx'
 import { householdPath } from '../../app/nav.ts'
 import { Button, LinkButton } from '../../components/Button/Button.tsx'
@@ -11,6 +12,7 @@ import styles from './transactions.module.css'
 
 /** Rejestr wszystkich widocznych portfeli. */
 export function TransactionsPage() {
+  const { t } = useTranslation('transactions')
   const { household, role } = useHousehold()
   const canWrite = role !== 'viewer'
   const [adding, setAdding] = useState(false)
@@ -20,27 +22,27 @@ export function TransactionsPage() {
   return (
     <>
       <PageHeader
-        title="Transakcje"
+        title={t('page.title')}
         description={
           canWrite ? (
             <>
-              Wszystkie portfele w jednym rejestrze. Nowa transakcja: <kbd className={styles.kbd}>N</kbd>
+              {t('page.description')} {t('page.newTransactionShortcut')} <kbd className={styles.kbd}>N</kbd>
             </>
           ) : (
-            'Wszystkie portfele w jednym rejestrze.'
+            t('page.description')
           )
         }
         actions={
           canWrite && (
             <>
               <LinkButton icon="upload" to={householdPath(household.id, 'import')}>
-                Importuj CSV
+                {t('page.import')}
               </LinkButton>
               <Button icon="transfer" onClick={() => setTransferring(true)}>
-                Przelew
+                {t('page.transfer')}
               </Button>
               <Button variant="primary" icon="plus" onClick={() => setAdding(true)} aria-keyshortcuts="n">
-                Dodaj transakcję
+                {t('page.add')}
               </Button>
             </>
           )

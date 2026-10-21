@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { usePayees } from '../../api/hooks/payees.ts'
 import { useLinkedCharges } from '../../api/hooks/subscriptions.ts'
@@ -60,6 +61,7 @@ type Props = {
 
 /** Rejestr transakcji z filtrami w adresie i stronicowaniem kursorem. */
 export function Register({ walletId, onAdd }: Props) {
+  const { t } = useTranslation('transactions')
   const { household, role } = useHousehold()
   const [params] = useSearchParams()
   const filters = filtersFromParams(params, walletId)
@@ -77,51 +79,51 @@ export function Register({ walletId, onAdd }: Props) {
   return (
     <section className={styles.register} aria-labelledby="register-heading">
       <h2 id="register-heading" className="visually-hidden">
-        Rejestr transakcji
+        {t('register.heading')}
       </h2>
       <RegisterFilters walletId={walletId} wallets={allWallets.data ?? []} />
-      <QueryState query={transactions} errorTitle="Nie udało się wczytać transakcji" loading={<Skeleton lines={5} />}>
+      <QueryState query={transactions} errorTitle={t('register.loadFailed')} loading={<Skeleton lines={5} />}>
         {(data) => (
           <DataList
-            label="Transakcje"
+            label={t('register.label')}
             items={data.pages.flatMap((page) => page.items)}
-            getKey={(t) => t.id}
+            getKey={(tx) => tx.id}
             hasMore={transactions.hasNextPage}
             onLoadMore={() => void transactions.fetchNextPage()}
             loadingMore={transactions.isFetchingNextPage}
             empty={
               filtered ? (
-                <EmptyState icon="search" title="Brak transakcji dla tych filtrów" headingLevel={3}>
-                  <p>Zmień albo wyczyść filtry.</p>
+                <EmptyState icon="search" title={t('register.noMatchTitle')} headingLevel={3}>
+                  <p>{t('register.noMatchBody')}</p>
                 </EmptyState>
               ) : (
                 <EmptyState
                   icon="list"
-                  title="Nie ma jeszcze transakcji"
+                  title={t('register.emptyTitle')}
                   headingLevel={3}
                   action={
                     canWrite && onAdd ? (
                       <Button variant="primary" icon="plus" onClick={onAdd}>
-                        Dodaj pierwszą transakcję
+                        {t('register.addFirst')}
                       </Button>
                     ) : undefined
                   }
                 >
-                  <p>Zapisuj wydatki i wpływy — saldo portfela policzy się samo.</p>
+                  <p>{t('register.emptyBody')}</p>
                 </EmptyState>
               )
             }
-            renderItem={(t) => (
+            renderItem={(tx) => (
               <TransactionRow
-                transaction={t}
+                transaction={tx}
                 wallets={wallets}
                 showWallet={!walletId}
                 canWrite={canWrite}
-                onEdit={() => setEditing(t)}
-                onDelete={() => setDeleting(t)}
+                onEdit={() => setEditing(tx)}
+                onDelete={() => setDeleting(tx)}
                 envelopes={envelopeNames}
-                charge={linked.get(t.id)}
-                onLinkCharge={() => setLinking(t)}
+                charge={linked.get(tx.id)}
+                onLinkCharge={() => setLinking(tx)}
               />
             )}
           />
@@ -160,6 +162,7 @@ function useLinkedChargeMap(items: Transaction[]): Map<string, Charge> {
 }
 
 function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wallet[] }) {
+  const { t } = useTranslation('transactions')
   const { household } = useHousehold()
   const payees = usePayees(household.id)
   const envelopeOptions = useEnvelopeOptions(household.id)
@@ -205,14 +208,14 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
   const advancedId = useId()
 
   return (
-    <form role="search" aria-label="Filtry transakcji" className={styles.filters} onSubmit={(event) => event.preventDefault()}>
+    <form role="search" aria-label={t('filters.label')} className={styles.filters} onSubmit={(event) => event.preventDefault()}>
       <div className={styles.filterRow}>
         <TextField
-          label="Szukaj"
+          label={t('filters.search')}
           type="search"
           value={q}
           onChange={(event) => setQ(event.target.value)}
-          placeholder="Notatka lub kontrahent"
+          placeholder={t('filters.searchPlaceholder')}
           className={styles.filterSearch}
           maxLength={100}
         />
@@ -223,7 +226,7 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
           aria-controls={advancedId}
           onClick={() => setExpanded((value) => !value)}
         >
-          {expanded ? 'Mniej filtrów' : 'Więcej filtrów'}
+          {expanded ? t('filters.less') : t('filters.more')}
           {active.filter((name) => name !== 'q').length > 0 && ` (${active.filter((name) => name !== 'q').length})`}
         </Button>
       </div>
@@ -231,57 +234,60 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
         <div className={styles.filterRow}>
           {!walletId && (
             <SelectField
-              label="Portfel"
+              label={t('filters.wallet')}
               value={params.get('wallet') ?? ''}
               onChange={(event) => set({ wallet: event.target.value })}
               options={[
-                { value: '', label: 'Wszystkie' },
-                ...wallets.map((w) => ({ value: w.id, label: w.archived_at ? `${w.name} (archiwum)` : w.name })),
+                { value: '', label: t('filters.allWallets') },
+                ...wallets.map((w) => ({
+                  value: w.id,
+                  label: w.archived_at ? t('filters.archivedWallet', { name: w.name }) : w.name,
+                })),
               ]}
             />
           )}
           <SelectField
-            label="Kontrahent"
+            label={t('filters.payee')}
             value={params.get('payee') ?? ''}
             onChange={(event) => set({ payee: event.target.value })}
-            options={[{ value: '', label: 'Wszyscy' }, ...(payees.data ?? []).map((p) => ({ value: p.id, label: p.name }))]}
+            options={[{ value: '', label: t('filters.allPayees') }, ...(payees.data ?? []).map((p) => ({ value: p.id, label: p.name }))]}
           />
           {envelopesEnabled() && (
             <SelectField
-              label="Koperta"
+              label={t('filters.envelope')}
               value={params.get('envelope') ?? ''}
               onChange={(event) => set({ envelope: event.target.value })}
-              options={[{ value: '', label: 'Wszystkie' }, ...envelopeOptions]}
+              options={[{ value: '', label: t('filters.allEnvelopes') }, ...envelopeOptions]}
             />
           )}
         </div>
         <div className={styles.filterRow}>
-          <TextField label="Od dnia" type="date" value={params.get('from') ?? ''} onChange={(event) => set({ from: event.target.value })} />
-          <TextField label="Do dnia" type="date" value={params.get('to') ?? ''} onChange={(event) => set({ to: event.target.value })} />
+          <TextField label={t('filters.from')} type="date" value={params.get('from') ?? ''} onChange={(event) => set({ from: event.target.value })} />
+          <TextField label={t('filters.to')} type="date" value={params.get('to') ?? ''} onChange={(event) => set({ to: event.target.value })} />
           <SelectField
-            label="Rodzaj"
+            label={t('filters.kind')}
             value={params.get('kind') ?? ''}
             onChange={(event) => set({ kind: event.target.value })}
             options={[
-              { value: '', label: 'Każdy' },
+              { value: '', label: t('filters.any') },
               ...(['expense', 'income', 'transfer'] as const).map((k) => ({ value: k, label: kindLabels[k] })),
             ]}
           />
           <SelectField
-            label="Status"
+            label={t('filters.status')}
             value={params.get('status') ?? ''}
             onChange={(event) => set({ status: event.target.value })}
             options={[
-              { value: '', label: 'Każdy' },
+              { value: '', label: t('filters.any') },
               ...(['pending', 'cleared', 'reconciled'] as const).map((s) => ({ value: s, label: statusLabels[s] })),
             ]}
           />
-          <TextField label="Tag" value={tag} onChange={(event) => setTag(event.target.value)} autoComplete="off" maxLength={40} />
+          <TextField label={t('filters.tag')} value={tag} onChange={(event) => setTag(event.target.value)} autoComplete="off" maxLength={40} />
         </div>
       </div>
       {active.length > 0 && (
         <div className={styles.filterFoot}>
-          <span aria-live="polite">Aktywne filtry: {active.length}</span>
+          <span aria-live="polite">{t('filters.active', { n: active.length })}</span>
           <Button
             size="sm"
             variant="ghost"
@@ -292,7 +298,7 @@ function RegisterFilters({ walletId, wallets }: { walletId?: string; wallets: Wa
               set(Object.fromEntries(active.map((name) => [name, ''])))
             }}
           >
-            Wyczyść filtry
+            {t('filters.clear')}
           </Button>
         </div>
       )}
