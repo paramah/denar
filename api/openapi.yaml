@@ -3,7 +3,7 @@ info:
   title: denar REST API
   version: 0.1.0
   description: |
-    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions). Źródło typów Go (oapi-codegen) i TS
+    Kontrakt REST Denara (etapy 001-core, 002-wallets-transactions, 003-envelope-budget). Źródło typów Go (oapi-codegen) i TS
     (openapi-typescript, etap 007).
 
     Uwierzytelnianie: sesja w cookie `denar_session` (logowanie hasłem lub
@@ -40,6 +40,16 @@ info:
     owner), i portfel spoza listy bota dają 404. Dodatkowe powody 403:
     wallet (druga noga przelewu w niewidocznym portfelu); 409:
     duplicate-external-id, wallet-archived.
+
+    Budżet kopertowy (etap 003) leży pod /households/{householdId}/budget.
+    Kwoty budżetu są w walucie bazowej gospodarstwa (MoneyInput w innej
+    walucie daje 422). Miesiąc budżetowy {month} to YYYY-MM miesiąca
+    kalendarzowego, w którym się zaczyna (wg month_start_day). Sumy budżetu
+    obejmują wszystkie portfele on-budget gospodarstwa, także prywatne
+    portfele innych osób i portfele spoza listy bota; lista transakcji
+    koperty pokazuje tylko widoczne portfele i wymaga też transactions:read.
+    Odczyt wymaga budget:read, zmiany budget:write. Dodatkowe powody 409:
+    group-not-empty, envelope-in-use.
 servers:
   - url: /api
 security:
@@ -57,6 +67,7 @@ tags:
   - name: transactions
   - name: payees
   - name: fx
+  - name: budget
 
 paths:
   /auth/config:
@@ -850,6 +861,265 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /households/{householdId}/budget/months/{month}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/Month"
+    get:
+      tags: [budget]
+      operationId: getBudgetMonth
+      summary: Budżet miesiąca — grupy, koperty, Ready-to-Assign (budget:read)
+      responses:
+        "200":
+          description: Miesiąc budżetu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BudgetMonth" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/months/{month}/envelopes/{envelopeId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/Month"
+      - $ref: "#/components/parameters/EnvelopeId"
+    get:
+      tags: [budget]
+      operationId: listEnvelopeActivity
+      summary: Transakcje koperty w miesiącu z widocznych portfeli on-budget (budget:read i transactions:read)
+      parameters:
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        "200":
+          description: Strona transakcji
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransactionPage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/months/{month}/assignments/{envelopeId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/Month"
+      - $ref: "#/components/parameters/EnvelopeId"
+    put:
+      tags: [budget]
+      operationId: setAssignment
+      summary: Ustawia przydział koperty na miesiąc (budget:write); 0 usuwa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentSet" }
+      responses:
+        "200":
+          description: Miesiąc budżetu po zmianie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BudgetMonth" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/months/{month}/moves:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/Month"
+    post:
+      tags: [budget]
+      operationId: moveBetweenEnvelopes
+      summary: Przenosi przydzieloną kwotę między kopertami w miesiącu (budget:write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BudgetMove" }
+      responses:
+        "200":
+          description: Miesiąc budżetu po zmianie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BudgetMonth" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/months/{month}/auto-assign:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/Month"
+    post:
+      tags: [budget]
+      operationId: autoAssign
+      summary: Uzupełnia niedofinansowane cele nieukrytych kopert z Ready-to-Assign, w kolejności grup i kopert (budget:write)
+      responses:
+        "200":
+          description: Przydziały i miesiąc po zmianie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AutoAssignResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/envelope-groups:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [budget]
+      operationId: listEnvelopeGroups
+      summary: Grupy kopert w kolejności (budget:read)
+      responses:
+        "200":
+          description: Grupy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnvelopeGroupList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [budget]
+      operationId: createEnvelopeGroup
+      summary: Tworzy grupę kopert (budget:write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnvelopeGroupCreate" }
+      responses:
+        "201":
+          description: Grupa
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnvelopeGroup" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/envelope-groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/GroupId"
+    patch:
+      tags: [budget]
+      operationId: updateEnvelopeGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnvelopeGroupUpdate" }
+      responses:
+        "200":
+          description: Zmieniona grupa
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnvelopeGroup" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [budget]
+      operationId: deleteEnvelopeGroup
+      summary: Usuwa pustą grupę (z kopertami — 409 group-not-empty)
+      responses:
+        "204": { description: Usunięta }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/envelopes:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      tags: [budget]
+      operationId: listEnvelopes
+      summary: Koperty w kolejności (budget:read)
+      parameters:
+        - { name: include_hidden, in: query, schema: { type: boolean } }
+      responses:
+        "200":
+          description: Koperty
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnvelopeList" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [budget]
+      operationId: createEnvelope
+      summary: Tworzy kopertę w grupie (budget:write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnvelopeCreate" }
+      responses:
+        "201":
+          description: Koperta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /households/{householdId}/budget/envelopes/{envelopeId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/EnvelopeId"
+    get:
+      tags: [budget]
+      operationId: getEnvelope
+      responses:
+        "200":
+          description: Koperta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [budget]
+      operationId: updateEnvelope
+      summary: Zmienia kopertę; goal=null usuwa cel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnvelopeUpdate" }
+      responses:
+        "200":
+          description: Zmieniona koperta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [budget]
+      operationId: deleteEnvelope
+      summary: Usuwa kopertę bez transakcji (inaczej 409 envelope-in-use — ukryj ją); kasuje jej przydziały i zdejmuje ją z kontrahentów
+      responses:
+        "204": { description: Usunięta }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     session:
@@ -886,6 +1156,22 @@ components:
       in: path
       required: true
       schema: { type: string }
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema: { type: string }
+    EnvelopeId:
+      name: envelopeId
+      in: path
+      required: true
+      schema: { type: string }
+    Month:
+      name: month
+      in: path
+      required: true
+      description: Miesiąc budżetowy YYYY-MM (2000-01…2100-12)
+      schema: { type: string, examples: ["2026-10"] }
   responses:
     Problem:
       description: Błąd w formacie RFC 7807
@@ -1190,7 +1476,7 @@ components:
         at: { type: string, format: date-time }
         actor: { $ref: "#/components/schemas/Actor" }
         action: { type: string, description: "np. bot.created, membership.role_changed" }
-        resource_type: { type: string, description: "household, membership, invitation, bot, wallet, transaction, payee, fx_rate (kolejne etapy dodają własne)" }
+        resource_type: { type: string, description: "household, membership, invitation, bot, wallet, transaction, payee, fx_rate, envelope_group, envelope, assignment (kolejne etapy dodają własne)" }
         resource_id: { type: string }
         changes:
           type: object
@@ -1497,3 +1783,185 @@ components:
         currency: { type: string }
         date: { type: string, format: date }
         rate: { type: string, examples: ["4.2512"] }
+
+    EnvelopeGroup:
+      type: object
+      required: [id, name, position, created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        position: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    EnvelopeGroupList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/EnvelopeGroup" }
+    EnvelopeGroupCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        position: { type: integer, minimum: 0, maximum: 10000 }
+    EnvelopeGroupUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        position: { type: integer, minimum: 0, maximum: 10000 }
+    GoalType:
+      type: string
+      enum: [monthly, target_by_date]
+    Goal:
+      type: object
+      description: monthly — przydziel amount co miesiąc; target_by_date — zgromadź amount do target_date
+      required: [type, amount, target_date]
+      properties:
+        type: { $ref: "#/components/schemas/GoalType" }
+        amount: { $ref: "#/components/schemas/Money" }
+        target_date: { type: [string, "null"], format: date }
+    GoalInput:
+      type: object
+      required: [type, amount]
+      properties:
+        type: { $ref: "#/components/schemas/GoalType" }
+        amount: { $ref: "#/components/schemas/MoneyInput" }
+        target_date: { type: string, format: date, description: Wymagana dla target_by_date }
+    Envelope:
+      type: object
+      required: [id, group_id, name, position, hidden, goal, created_at, updated_at]
+      properties:
+        id: { type: string }
+        group_id: { type: string }
+        name: { type: string }
+        position: { type: integer }
+        hidden: { type: boolean }
+        goal:
+          oneOf:
+            - $ref: "#/components/schemas/Goal"
+            - type: "null"
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    EnvelopeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Envelope" }
+    EnvelopeCreate:
+      type: object
+      required: [group_id, name]
+      properties:
+        group_id: { type: string }
+        name: { type: string }
+        position: { type: integer, minimum: 0, maximum: 10000 }
+        hidden: { type: boolean }
+        goal: { $ref: "#/components/schemas/GoalInput" }
+    EnvelopeUpdate:
+      type: object
+      properties:
+        group_id: { type: string }
+        name: { type: string }
+        position: { type: integer, minimum: 0, maximum: 10000 }
+        hidden: { type: boolean }
+        goal:
+          oneOf:
+            - $ref: "#/components/schemas/GoalInput"
+            - type: "null"
+    GoalStatus:
+      type: object
+      required: [needed, underfunded, funded, progress]
+      properties:
+        needed: { description: Do przydzielenia w tym miesiącu, $ref: "#/components/schemas/Money" }
+        underfunded: { description: Brakująca część needed, $ref: "#/components/schemas/Money" }
+        funded: { type: boolean }
+        progress: { type: integer, minimum: 0, maximum: 100, description: Postęp w procentach }
+    BudgetEnvelope:
+      type: object
+      required: [id, group_id, name, position, hidden, goal, goal_status, assigned, activity, carried_over, available]
+      properties:
+        id: { type: string }
+        group_id: { type: string }
+        name: { type: string }
+        position: { type: integer }
+        hidden: { type: boolean }
+        goal:
+          oneOf:
+            - $ref: "#/components/schemas/Goal"
+            - type: "null"
+        goal_status:
+          oneOf:
+            - $ref: "#/components/schemas/GoalStatus"
+            - type: "null"
+        assigned: { $ref: "#/components/schemas/Money" }
+        activity: { $ref: "#/components/schemas/Money" }
+        carried_over: { description: "Przeniesione z poprzedniego miesiąca (≥ 0; przekroczenie się nie przenosi)", $ref: "#/components/schemas/Money" }
+        available: { description: "carried_over + assigned + activity; ujemne — przekroczenie", $ref: "#/components/schemas/Money" }
+    BudgetGroup:
+      type: object
+      required: [id, name, position, assigned, activity, available, envelopes]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        position: { type: integer }
+        assigned: { $ref: "#/components/schemas/Money" }
+        activity: { $ref: "#/components/schemas/Money" }
+        available: { $ref: "#/components/schemas/Money" }
+        envelopes:
+          type: array
+          items: { $ref: "#/components/schemas/BudgetEnvelope" }
+    BudgetMonth:
+      type: object
+      description: |
+        Inwariant: Σ available wszystkich kopert + ready_to_assign + assigned_in_future = Σ kwot bazowych transakcji
+        portfeli on-budget z datą ≤ end (bez rate_pending).
+      required: [month, start, end, currency, ready_to_assign, assigned_in_future, overspent_last_month, income,
+        uncategorized, transfers, assigned, activity, available, underfunded, incomplete, pending_transactions, groups]
+      properties:
+        month: { type: string, examples: ["2026-10"] }
+        start: { type: string, format: date }
+        end: { type: string, format: date }
+        currency: { type: string, description: Waluta bazowa gospodarstwa }
+        ready_to_assign: { description: Już pomniejszone o assigned_in_future, $ref: "#/components/schemas/Money" }
+        assigned_in_future: { $ref: "#/components/schemas/Money" }
+        overspent_last_month: { description: "Przekroczenia poprzedniego miesiąca (≤ 0), pomniejszające ready_to_assign", $ref: "#/components/schemas/Money" }
+        income: { description: Przychody miesiąca (z saldami otwarcia), $ref: "#/components/schemas/Money" }
+        uncategorized: { description: Wydatki i zwroty bez koperty — obciążają ready_to_assign, $ref: "#/components/schemas/Money" }
+        transfers: { description: Nogi przelewów bez koperty (różnice kursowe, przelewy poza budżet), $ref: "#/components/schemas/Money" }
+        assigned: { $ref: "#/components/schemas/Money" }
+        activity: { $ref: "#/components/schemas/Money" }
+        available: { $ref: "#/components/schemas/Money" }
+        underfunded: { description: Suma niedofinansowania celów nieukrytych kopert, $ref: "#/components/schemas/Money" }
+        incomplete: { type: boolean, description: Część transakcji do końca miesiąca czeka na kurs i nie jest liczona }
+        pending_transactions: { type: integer }
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/BudgetGroup" }
+    AssignmentSet:
+      type: object
+      required: [amount]
+      properties:
+        amount: { $ref: "#/components/schemas/MoneyInput" }
+    BudgetMove:
+      type: object
+      required: [from_envelope_id, to_envelope_id, amount]
+      properties:
+        from_envelope_id: { type: string }
+        to_envelope_id: { type: string }
+        amount: { $ref: "#/components/schemas/MoneyInput" }
+    AutoAssignResult:
+      type: object
+      required: [assigned, month]
+      properties:
+        assigned:
+          type: array
+          items:
+            type: object
+            required: [envelope_id, amount]
+            properties:
+              envelope_id: { type: string }
+              amount: { $ref: "#/components/schemas/Money" }
+        month: { $ref: "#/components/schemas/BudgetMonth" }

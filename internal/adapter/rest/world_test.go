@@ -17,6 +17,7 @@ import (
 
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
+	"git.eiac.dev/tools/denar/internal/domain/budget"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
 	"git.eiac.dev/tools/denar/internal/domain/payee"
@@ -114,6 +115,21 @@ func newWorld(t *testing.T) *world {
 		QuoteFxRate:     usecase.NewQuoteFxRate(d),
 		ListFxOverrides: usecase.NewListFxOverrides(d),
 		SetFxOverride:   usecase.NewSetFxOverride(d),
+
+		GetBudgetMonth:       usecase.NewGetBudgetMonth(d),
+		ListEnvelopeActivity: usecase.NewListEnvelopeActivity(d),
+		SetAssignment:        usecase.NewSetAssignment(d),
+		MoveBetweenEnvelopes: usecase.NewMoveBetweenEnvelopes(d),
+		AutoAssign:           usecase.NewAutoAssign(d),
+		ListEnvelopeGroups:   usecase.NewListEnvelopeGroups(d),
+		CreateEnvelopeGroup:  usecase.NewCreateEnvelopeGroup(d),
+		UpdateEnvelopeGroup:  usecase.NewUpdateEnvelopeGroup(d),
+		DeleteEnvelopeGroup:  usecase.NewDeleteEnvelopeGroup(d),
+		ListEnvelopes:        usecase.NewListEnvelopes(d),
+		CreateEnvelope:       usecase.NewCreateEnvelope(d),
+		GetEnvelope:          usecase.NewGetEnvelope(d),
+		UpdateEnvelope:       usecase.NewUpdateEnvelope(d),
+		DeleteEnvelope:       usecase.NewDeleteEnvelope(d),
 	}
 	owner := w.addUser("owner")
 	w.addHousehold("h1", owner)
@@ -132,10 +148,23 @@ func newWorld(t *testing.T) *world {
 // addFinances gives h1 a shared PLN wallet w1 "Konto" and a private USD
 // wallet w2 "Dolary" of owner, payees p1 "Lidl" and p2 "Aldi", and an
 // expense t1 of 12.34 PLN in w1 at Lidl. NBP knows USD on 2026-10-20.
+// The budget has a group g1 "Codzienne" with envelopes e1 "Jedzenie" (a
+// monthly goal of 500 PLN, used by t1), groceries "Zakupy" and e2
+// "Wolna", and an empty group g2 "Cele".
 func (w *world) addFinances() {
 	w.t.Helper()
 	ctx := context.Background()
 	now := w.Clock.Now()
+	w.must(w.EnvelopeGroups.Create(ctx, budget.Group{ID: "g1", HouseholdID: "h1", Name: "Codzienne", CreatedAt: now, UpdatedAt: now}))
+	w.must(w.EnvelopeGroups.Create(ctx, budget.Group{ID: "g2", HouseholdID: "h1", Name: "Cele", Position: 1, CreatedAt: now, UpdatedAt: now}))
+	for _, e := range []budget.Envelope{
+		{ID: "e1", Name: "Jedzenie", Goal: budget.Goal{Type: budget.GoalMonthly, Amount: 50000}},
+		{ID: "groceries", Name: "Zakupy", Position: 1},
+		{ID: "e2", Name: "Wolna", Position: 2, Hidden: true},
+	} {
+		e.HouseholdID, e.GroupID, e.CreatedAt, e.UpdatedAt = "h1", "g1", now, now
+		w.must(w.Envelopes.Create(ctx, e))
+	}
 	w.must(w.Wallets.Create(ctx, wallet.Wallet{ID: "w1", HouseholdID: "h1", Name: "Konto", Type: wallet.TypeChecking, Currency: "PLN",
 		OnBudget: true, Visibility: wallet.Shared, MemberIDs: []domain.ID{}, CreatedBy: "owner", CreatedAt: now}))
 	w.must(w.Wallets.Create(ctx, wallet.Wallet{ID: "w2", HouseholdID: "h1", Name: "Dolary", Type: wallet.TypeCash, Currency: "USD",

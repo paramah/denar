@@ -64,6 +64,24 @@ func (e FxSource) Valid() bool {
 	}
 }
 
+// Defines values for GoalType.
+const (
+	Monthly      GoalType = "monthly"
+	TargetByDate GoalType = "target_by_date"
+)
+
+// Valid indicates whether the value is a known member of the GoalType enum.
+func (e GoalType) Valid() bool {
+	switch e {
+	case Monthly:
+		return true
+	case TargetByDate:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InvitationState.
 const (
 	InvitationStateAccepted InvitationState = "accepted"
@@ -331,6 +349,12 @@ type Actor struct {
 // ActorKind defines model for ActorKind.
 type ActorKind string
 
+// AssignmentSet defines model for AssignmentSet.
+type AssignmentSet struct {
+	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Amount MoneyInput `json:"amount"`
+}
+
 // AuditEntry defines model for AuditEntry.
 type AuditEntry struct {
 	// Action np. bot.created, membership.role_changed
@@ -346,7 +370,7 @@ type AuditEntry struct {
 	Id         string `json:"id"`
 	ResourceId string `json:"resource_id"`
 
-	// ResourceType household, membership, invitation, bot, wallet, transaction, payee, fx_rate (kolejne etapy dodają własne)
+	// ResourceType household, membership, invitation, bot, wallet, transaction, payee, fx_rate, envelope_group, envelope, assignment (kolejne etapy dodają własne)
 	ResourceType string `json:"resource_type"`
 }
 
@@ -362,6 +386,19 @@ type AuthConfig struct {
 	LocalLogin   bool   `json:"local_login"`
 	OidcEnabled  bool   `json:"oidc_enabled"`
 	Version      string `json:"version"`
+}
+
+// AutoAssignResult defines model for AutoAssignResult.
+type AutoAssignResult struct {
+	Assigned []struct {
+		// Amount Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+		Amount     Money  `json:"amount"`
+		EnvelopeId string `json:"envelope_id"`
+	} `json:"assigned"`
+
+	// Month Inwariant: Σ available wszystkich kopert + ready_to_assign + assigned_in_future = Σ kwot bazowych transakcji
+	// portfeli on-budget z datą ≤ end (bez rate_pending).
+	Month BudgetMonth `json:"month"`
 }
 
 // Bot defines model for Bot.
@@ -419,6 +456,99 @@ type BotWithToken struct {
 	Token string `json:"token"`
 }
 
+// BudgetEnvelope defines model for BudgetEnvelope.
+type BudgetEnvelope struct {
+	// Activity Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Activity Money `json:"activity"`
+
+	// Assigned Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Assigned Money `json:"assigned"`
+
+	// Available carried_over + assigned + activity; ujemne — przekroczenie
+	Available Money `json:"available"`
+
+	// CarriedOver Przeniesione z poprzedniego miesiąca (≥ 0; przekroczenie się nie przenosi)
+	CarriedOver Money                         `json:"carried_over"`
+	Goal        nullable.Nullable[Goal]       `json:"goal"`
+	GoalStatus  nullable.Nullable[GoalStatus] `json:"goal_status"`
+	GroupId     string                        `json:"group_id"`
+	Hidden      bool                          `json:"hidden"`
+	Id          string                        `json:"id"`
+	Name        string                        `json:"name"`
+	Position    int                           `json:"position"`
+}
+
+// BudgetGroup defines model for BudgetGroup.
+type BudgetGroup struct {
+	// Activity Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Activity Money `json:"activity"`
+
+	// Assigned Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Assigned Money `json:"assigned"`
+
+	// Available Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Available Money            `json:"available"`
+	Envelopes []BudgetEnvelope `json:"envelopes"`
+	Id        string           `json:"id"`
+	Name      string           `json:"name"`
+	Position  int              `json:"position"`
+}
+
+// BudgetMonth Inwariant: Σ available wszystkich kopert + ready_to_assign + assigned_in_future = Σ kwot bazowych transakcji
+// portfeli on-budget z datą ≤ end (bez rate_pending).
+type BudgetMonth struct {
+	// Activity Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Activity Money `json:"activity"`
+
+	// Assigned Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Assigned Money `json:"assigned"`
+
+	// AssignedInFuture Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	AssignedInFuture Money `json:"assigned_in_future"`
+
+	// Available Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Available Money `json:"available"`
+
+	// Currency Waluta bazowa gospodarstwa
+	Currency string             `json:"currency"`
+	End      openapi_types.Date `json:"end"`
+	Groups   []BudgetGroup      `json:"groups"`
+
+	// Income Przychody miesiąca (z saldami otwarcia)
+	Income Money `json:"income"`
+
+	// Incomplete Część transakcji do końca miesiąca czeka na kurs i nie jest liczona
+	Incomplete bool `json:"incomplete"`
+
+	// Month Examples: 2026-10
+	Month string `json:"month"`
+
+	// OverspentLastMonth Przekroczenia poprzedniego miesiąca (≤ 0), pomniejszające ready_to_assign
+	OverspentLastMonth  Money `json:"overspent_last_month"`
+	PendingTransactions int   `json:"pending_transactions"`
+
+	// ReadyToAssign Już pomniejszone o assigned_in_future
+	ReadyToAssign Money              `json:"ready_to_assign"`
+	Start         openapi_types.Date `json:"start"`
+
+	// Transfers Nogi przelewów bez koperty (różnice kursowe
+	Transfers Money `json:"transfers"`
+
+	// Uncategorized Wydatki i zwroty bez koperty — obciążają ready_to_assign
+	Uncategorized Money `json:"uncategorized"`
+
+	// Underfunded Suma niedofinansowania celów nieukrytych kopert
+	Underfunded Money `json:"underfunded"`
+}
+
+// BudgetMove defines model for BudgetMove.
+type BudgetMove struct {
+	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Amount         MoneyInput `json:"amount"`
+	FromEnvelopeId string     `json:"from_envelope_id"`
+	ToEnvelopeId   string     `json:"to_envelope_id"`
+}
+
 // Currency defines model for Currency.
 type Currency struct {
 	// Code Kod ISO 4217
@@ -431,6 +561,67 @@ type Currency struct {
 // CurrencyList defines model for CurrencyList.
 type CurrencyList struct {
 	Items []Currency `json:"items"`
+}
+
+// Envelope defines model for Envelope.
+type Envelope struct {
+	CreatedAt time.Time               `json:"created_at"`
+	Goal      nullable.Nullable[Goal] `json:"goal"`
+	GroupId   string                  `json:"group_id"`
+	Hidden    bool                    `json:"hidden"`
+	Id        string                  `json:"id"`
+	Name      string                  `json:"name"`
+	Position  int                     `json:"position"`
+	UpdatedAt time.Time               `json:"updated_at"`
+}
+
+// EnvelopeCreate defines model for EnvelopeCreate.
+type EnvelopeCreate struct {
+	Goal     *GoalInput `json:"goal,omitempty"`
+	GroupId  string     `json:"group_id"`
+	Hidden   *bool      `json:"hidden,omitempty"`
+	Name     string     `json:"name"`
+	Position *int       `json:"position,omitempty"`
+}
+
+// EnvelopeGroup defines model for EnvelopeGroup.
+type EnvelopeGroup struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        string    `json:"id"`
+	Name      string    `json:"name"`
+	Position  int       `json:"position"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// EnvelopeGroupCreate defines model for EnvelopeGroupCreate.
+type EnvelopeGroupCreate struct {
+	Name     string `json:"name"`
+	Position *int   `json:"position,omitempty"`
+}
+
+// EnvelopeGroupList defines model for EnvelopeGroupList.
+type EnvelopeGroupList struct {
+	Items []EnvelopeGroup `json:"items"`
+}
+
+// EnvelopeGroupUpdate defines model for EnvelopeGroupUpdate.
+type EnvelopeGroupUpdate struct {
+	Name     *string `json:"name,omitempty"`
+	Position *int    `json:"position,omitempty"`
+}
+
+// EnvelopeList defines model for EnvelopeList.
+type EnvelopeList struct {
+	Items []Envelope `json:"items"`
+}
+
+// EnvelopeUpdate defines model for EnvelopeUpdate.
+type EnvelopeUpdate struct {
+	Goal     nullable.Nullable[GoalInput] `json:"goal,omitempty"`
+	GroupId  *string                      `json:"group_id,omitempty"`
+	Hidden   *bool                        `json:"hidden,omitempty"`
+	Name     *string                      `json:"name,omitempty"`
+	Position *int                         `json:"position,omitempty"`
 }
 
 // FxOverride defines model for FxOverride.
@@ -474,6 +665,41 @@ type FxQuote struct {
 
 // FxSource defines model for FxSource.
 type FxSource string
+
+// Goal monthly — przydziel amount co miesiąc; target_by_date — zgromadź amount do target_date
+type Goal struct {
+	// Amount Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Amount     Money                                 `json:"amount"`
+	TargetDate nullable.Nullable[openapi_types.Date] `json:"target_date"`
+	Type       GoalType                              `json:"type"`
+}
+
+// GoalInput defines model for GoalInput.
+type GoalInput struct {
+	// Amount Kwota na wejściu; waluta musi być walutą portfela (inaczej 422)
+	Amount MoneyInput `json:"amount"`
+
+	// TargetDate Wymagana dla target_by_date
+	TargetDate *openapi_types.Date `json:"target_date,omitempty"`
+	Type       GoalType            `json:"type"`
+}
+
+// GoalStatus defines model for GoalStatus.
+type GoalStatus struct {
+	Funded bool `json:"funded"`
+
+	// Needed Do przydzielenia w tym miesiącu
+	Needed Money `json:"needed"`
+
+	// Progress Postęp w procentach
+	Progress int `json:"progress"`
+
+	// Underfunded Brakująca część needed
+	Underfunded Money `json:"underfunded"`
+}
+
+// GoalType defines model for GoalType.
+type GoalType string
 
 // Household defines model for Household.
 type Household struct {
@@ -914,8 +1140,17 @@ type WalletUpdate struct {
 // BotId defines model for BotId.
 type BotId = string
 
+// EnvelopeId defines model for EnvelopeId.
+type EnvelopeId = string
+
+// GroupId defines model for GroupId.
+type GroupId = string
+
 // HouseholdId defines model for HouseholdId.
 type HouseholdId = string
+
+// Month Examples: 2026-10
+type Month = string
 
 // PayeeId defines model for PayeeId.
 type PayeeId = string
@@ -952,6 +1187,17 @@ type ListAuditParams struct {
 	ActorKind    *ActorKind `form:"actor_kind,omitempty" json:"actor_kind,omitempty"`
 	ActorId      *string    `form:"actor_id,omitempty" json:"actor_id,omitempty"`
 	ResourceType *string    `form:"resource_type,omitempty" json:"resource_type,omitempty"`
+}
+
+// ListEnvelopesParams defines parameters for ListEnvelopes.
+type ListEnvelopesParams struct {
+	IncludeHidden *bool `form:"include_hidden,omitempty" json:"include_hidden,omitempty"`
+}
+
+// ListEnvelopeActivityParams defines parameters for ListEnvelopeActivity.
+type ListEnvelopeActivityParams struct {
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // QuoteFxRateParams defines parameters for QuoteFxRate.
@@ -1000,6 +1246,24 @@ type CreateBotJSONRequestBody = BotCreate
 
 // UpdateBotJSONRequestBody defines body for UpdateBot for application/json ContentType.
 type UpdateBotJSONRequestBody = BotUpdate
+
+// CreateEnvelopeGroupJSONRequestBody defines body for CreateEnvelopeGroup for application/json ContentType.
+type CreateEnvelopeGroupJSONRequestBody = EnvelopeGroupCreate
+
+// UpdateEnvelopeGroupJSONRequestBody defines body for UpdateEnvelopeGroup for application/json ContentType.
+type UpdateEnvelopeGroupJSONRequestBody = EnvelopeGroupUpdate
+
+// CreateEnvelopeJSONRequestBody defines body for CreateEnvelope for application/json ContentType.
+type CreateEnvelopeJSONRequestBody = EnvelopeCreate
+
+// UpdateEnvelopeJSONRequestBody defines body for UpdateEnvelope for application/json ContentType.
+type UpdateEnvelopeJSONRequestBody = EnvelopeUpdate
+
+// SetAssignmentJSONRequestBody defines body for SetAssignment for application/json ContentType.
+type SetAssignmentJSONRequestBody = AssignmentSet
+
+// MoveBetweenEnvelopesJSONRequestBody defines body for MoveBetweenEnvelopes for application/json ContentType.
+type MoveBetweenEnvelopesJSONRequestBody = BudgetMove
 
 // SetFxOverrideJSONRequestBody defines body for SetFxOverride for application/json ContentType.
 type SetFxOverrideJSONRequestBody = FxOverrideSet
@@ -1096,6 +1360,48 @@ type ServerInterface interface {
 	// RotateBotToken Wymienia token bota; stary przestaje działać natychmiast
 	// (POST /households/{householdId}/bots/{botId}/token)
 	RotateBotToken(w http.ResponseWriter, r *http.Request, householdId HouseholdId, botId BotId)
+	// ListEnvelopeGroups Grupy kopert w kolejności (budget:read)
+	// (GET /households/{householdId}/budget/envelope-groups)
+	ListEnvelopeGroups(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// CreateEnvelopeGroup Tworzy grupę kopert (budget:write)
+	// (POST /households/{householdId}/budget/envelope-groups)
+	CreateEnvelopeGroup(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// DeleteEnvelopeGroup Usuwa pustą grupę (z kopertami — 409 group-not-empty)
+	// (DELETE /households/{householdId}/budget/envelope-groups/{groupId})
+	DeleteEnvelopeGroup(w http.ResponseWriter, r *http.Request, householdId HouseholdId, groupId GroupId)
+
+	// (PATCH /households/{householdId}/budget/envelope-groups/{groupId})
+	UpdateEnvelopeGroup(w http.ResponseWriter, r *http.Request, householdId HouseholdId, groupId GroupId)
+	// ListEnvelopes Koperty w kolejności (budget:read)
+	// (GET /households/{householdId}/budget/envelopes)
+	ListEnvelopes(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListEnvelopesParams)
+	// CreateEnvelope Tworzy kopertę w grupie (budget:write)
+	// (POST /households/{householdId}/budget/envelopes)
+	CreateEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// DeleteEnvelope Usuwa kopertę bez transakcji (inaczej 409 envelope-in-use — ukryj ją); kasuje jej przydziały i zdejmuje ją z kontrahentów
+	// (DELETE /households/{householdId}/budget/envelopes/{envelopeId})
+	DeleteEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId, envelopeId EnvelopeId)
+
+	// (GET /households/{householdId}/budget/envelopes/{envelopeId})
+	GetEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId, envelopeId EnvelopeId)
+	// UpdateEnvelope Zmienia kopertę; goal=null usuwa cel
+	// (PATCH /households/{householdId}/budget/envelopes/{envelopeId})
+	UpdateEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId, envelopeId EnvelopeId)
+	// GetBudgetMonth Budżet miesiąca — grupy, koperty, Ready-to-Assign (budget:read)
+	// (GET /households/{householdId}/budget/months/{month})
+	GetBudgetMonth(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month)
+	// SetAssignment Ustawia przydział koperty na miesiąc (budget:write); 0 usuwa
+	// (PUT /households/{householdId}/budget/months/{month}/assignments/{envelopeId})
+	SetAssignment(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month, envelopeId EnvelopeId)
+	// AutoAssign Uzupełnia niedofinansowane cele nieukrytych kopert z Ready-to-Assign, w kolejności grup i kopert (budget:write)
+	// (POST /households/{householdId}/budget/months/{month}/auto-assign)
+	AutoAssign(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month)
+	// ListEnvelopeActivity Transakcje koperty w miesiącu z widocznych portfeli on-budget (budget:read i transactions:read)
+	// (GET /households/{householdId}/budget/months/{month}/envelopes/{envelopeId}/transactions)
+	ListEnvelopeActivity(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month, envelopeId EnvelopeId, params ListEnvelopeActivityParams)
+	// MoveBetweenEnvelopes Przenosi przydzieloną kwotę między kopertami w miesiącu (budget:write)
+	// (POST /households/{householdId}/budget/months/{month}/moves)
+	MoveBetweenEnvelopes(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month)
 	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
 	// (GET /households/{householdId}/fx-rates)
 	QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams)
@@ -1732,6 +2038,523 @@ func (siw *ServerInterfaceWrapper) RotateBotToken(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RotateBotToken(w, r, householdId, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEnvelopeGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListEnvelopeGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEnvelopeGroups(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEnvelopeGroup operation middleware
+func (siw *ServerInterfaceWrapper) CreateEnvelopeGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEnvelopeGroup(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEnvelopeGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEnvelopeGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEnvelopeGroup(w, r, householdId, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateEnvelopeGroup operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEnvelopeGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateEnvelopeGroup(w, r, householdId, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEnvelopes operation middleware
+func (siw *ServerInterfaceWrapper) ListEnvelopes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEnvelopesParams
+
+	// ------------- Optional query parameter "include_hidden" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_hidden", r.URL.Query(), &params.IncludeHidden, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_hidden"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_hidden", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEnvelopes(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEnvelope operation middleware
+func (siw *ServerInterfaceWrapper) CreateEnvelope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEnvelope(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEnvelope operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEnvelope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "envelopeId" -------------
+	var envelopeId EnvelopeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "envelopeId", r.PathValue("envelopeId"), &envelopeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "envelopeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEnvelope(w, r, householdId, envelopeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEnvelope operation middleware
+func (siw *ServerInterfaceWrapper) GetEnvelope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "envelopeId" -------------
+	var envelopeId EnvelopeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "envelopeId", r.PathValue("envelopeId"), &envelopeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "envelopeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEnvelope(w, r, householdId, envelopeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateEnvelope operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEnvelope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "envelopeId" -------------
+	var envelopeId EnvelopeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "envelopeId", r.PathValue("envelopeId"), &envelopeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "envelopeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateEnvelope(w, r, householdId, envelopeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBudgetMonth operation middleware
+func (siw *ServerInterfaceWrapper) GetBudgetMonth(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "month" -------------
+	var month Month
+
+	err = runtime.BindStyledParameterWithOptions("simple", "month", r.PathValue("month"), &month, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBudgetMonth(w, r, householdId, month)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAssignment operation middleware
+func (siw *ServerInterfaceWrapper) SetAssignment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "month" -------------
+	var month Month
+
+	err = runtime.BindStyledParameterWithOptions("simple", "month", r.PathValue("month"), &month, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "envelopeId" -------------
+	var envelopeId EnvelopeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "envelopeId", r.PathValue("envelopeId"), &envelopeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "envelopeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAssignment(w, r, householdId, month, envelopeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AutoAssign operation middleware
+func (siw *ServerInterfaceWrapper) AutoAssign(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "month" -------------
+	var month Month
+
+	err = runtime.BindStyledParameterWithOptions("simple", "month", r.PathValue("month"), &month, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AutoAssign(w, r, householdId, month)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEnvelopeActivity operation middleware
+func (siw *ServerInterfaceWrapper) ListEnvelopeActivity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "month" -------------
+	var month Month
+
+	err = runtime.BindStyledParameterWithOptions("simple", "month", r.PathValue("month"), &month, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "envelopeId" -------------
+	var envelopeId EnvelopeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "envelopeId", r.PathValue("envelopeId"), &envelopeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "envelopeId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEnvelopeActivityParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEnvelopeActivity(w, r, householdId, month, envelopeId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MoveBetweenEnvelopes operation middleware
+func (siw *ServerInterfaceWrapper) MoveBetweenEnvelopes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "month" -------------
+	var month Month
+
+	err = runtime.BindStyledParameterWithOptions("simple", "month", r.PathValue("month"), &month, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "month", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MoveBetweenEnvelopes(w, r, householdId, month)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2841,6 +3664,20 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/fx-rates", wrapper.QuoteFxRate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/fx-rates/overrides", wrapper.ListFxOverrides)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/households/{householdId}/fx-rates/overrides", wrapper.SetFxOverride)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/budget/months/{month}", wrapper.GetBudgetMonth)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/budget/months/{month}/envelopes/{envelopeId}/transactions", wrapper.ListEnvelopeActivity)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/households/{householdId}/budget/months/{month}/assignments/{envelopeId}", wrapper.SetAssignment)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/budget/months/{month}/moves", wrapper.MoveBetweenEnvelopes)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/budget/months/{month}/auto-assign", wrapper.AutoAssign)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/budget/envelope-groups", wrapper.ListEnvelopeGroups)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/budget/envelope-groups", wrapper.CreateEnvelopeGroup)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/budget/envelope-groups/{groupId}", wrapper.DeleteEnvelopeGroup)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/budget/envelope-groups/{groupId}", wrapper.UpdateEnvelopeGroup)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/budget/envelopes", wrapper.ListEnvelopes)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/budget/envelopes", wrapper.CreateEnvelope)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/budget/envelopes/{envelopeId}", wrapper.DeleteEnvelope)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/budget/envelopes/{envelopeId}", wrapper.GetEnvelope)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/households/{householdId}/budget/envelopes/{envelopeId}", wrapper.UpdateEnvelope)
 
 	return m
 }
@@ -3928,6 +4765,1148 @@ func (response RotateBotToken404ApplicationProblemPlusJSONResponse) VisitRotateB
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeGroupsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+}
+
+type ListEnvelopeGroupsResponseObject interface {
+	VisitListEnvelopeGroupsResponse(w http.ResponseWriter) error
+}
+
+type ListEnvelopeGroups200JSONResponse EnvelopeGroupList
+
+func (response ListEnvelopeGroups200JSONResponse) VisitListEnvelopeGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeGroups401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnvelopeGroups401ApplicationProblemPlusJSONResponse) VisitListEnvelopeGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeGroups403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopeGroups403ApplicationProblemPlusJSONResponse) VisitListEnvelopeGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeGroups404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopeGroups404ApplicationProblemPlusJSONResponse) VisitListEnvelopeGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeGroupRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreateEnvelopeGroupJSONRequestBody
+}
+
+type CreateEnvelopeGroupResponseObject interface {
+	VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error
+}
+
+type CreateEnvelopeGroup201JSONResponse EnvelopeGroup
+
+func (response CreateEnvelopeGroup201JSONResponse) VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeGroup401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnvelopeGroup401ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeGroup403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelopeGroup403ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeGroup404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelopeGroup404ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeGroup409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelopeGroup409ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeGroup422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelopeGroup422ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelopeGroupRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	GroupId     GroupId     `json:"groupId"`
+}
+
+type DeleteEnvelopeGroupResponseObject interface {
+	VisitDeleteEnvelopeGroupResponse(w http.ResponseWriter) error
+}
+
+type DeleteEnvelopeGroup204Response struct {
+}
+
+func (response DeleteEnvelopeGroup204Response) VisitDeleteEnvelopeGroupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteEnvelopeGroup401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnvelopeGroup401ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelopeGroup403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteEnvelopeGroup403ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelopeGroup404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteEnvelopeGroup404ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelopeGroup409ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteEnvelopeGroup409ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeGroupRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	GroupId     GroupId     `json:"groupId"`
+	Body        *UpdateEnvelopeGroupJSONRequestBody
+}
+
+type UpdateEnvelopeGroupResponseObject interface {
+	VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error
+}
+
+type UpdateEnvelopeGroup200JSONResponse EnvelopeGroup
+
+func (response UpdateEnvelopeGroup200JSONResponse) VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeGroup401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnvelopeGroup401ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeGroup403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelopeGroup403ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeGroup404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelopeGroup404ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeGroup409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelopeGroup409ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeGroup422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelopeGroup422ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      ListEnvelopesParams
+}
+
+type ListEnvelopesResponseObject interface {
+	VisitListEnvelopesResponse(w http.ResponseWriter) error
+}
+
+type ListEnvelopes200JSONResponse EnvelopeList
+
+func (response ListEnvelopes200JSONResponse) VisitListEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopes401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnvelopes401ApplicationProblemPlusJSONResponse) VisitListEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopes403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopes403ApplicationProblemPlusJSONResponse) VisitListEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopes404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopes404ApplicationProblemPlusJSONResponse) VisitListEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelopeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *CreateEnvelopeJSONRequestBody
+}
+
+type CreateEnvelopeResponseObject interface {
+	VisitCreateEnvelopeResponse(w http.ResponseWriter) error
+}
+
+type CreateEnvelope201JSONResponse Envelope
+
+func (response CreateEnvelope201JSONResponse) VisitCreateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelope401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnvelope401ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelope403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelope403ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelope404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelope404ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelope409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelope409ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateEnvelope422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateEnvelope422ApplicationProblemPlusJSONResponse) VisitCreateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelopeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	EnvelopeId  EnvelopeId  `json:"envelopeId"`
+}
+
+type DeleteEnvelopeResponseObject interface {
+	VisitDeleteEnvelopeResponse(w http.ResponseWriter) error
+}
+
+type DeleteEnvelope204Response struct {
+}
+
+func (response DeleteEnvelope204Response) VisitDeleteEnvelopeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteEnvelope401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnvelope401ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelope403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteEnvelope403ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelope404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteEnvelope404ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvelope409ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteEnvelope409ApplicationProblemPlusJSONResponse) VisitDeleteEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEnvelopeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	EnvelopeId  EnvelopeId  `json:"envelopeId"`
+}
+
+type GetEnvelopeResponseObject interface {
+	VisitGetEnvelopeResponse(w http.ResponseWriter) error
+}
+
+type GetEnvelope200JSONResponse Envelope
+
+func (response GetEnvelope200JSONResponse) VisitGetEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEnvelope401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnvelope401ApplicationProblemPlusJSONResponse) VisitGetEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEnvelope403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetEnvelope403ApplicationProblemPlusJSONResponse) VisitGetEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEnvelope404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetEnvelope404ApplicationProblemPlusJSONResponse) VisitGetEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelopeRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	EnvelopeId  EnvelopeId  `json:"envelopeId"`
+	Body        *UpdateEnvelopeJSONRequestBody
+}
+
+type UpdateEnvelopeResponseObject interface {
+	VisitUpdateEnvelopeResponse(w http.ResponseWriter) error
+}
+
+type UpdateEnvelope200JSONResponse Envelope
+
+func (response UpdateEnvelope200JSONResponse) VisitUpdateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelope401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnvelope401ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelope403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelope403ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelope404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelope404ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelope409ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelope409ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEnvelope422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateEnvelope422ApplicationProblemPlusJSONResponse) VisitUpdateEnvelopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBudgetMonthRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Month       Month       `json:"month"`
+}
+
+type GetBudgetMonthResponseObject interface {
+	VisitGetBudgetMonthResponse(w http.ResponseWriter) error
+}
+
+type GetBudgetMonth200JSONResponse BudgetMonth
+
+func (response GetBudgetMonth200JSONResponse) VisitGetBudgetMonthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBudgetMonth401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetBudgetMonth401ApplicationProblemPlusJSONResponse) VisitGetBudgetMonthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBudgetMonth403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetBudgetMonth403ApplicationProblemPlusJSONResponse) VisitGetBudgetMonthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBudgetMonth404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetBudgetMonth404ApplicationProblemPlusJSONResponse) VisitGetBudgetMonthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBudgetMonth422ApplicationProblemPlusJSONResponse Problem
+
+func (response GetBudgetMonth422ApplicationProblemPlusJSONResponse) VisitGetBudgetMonthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAssignmentRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Month       Month       `json:"month"`
+	EnvelopeId  EnvelopeId  `json:"envelopeId"`
+	Body        *SetAssignmentJSONRequestBody
+}
+
+type SetAssignmentResponseObject interface {
+	VisitSetAssignmentResponse(w http.ResponseWriter) error
+}
+
+type SetAssignment200JSONResponse BudgetMonth
+
+func (response SetAssignment200JSONResponse) VisitSetAssignmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAssignment401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetAssignment401ApplicationProblemPlusJSONResponse) VisitSetAssignmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAssignment403ApplicationProblemPlusJSONResponse Problem
+
+func (response SetAssignment403ApplicationProblemPlusJSONResponse) VisitSetAssignmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAssignment404ApplicationProblemPlusJSONResponse Problem
+
+func (response SetAssignment404ApplicationProblemPlusJSONResponse) VisitSetAssignmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAssignment422ApplicationProblemPlusJSONResponse Problem
+
+func (response SetAssignment422ApplicationProblemPlusJSONResponse) VisitSetAssignmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AutoAssignRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Month       Month       `json:"month"`
+}
+
+type AutoAssignResponseObject interface {
+	VisitAutoAssignResponse(w http.ResponseWriter) error
+}
+
+type AutoAssign200JSONResponse AutoAssignResult
+
+func (response AutoAssign200JSONResponse) VisitAutoAssignResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AutoAssign401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response AutoAssign401ApplicationProblemPlusJSONResponse) VisitAutoAssignResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AutoAssign403ApplicationProblemPlusJSONResponse Problem
+
+func (response AutoAssign403ApplicationProblemPlusJSONResponse) VisitAutoAssignResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AutoAssign404ApplicationProblemPlusJSONResponse Problem
+
+func (response AutoAssign404ApplicationProblemPlusJSONResponse) VisitAutoAssignResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AutoAssign422ApplicationProblemPlusJSONResponse Problem
+
+func (response AutoAssign422ApplicationProblemPlusJSONResponse) VisitAutoAssignResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeActivityRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Month       Month       `json:"month"`
+	EnvelopeId  EnvelopeId  `json:"envelopeId"`
+	Params      ListEnvelopeActivityParams
+}
+
+type ListEnvelopeActivityResponseObject interface {
+	VisitListEnvelopeActivityResponse(w http.ResponseWriter) error
+}
+
+type ListEnvelopeActivity200JSONResponse TransactionPage
+
+func (response ListEnvelopeActivity200JSONResponse) VisitListEnvelopeActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeActivity401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnvelopeActivity401ApplicationProblemPlusJSONResponse) VisitListEnvelopeActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeActivity403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopeActivity403ApplicationProblemPlusJSONResponse) VisitListEnvelopeActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeActivity404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopeActivity404ApplicationProblemPlusJSONResponse) VisitListEnvelopeActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvelopeActivity422ApplicationProblemPlusJSONResponse Problem
+
+func (response ListEnvelopeActivity422ApplicationProblemPlusJSONResponse) VisitListEnvelopeActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MoveBetweenEnvelopesRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Month       Month       `json:"month"`
+	Body        *MoveBetweenEnvelopesJSONRequestBody
+}
+
+type MoveBetweenEnvelopesResponseObject interface {
+	VisitMoveBetweenEnvelopesResponse(w http.ResponseWriter) error
+}
+
+type MoveBetweenEnvelopes200JSONResponse BudgetMonth
+
+func (response MoveBetweenEnvelopes200JSONResponse) VisitMoveBetweenEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MoveBetweenEnvelopes401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response MoveBetweenEnvelopes401ApplicationProblemPlusJSONResponse) VisitMoveBetweenEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MoveBetweenEnvelopes403ApplicationProblemPlusJSONResponse Problem
+
+func (response MoveBetweenEnvelopes403ApplicationProblemPlusJSONResponse) VisitMoveBetweenEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MoveBetweenEnvelopes404ApplicationProblemPlusJSONResponse Problem
+
+func (response MoveBetweenEnvelopes404ApplicationProblemPlusJSONResponse) VisitMoveBetweenEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MoveBetweenEnvelopes422ApplicationProblemPlusJSONResponse Problem
+
+func (response MoveBetweenEnvelopes422ApplicationProblemPlusJSONResponse) VisitMoveBetweenEnvelopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -6110,6 +8089,48 @@ type StrictServerInterface interface {
 	// RotateBotToken Wymienia token bota; stary przestaje działać natychmiast
 	// (POST /households/{householdId}/bots/{botId}/token)
 	RotateBotToken(ctx context.Context, request RotateBotTokenRequestObject) (RotateBotTokenResponseObject, error)
+	// ListEnvelopeGroups Grupy kopert w kolejności (budget:read)
+	// (GET /households/{householdId}/budget/envelope-groups)
+	ListEnvelopeGroups(ctx context.Context, request ListEnvelopeGroupsRequestObject) (ListEnvelopeGroupsResponseObject, error)
+	// CreateEnvelopeGroup Tworzy grupę kopert (budget:write)
+	// (POST /households/{householdId}/budget/envelope-groups)
+	CreateEnvelopeGroup(ctx context.Context, request CreateEnvelopeGroupRequestObject) (CreateEnvelopeGroupResponseObject, error)
+	// DeleteEnvelopeGroup Usuwa pustą grupę (z kopertami — 409 group-not-empty)
+	// (DELETE /households/{householdId}/budget/envelope-groups/{groupId})
+	DeleteEnvelopeGroup(ctx context.Context, request DeleteEnvelopeGroupRequestObject) (DeleteEnvelopeGroupResponseObject, error)
+
+	// (PATCH /households/{householdId}/budget/envelope-groups/{groupId})
+	UpdateEnvelopeGroup(ctx context.Context, request UpdateEnvelopeGroupRequestObject) (UpdateEnvelopeGroupResponseObject, error)
+	// ListEnvelopes Koperty w kolejności (budget:read)
+	// (GET /households/{householdId}/budget/envelopes)
+	ListEnvelopes(ctx context.Context, request ListEnvelopesRequestObject) (ListEnvelopesResponseObject, error)
+	// CreateEnvelope Tworzy kopertę w grupie (budget:write)
+	// (POST /households/{householdId}/budget/envelopes)
+	CreateEnvelope(ctx context.Context, request CreateEnvelopeRequestObject) (CreateEnvelopeResponseObject, error)
+	// DeleteEnvelope Usuwa kopertę bez transakcji (inaczej 409 envelope-in-use — ukryj ją); kasuje jej przydziały i zdejmuje ją z kontrahentów
+	// (DELETE /households/{householdId}/budget/envelopes/{envelopeId})
+	DeleteEnvelope(ctx context.Context, request DeleteEnvelopeRequestObject) (DeleteEnvelopeResponseObject, error)
+
+	// (GET /households/{householdId}/budget/envelopes/{envelopeId})
+	GetEnvelope(ctx context.Context, request GetEnvelopeRequestObject) (GetEnvelopeResponseObject, error)
+	// UpdateEnvelope Zmienia kopertę; goal=null usuwa cel
+	// (PATCH /households/{householdId}/budget/envelopes/{envelopeId})
+	UpdateEnvelope(ctx context.Context, request UpdateEnvelopeRequestObject) (UpdateEnvelopeResponseObject, error)
+	// GetBudgetMonth Budżet miesiąca — grupy, koperty, Ready-to-Assign (budget:read)
+	// (GET /households/{householdId}/budget/months/{month})
+	GetBudgetMonth(ctx context.Context, request GetBudgetMonthRequestObject) (GetBudgetMonthResponseObject, error)
+	// SetAssignment Ustawia przydział koperty na miesiąc (budget:write); 0 usuwa
+	// (PUT /households/{householdId}/budget/months/{month}/assignments/{envelopeId})
+	SetAssignment(ctx context.Context, request SetAssignmentRequestObject) (SetAssignmentResponseObject, error)
+	// AutoAssign Uzupełnia niedofinansowane cele nieukrytych kopert z Ready-to-Assign, w kolejności grup i kopert (budget:write)
+	// (POST /households/{householdId}/budget/months/{month}/auto-assign)
+	AutoAssign(ctx context.Context, request AutoAssignRequestObject) (AutoAssignResponseObject, error)
+	// ListEnvelopeActivity Transakcje koperty w miesiącu z widocznych portfeli on-budget (budget:read i transactions:read)
+	// (GET /households/{householdId}/budget/months/{month}/envelopes/{envelopeId}/transactions)
+	ListEnvelopeActivity(ctx context.Context, request ListEnvelopeActivityRequestObject) (ListEnvelopeActivityResponseObject, error)
+	// MoveBetweenEnvelopes Przenosi przydzieloną kwotę między kopertami w miesiącu (budget:write)
+	// (POST /households/{householdId}/budget/months/{month}/moves)
+	MoveBetweenEnvelopes(ctx context.Context, request MoveBetweenEnvelopesRequestObject) (MoveBetweenEnvelopesResponseObject, error)
 	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
 	// (GET /households/{householdId}/fx-rates)
 	QuoteFxRate(ctx context.Context, request QuoteFxRateRequestObject) (QuoteFxRateResponseObject, error)
@@ -6721,6 +8742,426 @@ func (sh *strictHandler) RotateBotToken(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RotateBotTokenResponseObject); ok {
 		if err := validResponse.VisitRotateBotTokenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListEnvelopeGroups operation middleware
+func (sh *strictHandler) ListEnvelopeGroups(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request ListEnvelopeGroupsRequestObject
+
+	request.HouseholdId = householdId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEnvelopeGroups(ctx, request.(ListEnvelopeGroupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEnvelopeGroups")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListEnvelopeGroupsResponseObject); ok {
+		if err := validResponse.VisitListEnvelopeGroupsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateEnvelopeGroup operation middleware
+func (sh *strictHandler) CreateEnvelopeGroup(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreateEnvelopeGroupRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreateEnvelopeGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateEnvelopeGroup(ctx, request.(CreateEnvelopeGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateEnvelopeGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateEnvelopeGroupResponseObject); ok {
+		if err := validResponse.VisitCreateEnvelopeGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteEnvelopeGroup operation middleware
+func (sh *strictHandler) DeleteEnvelopeGroup(w http.ResponseWriter, r *http.Request, householdId HouseholdId, groupId GroupId) {
+	var request DeleteEnvelopeGroupRequestObject
+
+	request.HouseholdId = householdId
+	request.GroupId = groupId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteEnvelopeGroup(ctx, request.(DeleteEnvelopeGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteEnvelopeGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteEnvelopeGroupResponseObject); ok {
+		if err := validResponse.VisitDeleteEnvelopeGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateEnvelopeGroup operation middleware
+func (sh *strictHandler) UpdateEnvelopeGroup(w http.ResponseWriter, r *http.Request, householdId HouseholdId, groupId GroupId) {
+	var request UpdateEnvelopeGroupRequestObject
+
+	request.HouseholdId = householdId
+	request.GroupId = groupId
+
+	var body UpdateEnvelopeGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateEnvelopeGroup(ctx, request.(UpdateEnvelopeGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateEnvelopeGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateEnvelopeGroupResponseObject); ok {
+		if err := validResponse.VisitUpdateEnvelopeGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListEnvelopes operation middleware
+func (sh *strictHandler) ListEnvelopes(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListEnvelopesParams) {
+	var request ListEnvelopesRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEnvelopes(ctx, request.(ListEnvelopesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEnvelopes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListEnvelopesResponseObject); ok {
+		if err := validResponse.VisitListEnvelopesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateEnvelope operation middleware
+func (sh *strictHandler) CreateEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request CreateEnvelopeRequestObject
+
+	request.HouseholdId = householdId
+
+	var body CreateEnvelopeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateEnvelope(ctx, request.(CreateEnvelopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateEnvelope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateEnvelopeResponseObject); ok {
+		if err := validResponse.VisitCreateEnvelopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteEnvelope operation middleware
+func (sh *strictHandler) DeleteEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId, envelopeId EnvelopeId) {
+	var request DeleteEnvelopeRequestObject
+
+	request.HouseholdId = householdId
+	request.EnvelopeId = envelopeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteEnvelope(ctx, request.(DeleteEnvelopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteEnvelope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteEnvelopeResponseObject); ok {
+		if err := validResponse.VisitDeleteEnvelopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetEnvelope operation middleware
+func (sh *strictHandler) GetEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId, envelopeId EnvelopeId) {
+	var request GetEnvelopeRequestObject
+
+	request.HouseholdId = householdId
+	request.EnvelopeId = envelopeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetEnvelope(ctx, request.(GetEnvelopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetEnvelope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetEnvelopeResponseObject); ok {
+		if err := validResponse.VisitGetEnvelopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateEnvelope operation middleware
+func (sh *strictHandler) UpdateEnvelope(w http.ResponseWriter, r *http.Request, householdId HouseholdId, envelopeId EnvelopeId) {
+	var request UpdateEnvelopeRequestObject
+
+	request.HouseholdId = householdId
+	request.EnvelopeId = envelopeId
+
+	var body UpdateEnvelopeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateEnvelope(ctx, request.(UpdateEnvelopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateEnvelope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateEnvelopeResponseObject); ok {
+		if err := validResponse.VisitUpdateEnvelopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetBudgetMonth operation middleware
+func (sh *strictHandler) GetBudgetMonth(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month) {
+	var request GetBudgetMonthRequestObject
+
+	request.HouseholdId = householdId
+	request.Month = month
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBudgetMonth(ctx, request.(GetBudgetMonthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBudgetMonth")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBudgetMonthResponseObject); ok {
+		if err := validResponse.VisitGetBudgetMonthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetAssignment operation middleware
+func (sh *strictHandler) SetAssignment(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month, envelopeId EnvelopeId) {
+	var request SetAssignmentRequestObject
+
+	request.HouseholdId = householdId
+	request.Month = month
+	request.EnvelopeId = envelopeId
+
+	var body SetAssignmentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetAssignment(ctx, request.(SetAssignmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetAssignment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetAssignmentResponseObject); ok {
+		if err := validResponse.VisitSetAssignmentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AutoAssign operation middleware
+func (sh *strictHandler) AutoAssign(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month) {
+	var request AutoAssignRequestObject
+
+	request.HouseholdId = householdId
+	request.Month = month
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AutoAssign(ctx, request.(AutoAssignRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AutoAssign")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AutoAssignResponseObject); ok {
+		if err := validResponse.VisitAutoAssignResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListEnvelopeActivity operation middleware
+func (sh *strictHandler) ListEnvelopeActivity(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month, envelopeId EnvelopeId, params ListEnvelopeActivityParams) {
+	var request ListEnvelopeActivityRequestObject
+
+	request.HouseholdId = householdId
+	request.Month = month
+	request.EnvelopeId = envelopeId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEnvelopeActivity(ctx, request.(ListEnvelopeActivityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEnvelopeActivity")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListEnvelopeActivityResponseObject); ok {
+		if err := validResponse.VisitListEnvelopeActivityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MoveBetweenEnvelopes operation middleware
+func (sh *strictHandler) MoveBetweenEnvelopes(w http.ResponseWriter, r *http.Request, householdId HouseholdId, month Month) {
+	var request MoveBetweenEnvelopesRequestObject
+
+	request.HouseholdId = householdId
+	request.Month = month
+
+	var body MoveBetweenEnvelopesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MoveBetweenEnvelopes(ctx, request.(MoveBetweenEnvelopesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MoveBetweenEnvelopes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MoveBetweenEnvelopesResponseObject); ok {
+		if err := validResponse.VisitMoveBetweenEnvelopesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
