@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -116,6 +117,63 @@ func (e ChargeStatus) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionKind.
+const (
+	ConnectionKindBank    ConnectionKind = "bank"
+	ConnectionKindBilling ConnectionKind = "billing"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionKind enum.
+func (e ConnectionKind) Valid() bool {
+	switch e {
+	case ConnectionKindBank:
+		return true
+	case ConnectionKindBilling:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionStatus.
+const (
+	ConnectionStatusActive   ConnectionStatus = "active"
+	ConnectionStatusDisabled ConnectionStatus = "disabled"
+	ConnectionStatusError    ConnectionStatus = "error"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionStatus enum.
+func (e ConnectionStatus) Valid() bool {
+	switch e {
+	case ConnectionStatusActive:
+		return true
+	case ConnectionStatusDisabled:
+		return true
+	case ConnectionStatusError:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionProviderKind.
+const (
+	ConnectionProviderKindBank    ConnectionProviderKind = "bank"
+	ConnectionProviderKindBilling ConnectionProviderKind = "billing"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionProviderKind enum.
+func (e ConnectionProviderKind) Valid() bool {
+	switch e {
+	case ConnectionProviderKindBank:
+		return true
+	case ConnectionProviderKindBilling:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CycleUnit.
 const (
 	CycleUnitDay   CycleUnit = "day"
@@ -206,6 +264,78 @@ func (e GoalType) Valid() bool {
 	case Monthly:
 		return true
 	case TargetByDate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImportBatchSource.
+const (
+	ImportBatchSourceConnection ImportBatchSource = "connection"
+	ImportBatchSourceCsv        ImportBatchSource = "csv"
+)
+
+// Valid indicates whether the value is a known member of the ImportBatchSource enum.
+func (e ImportBatchSource) Valid() bool {
+	switch e {
+	case ImportBatchSourceConnection:
+		return true
+	case ImportBatchSourceCsv:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImportBatchStatus.
+const (
+	Completed ImportBatchStatus = "completed"
+	Reverted  ImportBatchStatus = "reverted"
+)
+
+// Valid indicates whether the value is a known member of the ImportBatchStatus enum.
+func (e ImportBatchStatus) Valid() bool {
+	switch e {
+	case Completed:
+		return true
+	case Reverted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImportPreviewRowKind.
+const (
+	ImportPreviewRowKindExpense ImportPreviewRowKind = "expense"
+	ImportPreviewRowKindIncome  ImportPreviewRowKind = "income"
+)
+
+// Valid indicates whether the value is a known member of the ImportPreviewRowKind enum.
+func (e ImportPreviewRowKind) Valid() bool {
+	switch e {
+	case ImportPreviewRowKindExpense:
+		return true
+	case ImportPreviewRowKindIncome:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImportPreviewRowStatus.
+const (
+	Duplicate ImportPreviewRowStatus = "duplicate"
+	New       ImportPreviewRowStatus = "new"
+)
+
+// Valid indicates whether the value is a known member of the ImportPreviewRowStatus enum.
+func (e ImportPreviewRowStatus) Valid() bool {
+	switch e {
+	case Duplicate:
+		return true
+	case New:
 		return true
 	default:
 		return false
@@ -358,22 +488,22 @@ func (e Scope) Valid() bool {
 
 // Defines values for SubscriptionStatus.
 const (
-	Active    SubscriptionStatus = "active"
-	Cancelled SubscriptionStatus = "cancelled"
-	Paused    SubscriptionStatus = "paused"
-	Trial     SubscriptionStatus = "trial"
+	SubscriptionStatusActive    SubscriptionStatus = "active"
+	SubscriptionStatusCancelled SubscriptionStatus = "cancelled"
+	SubscriptionStatusPaused    SubscriptionStatus = "paused"
+	SubscriptionStatusTrial     SubscriptionStatus = "trial"
 )
 
 // Valid indicates whether the value is a known member of the SubscriptionStatus enum.
 func (e SubscriptionStatus) Valid() bool {
 	switch e {
-	case Active:
+	case SubscriptionStatusActive:
 		return true
-	case Cancelled:
+	case SubscriptionStatusCancelled:
 		return true
-	case Paused:
+	case SubscriptionStatusPaused:
 		return true
-	case Trial:
+	case SubscriptionStatusTrial:
 		return true
 	default:
 		return false
@@ -859,6 +989,139 @@ type ChargeSuggestionList struct {
 	Items []ChargeSuggestion `json:"items"`
 }
 
+// ColumnRefs Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+type ColumnRefs = []string
+
+// Connection defines model for Connection.
+type Connection struct {
+	Accounts       []ConnectionAccount          `json:"accounts"`
+	CreatedAt      time.Time                    `json:"created_at"`
+	DisplayName    string                       `json:"display_name"`
+	HasCredentials bool                         `json:"has_credentials"`
+	Id             string                       `json:"id"`
+	Kind           ConnectionKind               `json:"kind"`
+	LastError      nullable.Nullable[string]    `json:"last_error"`
+	LastSyncAt     nullable.Nullable[time.Time] `json:"last_sync_at"`
+	Provider       string                       `json:"provider"`
+	ProviderName   string                       `json:"provider_name"`
+	Status         ConnectionStatus             `json:"status"`
+}
+
+// ConnectionKind defines model for Connection.Kind.
+type ConnectionKind string
+
+// ConnectionStatus defines model for Connection.Status.
+type ConnectionStatus string
+
+// ConnectionAccount defines model for ConnectionAccount.
+type ConnectionAccount struct {
+	Currency   nullable.Nullable[string] `json:"currency"`
+	ExternalId string                    `json:"external_id"`
+	Name       string                    `json:"name"`
+	WalletId   nullable.Nullable[string] `json:"wallet_id"`
+}
+
+// ConnectionList defines model for ConnectionList.
+type ConnectionList struct {
+	Items []Connection `json:"items"`
+}
+
+// ConnectionProvider defines model for ConnectionProvider.
+type ConnectionProvider struct {
+	Key  string                 `json:"key"`
+	Kind ConnectionProviderKind `json:"kind"`
+	Name string                 `json:"name"`
+}
+
+// ConnectionProviderKind defines model for ConnectionProvider.Kind.
+type ConnectionProviderKind string
+
+// ConnectionProviderList defines model for ConnectionProviderList.
+type ConnectionProviderList struct {
+	Items []ConnectionProvider `json:"items"`
+}
+
+// CsvColumns Mapowanie kolumn. date, amount, debit, credit, external_id, currency, fee,
+// state — pierwsza istniejąca kolumna; payee — pierwsza niepusta wartość
+// wiersza; memo — wszystkie istniejące, złączone " · " (z kolejnymi
+// kolumnami bez nagłówka). Pole podane zastępuje wartość presetu.
+type CsvColumns struct {
+	// Amount Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Amount *ColumnRefs `json:"amount,omitempty"`
+
+	// Credit Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Credit *ColumnRefs `json:"credit,omitempty"`
+
+	// Currency Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Currency *ColumnRefs `json:"currency,omitempty"`
+
+	// Date Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Date *ColumnRefs `json:"date,omitempty"`
+
+	// Debit Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Debit *ColumnRefs `json:"debit,omitempty"`
+
+	// ExternalId Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	ExternalId *ColumnRefs `json:"external_id,omitempty"`
+
+	// Fee Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Fee *ColumnRefs `json:"fee,omitempty"`
+
+	// Memo Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Memo *ColumnRefs `json:"memo,omitempty"`
+
+	// Payee Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	Payee *ColumnRefs `json:"payee,omitempty"`
+
+	// State Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego
+	State *ColumnRefs `json:"state,omitempty"`
+}
+
+// CsvImportUpload defines model for CsvImportUpload.
+type CsvImportUpload struct {
+	// File Plik CSV
+	File openapi_types.File `json:"file"`
+
+	// Options JSON CsvImportOptions
+	Options string `json:"options"`
+}
+
+// CsvParseOptions Opcje parsera; brak pola = wartość presetu (pusta w presecie = wykrywanie)
+type CsvParseOptions struct {
+	// AcceptStates Z kolumną state — importowane stany (np. COMPLETED)
+	AcceptStates *[]string `json:"accept_states,omitempty"`
+
+	// Columns Mapowanie kolumn. date, amount, debit, credit, external_id, currency, fee,
+	// state — pierwsza istniejąca kolumna; payee — pierwsza niepusta wartość
+	// wiersza; memo — wszystkie istniejące, złączone " · " (z kolejnymi
+	// kolumnami bez nagłówka). Pole podane zastępuje wartość presetu.
+	Columns *CsvColumns `json:"columns,omitempty"`
+
+	// DateFormat Tokeny YYYY, YY, MM, M, DD, D, HH, mm, ss
+	//
+	// Examples: DD.MM.YYYY
+	DateFormat *string `json:"date_format,omitempty"`
+
+	// DecimalSeparator , albo .
+	DecimalSeparator *string `json:"decimal_separator,omitempty"`
+
+	// Delimiter ; , | albo tab
+	Delimiter *string `json:"delimiter,omitempty"`
+
+	// Encoding utf-8 albo windows-1250
+	Encoding     *string `json:"encoding,omitempty"`
+	HasHeader    *bool   `json:"has_header,omitempty"`
+	InvertAmount *bool   `json:"invert_amount,omitempty"`
+
+	// Preset generic (domyślnie), mbank, ing, pko, revolut
+	//
+	// Examples: mbank
+	Preset *string `json:"preset,omitempty"`
+
+	// SkipRows Linie pominięte przed szukaniem nagłówka
+	SkipRows *int `json:"skip_rows,omitempty"`
+}
+
 // Currency defines model for Currency.
 type Currency struct {
 	// Code Kod ISO 4217
@@ -1082,6 +1345,119 @@ type HouseholdUpdate struct {
 	MonthStartDay *int    `json:"month_start_day,omitempty"`
 	Name          *string `json:"name,omitempty"`
 	Timezone      *string `json:"timezone,omitempty"`
+}
+
+// ImportBatch defines model for ImportBatch.
+type ImportBatch struct {
+	CreatedAt      time.Time `json:"created_at"`
+	CreatedBy      Actor     `json:"created_by"`
+	CreatedCount   int       `json:"created_count"`
+	DuplicateCount int       `json:"duplicate_count"`
+	ErrorCount     int       `json:"error_count"`
+
+	// Errors Pierwsze 100 błędów wierszy
+	Errors []ImportRowError `json:"errors"`
+	Id     string           `json:"id"`
+
+	// MatchedCount Nowe transakcje dopasowane do obciążeń subskrypcji
+	MatchedCount  int                          `json:"matched_count"`
+	Preset        nullable.Nullable[string]    `json:"preset"`
+	RevertedAt    nullable.Nullable[time.Time] `json:"reverted_at"`
+	RevertedBy    nullable.Nullable[Actor]     `json:"reverted_by"`
+	RevertedCount int                          `json:"reverted_count"`
+	Source        ImportBatchSource            `json:"source"`
+
+	// SourceRef Nazwa pliku albo id połączenia
+	SourceRef string            `json:"source_ref"`
+	Status    ImportBatchStatus `json:"status"`
+	TotalRows int               `json:"total_rows"`
+	WalletId  string            `json:"wallet_id"`
+}
+
+// ImportBatchSource defines model for ImportBatch.Source.
+type ImportBatchSource string
+
+// ImportBatchStatus defines model for ImportBatch.Status.
+type ImportBatchStatus string
+
+// ImportBatchPage defines model for ImportBatchPage.
+type ImportBatchPage struct {
+	Items      []ImportBatch             `json:"items"`
+	NextCursor nullable.Nullable[string] `json:"next_cursor"`
+}
+
+// ImportDetected defines model for ImportDetected.
+type ImportDetected struct {
+	Delimiter  string                 `json:"delimiter"`
+	Encoding   string                 `json:"encoding"`
+	HeaderLine nullable.Nullable[int] `json:"header_line"`
+	Headers    []string               `json:"headers"`
+}
+
+// ImportPreset defines model for ImportPreset.
+type ImportPreset struct {
+	Description string `json:"description"`
+
+	// Key Examples: mbank
+	Key  string `json:"key"`
+	Name string `json:"name"`
+
+	// Options Opcje parsera; brak pola = wartość presetu (pusta w presecie = wykrywanie)
+	Options CsvParseOptions `json:"options"`
+}
+
+// ImportPresetList defines model for ImportPresetList.
+type ImportPresetList struct {
+	Items []ImportPreset `json:"items"`
+}
+
+// ImportPreview defines model for ImportPreview.
+type ImportPreview struct {
+	Detected       ImportDetected `json:"detected"`
+	DuplicateCount int            `json:"duplicate_count"`
+	ErrorCount     int            `json:"error_count"`
+
+	// Errors Pierwsze 100 błędów wierszy
+	Errors    []ImportRowError   `json:"errors"`
+	NewCount  int                `json:"new_count"`
+	Preset    string             `json:"preset"`
+	Rows      []ImportPreviewRow `json:"rows"`
+	TotalRows int                `json:"total_rows"`
+	WalletId  string             `json:"wallet_id"`
+}
+
+// ImportPreviewRow defines model for ImportPreviewRow.
+type ImportPreviewRow struct {
+	// Amount Kwota — string dziesiętny z liczbą miejsc waluty, nigdy liczba zmiennoprzecinkowa; minor to jednostki minimalne
+	Amount     Money                     `json:"amount"`
+	Date       openapi_types.Date        `json:"date"`
+	EnvelopeId nullable.Nullable[string] `json:"envelope_id"`
+
+	// ExternalId Z pliku albo hash h:…
+	ExternalId string                    `json:"external_id"`
+	Kind       ImportPreviewRowKind      `json:"kind"`
+	Memo       string                    `json:"memo"`
+	PayeeId    nullable.Nullable[string] `json:"payee_id"`
+	PayeeName  nullable.Nullable[string] `json:"payee_name"`
+	PayeeRaw   string                    `json:"payee_raw"`
+	Row        int                       `json:"row"`
+	Status     ImportPreviewRowStatus    `json:"status"`
+}
+
+// ImportPreviewRowKind defines model for ImportPreviewRow.Kind.
+type ImportPreviewRowKind string
+
+// ImportPreviewRowStatus defines model for ImportPreviewRow.Status.
+type ImportPreviewRowStatus string
+
+// ImportRowError defines model for ImportRowError.
+type ImportRowError struct {
+	// Field Examples: amount
+	Field   string `json:"field"`
+	Message string `json:"message"`
+
+	// Row Linia pliku (1-based); 0 — cały plik
+	Row int `json:"row"`
 }
 
 // Invitation defines model for Invitation.
@@ -1816,6 +2192,9 @@ type GroupId = string
 // HouseholdId defines model for HouseholdId.
 type HouseholdId = string
 
+// ImportId defines model for ImportId.
+type ImportId = string
+
 // Month Examples: 2026-10
 type Month = string
 
@@ -1893,6 +2272,13 @@ type QuoteFxRateParams struct {
 
 	// Date Domyślnie dziś w strefie gospodarstwa
 	Date *openapi_types.Date `form:"date,omitempty" json:"date,omitempty"`
+}
+
+// ListImportsParams defines parameters for ListImports.
+type ListImportsParams struct {
+	WalletId *string `form:"wallet_id,omitempty" json:"wallet_id,omitempty"`
+	Cursor   *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit    *int    `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListSubscriptionsParams defines parameters for ListSubscriptions.
@@ -1989,6 +2375,12 @@ type PostChargeJSONRequestBody = ChargePost
 // SetFxOverrideJSONRequestBody defines body for SetFxOverride for application/json ContentType.
 type SetFxOverrideJSONRequestBody = FxOverrideSet
 
+// ImportCsvMultipartRequestBody defines body for ImportCsv for multipart/form-data ContentType.
+type ImportCsvMultipartRequestBody = CsvImportUpload
+
+// PreviewCsvImportMultipartRequestBody defines body for PreviewCsvImport for multipart/form-data ContentType.
+type PreviewCsvImportMultipartRequestBody = CsvImportUpload
+
 // CreateInvitationJSONRequestBody defines body for CreateInvitation for application/json ContentType.
 type CreateInvitationJSONRequestBody = InvitationCreate
 
@@ -2063,6 +2455,9 @@ type ServerInterface interface {
 	// Logout Kończy sesję; bez ważnej sesji też odpowiada 204
 	// (POST /auth/logout)
 	Logout(w http.ResponseWriter, r *http.Request)
+	// ListConnectionProviders Providerzy połączeń dostępni na serwerze (tylko ludzie; pusta lista bez konektorów)
+	// (GET /connection-providers)
+	ListConnectionProviders(w http.ResponseWriter, r *http.Request)
 	// ListCurrencies Obsługiwane waluty ISO 4217 z liczbą miejsc dziesiętnych
 	// (GET /currencies)
 	ListCurrencies(w http.ResponseWriter, r *http.Request)
@@ -2165,6 +2560,9 @@ type ServerInterface interface {
 	// UnmatchCharge Odłącza transakcję; obciążenie wraca do expected (missed po oknie)
 	// (POST /households/{householdId}/charges/{chargeId}/unmatch)
 	UnmatchCharge(w http.ResponseWriter, r *http.Request, householdId HouseholdId, chargeId ChargeId)
+	// ListConnections Połączenia gospodarstwa z kontami, bez poświadczeń (owner/admin)
+	// (GET /households/{householdId}/connections)
+	ListConnections(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
 	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
 	// (GET /households/{householdId}/fx-rates)
 	QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams)
@@ -2174,6 +2572,21 @@ type ServerInterface interface {
 	// SetFxOverride Ustawia kurs waluty na dzień (owner, admin; nie bot) i uzupełnia nim oczekujące transakcje
 	// (PUT /households/{householdId}/fx-rates/overrides)
 	SetFxOverride(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// ListImports Partie importu widocznych portfeli od najnowszych (transactions:read)
+	// (GET /households/{householdId}/imports)
+	ListImports(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListImportsParams)
+	// ImportCsv Importuje plik CSV do portfela (transactions:write); duplikaty pomijane, potem auto-dopasowanie subskrypcji
+	// (POST /households/{householdId}/imports/csv)
+	ImportCsv(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// PreviewCsvImport Podgląd importu CSV bez zapisu (transactions:write)
+	// (POST /households/{householdId}/imports/csv/preview)
+	PreviewCsvImport(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
+	// RevertImport Cofa partię — usuwa jej istniejące transakcje i odpina ich obciążenia (transactions:write)
+	// (DELETE /households/{householdId}/imports/{importId})
+	RevertImport(w http.ResponseWriter, r *http.Request, householdId HouseholdId, importId ImportId)
+	// GetImport Partia importu (transactions:read)
+	// (GET /households/{householdId}/imports/{importId})
+	GetImport(w http.ResponseWriter, r *http.Request, householdId HouseholdId, importId ImportId)
 	// ListInvitations Zaproszenia od najnowszego (owner, admin)
 	// (GET /households/{householdId}/invitations)
 	ListInvitations(w http.ResponseWriter, r *http.Request, householdId HouseholdId)
@@ -2264,6 +2677,9 @@ type ServerInterface interface {
 	// UpdateWallet Zmienia portfel; widoczność i członków zmienia tylko człowiek (twórca, a dla shared także owner/admin)
 	// (PATCH /households/{householdId}/wallets/{walletId})
 	UpdateWallet(w http.ResponseWriter, r *http.Request, householdId HouseholdId, walletId WalletId)
+	// ListImportPresets Presety importu CSV (generic, mbank, ing, pko, revolut) z domyślnymi opcjami
+	// (GET /import-presets)
+	ListImportPresets(w http.ResponseWriter, r *http.Request)
 	// AcceptInvitation Przyjęcie zaproszenia przez zalogowanego człowieka
 	// (POST /invitations/accept)
 	AcceptInvitation(w http.ResponseWriter, r *http.Request)
@@ -2467,6 +2883,20 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Logout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListConnectionProviders operation middleware
+func (siw *ServerInterfaceWrapper) ListConnectionProviders(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConnectionProviders(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3732,6 +4162,32 @@ func (siw *ServerInterfaceWrapper) UnmatchCharge(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// ListConnections operation middleware
+func (siw *ServerInterfaceWrapper) ListConnections(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConnections(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // QuoteFxRate operation middleware
 func (siw *ServerInterfaceWrapper) QuoteFxRate(w http.ResponseWriter, r *http.Request) {
 
@@ -3830,6 +4286,196 @@ func (siw *ServerInterfaceWrapper) SetFxOverride(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetFxOverride(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListImports operation middleware
+func (siw *ServerInterfaceWrapper) ListImports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListImportsParams
+
+	// ------------- Optional query parameter "wallet_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "wallet_id", r.URL.Query(), &params.WalletId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "wallet_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "wallet_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListImports(w, r, householdId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ImportCsv operation middleware
+func (siw *ServerInterfaceWrapper) ImportCsv(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportCsv(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewCsvImport operation middleware
+func (siw *ServerInterfaceWrapper) PreviewCsvImport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewCsvImport(w, r, householdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevertImport operation middleware
+func (siw *ServerInterfaceWrapper) RevertImport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "importId" -------------
+	var importId ImportId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "importId", r.PathValue("importId"), &importId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "importId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevertImport(w, r, householdId, importId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetImport operation middleware
+func (siw *ServerInterfaceWrapper) GetImport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "householdId" -------------
+	var householdId HouseholdId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "householdId", r.PathValue("householdId"), &householdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "householdId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "importId" -------------
+	var importId ImportId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "importId", r.PathValue("importId"), &importId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "importId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetImport(w, r, householdId, importId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4983,6 +5629,20 @@ func (siw *ServerInterfaceWrapper) UpdateWallet(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ListImportPresets operation middleware
+func (siw *ServerInterfaceWrapper) ListImportPresets(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListImportPresets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // AcceptInvitation operation middleware
 func (siw *ServerInterfaceWrapper) AcceptInvitation(w http.ResponseWriter, r *http.Request) {
 
@@ -5606,6 +6266,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/me/channels/{channelId}/test", wrapper.TestChannel)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me/households/{householdId}/notification-preferences", wrapper.GetNotificationPreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/me/households/{householdId}/notification-preferences", wrapper.SetNotificationPreferences)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/import-presets", wrapper.ListImportPresets)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/imports/csv/preview", wrapper.PreviewCsvImport)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/households/{householdId}/imports/csv", wrapper.ImportCsv)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/imports", wrapper.ListImports)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/households/{householdId}/imports/{importId}", wrapper.RevertImport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/imports/{importId}", wrapper.GetImport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/connection-providers", wrapper.ListConnectionProviders)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/households/{householdId}/connections", wrapper.ListConnections)
 
 	return m
 }
@@ -5809,6 +6477,57 @@ type Logout204Response struct {
 func (response Logout204Response) VisitLogoutResponse(w http.ResponseWriter) error {
 	w.WriteHeader(204)
 	return nil
+}
+
+type ListConnectionProvidersRequestObject struct {
+}
+
+type ListConnectionProvidersResponseObject interface {
+	VisitListConnectionProvidersResponse(w http.ResponseWriter) error
+}
+
+type ListConnectionProviders200JSONResponse ConnectionProviderList
+
+func (response ListConnectionProviders200JSONResponse) VisitListConnectionProvidersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListConnectionProviders401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListConnectionProviders401ApplicationProblemPlusJSONResponse) VisitListConnectionProvidersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListConnectionProviders403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListConnectionProviders403ApplicationProblemPlusJSONResponse) VisitListConnectionProvidersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type ListCurrenciesRequestObject struct {
@@ -8423,6 +9142,72 @@ func (response UnmatchCharge409ApplicationProblemPlusJSONResponse) VisitUnmatchC
 	return err
 }
 
+type ListConnectionsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+}
+
+type ListConnectionsResponseObject interface {
+	VisitListConnectionsResponse(w http.ResponseWriter) error
+}
+
+type ListConnections200JSONResponse ConnectionList
+
+func (response ListConnections200JSONResponse) VisitListConnectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListConnections401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListConnections401ApplicationProblemPlusJSONResponse) VisitListConnectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListConnections403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListConnections403ApplicationProblemPlusJSONResponse) VisitListConnectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListConnections404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListConnections404ApplicationProblemPlusJSONResponse) VisitListConnectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type QuoteFxRateRequestObject struct {
 	HouseholdId HouseholdId `json:"householdId"`
 	Params      QuoteFxRateParams
@@ -8647,6 +9432,425 @@ func (response SetFxOverride422ApplicationProblemPlusJSONResponse) VisitSetFxOve
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImportsRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Params      ListImportsParams
+}
+
+type ListImportsResponseObject interface {
+	VisitListImportsResponse(w http.ResponseWriter) error
+}
+
+type ListImports200JSONResponse ImportBatchPage
+
+func (response ListImports200JSONResponse) VisitListImportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImports401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListImports401ApplicationProblemPlusJSONResponse) VisitListImportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImports403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListImports403ApplicationProblemPlusJSONResponse) VisitListImportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImports404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListImports404ApplicationProblemPlusJSONResponse) VisitListImportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImports422ApplicationProblemPlusJSONResponse Problem
+
+func (response ListImports422ApplicationProblemPlusJSONResponse) VisitListImportsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ImportCsvRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *multipart.Reader
+}
+
+type ImportCsvResponseObject interface {
+	VisitImportCsvResponse(w http.ResponseWriter) error
+}
+
+type ImportCsv201JSONResponse ImportBatch
+
+func (response ImportCsv201JSONResponse) VisitImportCsvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ImportCsv401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ImportCsv401ApplicationProblemPlusJSONResponse) VisitImportCsvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ImportCsv403ApplicationProblemPlusJSONResponse Problem
+
+func (response ImportCsv403ApplicationProblemPlusJSONResponse) VisitImportCsvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ImportCsv404ApplicationProblemPlusJSONResponse Problem
+
+func (response ImportCsv404ApplicationProblemPlusJSONResponse) VisitImportCsvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ImportCsv409ApplicationProblemPlusJSONResponse Problem
+
+func (response ImportCsv409ApplicationProblemPlusJSONResponse) VisitImportCsvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ImportCsv422ApplicationProblemPlusJSONResponse Problem
+
+func (response ImportCsv422ApplicationProblemPlusJSONResponse) VisitImportCsvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewCsvImportRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	Body        *multipart.Reader
+}
+
+type PreviewCsvImportResponseObject interface {
+	VisitPreviewCsvImportResponse(w http.ResponseWriter) error
+}
+
+type PreviewCsvImport200JSONResponse ImportPreview
+
+func (response PreviewCsvImport200JSONResponse) VisitPreviewCsvImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewCsvImport401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewCsvImport401ApplicationProblemPlusJSONResponse) VisitPreviewCsvImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewCsvImport403ApplicationProblemPlusJSONResponse Problem
+
+func (response PreviewCsvImport403ApplicationProblemPlusJSONResponse) VisitPreviewCsvImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewCsvImport404ApplicationProblemPlusJSONResponse Problem
+
+func (response PreviewCsvImport404ApplicationProblemPlusJSONResponse) VisitPreviewCsvImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewCsvImport409ApplicationProblemPlusJSONResponse Problem
+
+func (response PreviewCsvImport409ApplicationProblemPlusJSONResponse) VisitPreviewCsvImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewCsvImport422ApplicationProblemPlusJSONResponse Problem
+
+func (response PreviewCsvImport422ApplicationProblemPlusJSONResponse) VisitPreviewCsvImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertImportRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ImportId    ImportId    `json:"importId"`
+}
+
+type RevertImportResponseObject interface {
+	VisitRevertImportResponse(w http.ResponseWriter) error
+}
+
+type RevertImport200JSONResponse ImportBatch
+
+func (response RevertImport200JSONResponse) VisitRevertImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertImport401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RevertImport401ApplicationProblemPlusJSONResponse) VisitRevertImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertImport403ApplicationProblemPlusJSONResponse Problem
+
+func (response RevertImport403ApplicationProblemPlusJSONResponse) VisitRevertImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertImport404ApplicationProblemPlusJSONResponse Problem
+
+func (response RevertImport404ApplicationProblemPlusJSONResponse) VisitRevertImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertImport409ApplicationProblemPlusJSONResponse Problem
+
+func (response RevertImport409ApplicationProblemPlusJSONResponse) VisitRevertImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImportRequestObject struct {
+	HouseholdId HouseholdId `json:"householdId"`
+	ImportId    ImportId    `json:"importId"`
+}
+
+type GetImportResponseObject interface {
+	VisitGetImportResponse(w http.ResponseWriter) error
+}
+
+type GetImport200JSONResponse ImportBatch
+
+func (response GetImport200JSONResponse) VisitGetImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImport401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetImport401ApplicationProblemPlusJSONResponse) VisitGetImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImport403ApplicationProblemPlusJSONResponse Problem
+
+func (response GetImport403ApplicationProblemPlusJSONResponse) VisitGetImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImport404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetImport404ApplicationProblemPlusJSONResponse) VisitGetImportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -11049,6 +12253,43 @@ func (response UpdateWallet422ApplicationProblemPlusJSONResponse) VisitUpdateWal
 	return err
 }
 
+type ListImportPresetsRequestObject struct {
+}
+
+type ListImportPresetsResponseObject interface {
+	VisitListImportPresetsResponse(w http.ResponseWriter) error
+}
+
+type ListImportPresets200JSONResponse ImportPresetList
+
+func (response ListImportPresets200JSONResponse) VisitListImportPresetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImportPresets401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportPresets401ApplicationProblemPlusJSONResponse) VisitListImportPresetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type AcceptInvitationRequestObject struct {
 	Body *AcceptInvitationJSONRequestBody
 }
@@ -12270,6 +13511,9 @@ type StrictServerInterface interface {
 	// Logout Kończy sesję; bez ważnej sesji też odpowiada 204
 	// (POST /auth/logout)
 	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+	// ListConnectionProviders Providerzy połączeń dostępni na serwerze (tylko ludzie; pusta lista bez konektorów)
+	// (GET /connection-providers)
+	ListConnectionProviders(ctx context.Context, request ListConnectionProvidersRequestObject) (ListConnectionProvidersResponseObject, error)
 	// ListCurrencies Obsługiwane waluty ISO 4217 z liczbą miejsc dziesiętnych
 	// (GET /currencies)
 	ListCurrencies(ctx context.Context, request ListCurrenciesRequestObject) (ListCurrenciesResponseObject, error)
@@ -12372,6 +13616,9 @@ type StrictServerInterface interface {
 	// UnmatchCharge Odłącza transakcję; obciążenie wraca do expected (missed po oknie)
 	// (POST /households/{householdId}/charges/{chargeId}/unmatch)
 	UnmatchCharge(ctx context.Context, request UnmatchChargeRequestObject) (UnmatchChargeResponseObject, error)
+	// ListConnections Połączenia gospodarstwa z kontami, bez poświadczeń (owner/admin)
+	// (GET /households/{householdId}/connections)
+	ListConnections(ctx context.Context, request ListConnectionsRequestObject) (ListConnectionsResponseObject, error)
 	// QuoteFxRate Kurs waluty do waluty bazowej na dzień, jaki dostałaby transakcja (transactions:read)
 	// (GET /households/{householdId}/fx-rates)
 	QuoteFxRate(ctx context.Context, request QuoteFxRateRequestObject) (QuoteFxRateResponseObject, error)
@@ -12381,6 +13628,21 @@ type StrictServerInterface interface {
 	// SetFxOverride Ustawia kurs waluty na dzień (owner, admin; nie bot) i uzupełnia nim oczekujące transakcje
 	// (PUT /households/{householdId}/fx-rates/overrides)
 	SetFxOverride(ctx context.Context, request SetFxOverrideRequestObject) (SetFxOverrideResponseObject, error)
+	// ListImports Partie importu widocznych portfeli od najnowszych (transactions:read)
+	// (GET /households/{householdId}/imports)
+	ListImports(ctx context.Context, request ListImportsRequestObject) (ListImportsResponseObject, error)
+	// ImportCsv Importuje plik CSV do portfela (transactions:write); duplikaty pomijane, potem auto-dopasowanie subskrypcji
+	// (POST /households/{householdId}/imports/csv)
+	ImportCsv(ctx context.Context, request ImportCsvRequestObject) (ImportCsvResponseObject, error)
+	// PreviewCsvImport Podgląd importu CSV bez zapisu (transactions:write)
+	// (POST /households/{householdId}/imports/csv/preview)
+	PreviewCsvImport(ctx context.Context, request PreviewCsvImportRequestObject) (PreviewCsvImportResponseObject, error)
+	// RevertImport Cofa partię — usuwa jej istniejące transakcje i odpina ich obciążenia (transactions:write)
+	// (DELETE /households/{householdId}/imports/{importId})
+	RevertImport(ctx context.Context, request RevertImportRequestObject) (RevertImportResponseObject, error)
+	// GetImport Partia importu (transactions:read)
+	// (GET /households/{householdId}/imports/{importId})
+	GetImport(ctx context.Context, request GetImportRequestObject) (GetImportResponseObject, error)
 	// ListInvitations Zaproszenia od najnowszego (owner, admin)
 	// (GET /households/{householdId}/invitations)
 	ListInvitations(ctx context.Context, request ListInvitationsRequestObject) (ListInvitationsResponseObject, error)
@@ -12471,6 +13733,9 @@ type StrictServerInterface interface {
 	// UpdateWallet Zmienia portfel; widoczność i członków zmienia tylko człowiek (twórca, a dla shared także owner/admin)
 	// (PATCH /households/{householdId}/wallets/{walletId})
 	UpdateWallet(ctx context.Context, request UpdateWalletRequestObject) (UpdateWalletResponseObject, error)
+	// ListImportPresets Presety importu CSV (generic, mbank, ing, pko, revolut) z domyślnymi opcjami
+	// (GET /import-presets)
+	ListImportPresets(ctx context.Context, request ListImportPresetsRequestObject) (ListImportPresetsResponseObject, error)
 	// AcceptInvitation Przyjęcie zaproszenia przez zalogowanego człowieka
 	// (POST /invitations/accept)
 	AcceptInvitation(ctx context.Context, request AcceptInvitationRequestObject) (AcceptInvitationResponseObject, error)
@@ -12690,6 +13955,30 @@ func (sh *strictHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(LogoutResponseObject); ok {
 		if err := validResponse.VisitLogoutResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListConnectionProviders operation middleware
+func (sh *strictHandler) ListConnectionProviders(w http.ResponseWriter, r *http.Request) {
+	var request ListConnectionProvidersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListConnectionProviders(ctx, request.(ListConnectionProvidersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListConnectionProviders")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListConnectionProvidersResponseObject); ok {
+		if err := validResponse.VisitListConnectionProvidersResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -13689,6 +14978,32 @@ func (sh *strictHandler) UnmatchCharge(w http.ResponseWriter, r *http.Request, h
 	}
 }
 
+// ListConnections operation middleware
+func (sh *strictHandler) ListConnections(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request ListConnectionsRequestObject
+
+	request.HouseholdId = householdId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListConnections(ctx, request.(ListConnectionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListConnections")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListConnectionsResponseObject); ok {
+		if err := validResponse.VisitListConnectionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // QuoteFxRate operation middleware
 func (sh *strictHandler) QuoteFxRate(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params QuoteFxRateParams) {
 	var request QuoteFxRateRequestObject
@@ -13768,6 +15083,153 @@ func (sh *strictHandler) SetFxOverride(w http.ResponseWriter, r *http.Request, h
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetFxOverrideResponseObject); ok {
 		if err := validResponse.VisitSetFxOverrideResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListImports operation middleware
+func (sh *strictHandler) ListImports(w http.ResponseWriter, r *http.Request, householdId HouseholdId, params ListImportsParams) {
+	var request ListImportsRequestObject
+
+	request.HouseholdId = householdId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImports(ctx, request.(ListImportsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImports")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListImportsResponseObject); ok {
+		if err := validResponse.VisitListImportsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ImportCsv operation middleware
+func (sh *strictHandler) ImportCsv(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request ImportCsvRequestObject
+
+	request.HouseholdId = householdId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ImportCsv(ctx, request.(ImportCsvRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ImportCsv")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ImportCsvResponseObject); ok {
+		if err := validResponse.VisitImportCsvResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PreviewCsvImport operation middleware
+func (sh *strictHandler) PreviewCsvImport(w http.ResponseWriter, r *http.Request, householdId HouseholdId) {
+	var request PreviewCsvImportRequestObject
+
+	request.HouseholdId = householdId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PreviewCsvImport(ctx, request.(PreviewCsvImportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PreviewCsvImport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PreviewCsvImportResponseObject); ok {
+		if err := validResponse.VisitPreviewCsvImportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevertImport operation middleware
+func (sh *strictHandler) RevertImport(w http.ResponseWriter, r *http.Request, householdId HouseholdId, importId ImportId) {
+	var request RevertImportRequestObject
+
+	request.HouseholdId = householdId
+	request.ImportId = importId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevertImport(ctx, request.(RevertImportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevertImport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevertImportResponseObject); ok {
+		if err := validResponse.VisitRevertImportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetImport operation middleware
+func (sh *strictHandler) GetImport(w http.ResponseWriter, r *http.Request, householdId HouseholdId, importId ImportId) {
+	var request GetImportRequestObject
+
+	request.HouseholdId = householdId
+	request.ImportId = importId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetImport(ctx, request.(GetImportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetImport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetImportResponseObject); ok {
+		if err := validResponse.VisitGetImportResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -14652,6 +16114,30 @@ func (sh *strictHandler) UpdateWallet(w http.ResponseWriter, r *http.Request, ho
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateWalletResponseObject); ok {
 		if err := validResponse.VisitUpdateWalletResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListImportPresets operation middleware
+func (sh *strictHandler) ListImportPresets(w http.ResponseWriter, r *http.Request) {
+	var request ListImportPresetsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImportPresets(ctx, request.(ListImportPresetsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImportPresets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListImportPresetsResponseObject); ok {
+		if err := validResponse.VisitListImportPresetsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

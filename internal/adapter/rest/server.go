@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"git.eiac.dev/tools/denar/internal/adapter/rest/api"
 	"git.eiac.dev/tools/denar/internal/domain"
@@ -91,6 +92,8 @@ func bodyError(err error) error {
 	switch {
 	case errors.As(err, &tooLarge):
 		return domain.ValidationError{Field: "body", Message: "is too large"}
+	case strings.Contains(err.Error(), "multipart"):
+		return domain.ValidationError{Field: "body", Message: "must be multipart/form-data with the parts file and options"}
 	case errors.As(err, &wrongType) && wrongType.Field != "":
 		return domain.ValidationError{Field: wrongType.Field, Message: "has the wrong type"}
 	}

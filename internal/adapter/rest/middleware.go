@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"git.eiac.dev/tools/denar/internal/domain"
@@ -144,12 +145,33 @@ func protectCrossOrigin(baseURL string, next http.Handler) http.Handler {
 	return protection.Handler(next)
 }
 
+// maxUploadBytes caps the multipart body of a CSV import: the 5 MiB file
+// and its options (NFR-082).
+const maxUploadBytes = 6 << 20
+
+// acceptsUpload reports whether the request is one of the two operations
+// that take multipart/form-data: the CSV import and its preview.
+func acceptsUpload(r *http.Request) bool {
+	if r.Method != http.MethodPost || !strings.HasPrefix(r.URL.Path, "/api/households/") {
+		return false
+	}
+	return strings.HasSuffix(r.URL.Path, "/imports/csv") || strings.HasSuffix(r.URL.Path, "/imports/csv/preview")
+}
+
 // requireJSON lets a request body through only as application/json, which a
-// cross-site form cannot send without a preflight, and caps its size.
+// cross-site form cannot send without a preflight, and caps its size. The
+// CSV uploads take multipart/form-data instead; cross-site requests are
+// stopped for them, as for every state-changing request, by
+// protectCrossOrigin.
 func requireJSON(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ContentLength != 0 {
 			mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+			if err == nil && mediaType == "multipart/form-data" && acceptsUpload(r) {
+				r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+				next.ServeHTTP(w, r)
+				return
+			}
 			if err != nil || mediaType != "application/json" {
 				writeProblem(w, problemOf(domain.ValidationError{Field: "Content-Type", Message: "must be application/json"}))
 				return

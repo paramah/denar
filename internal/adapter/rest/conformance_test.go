@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -70,6 +71,8 @@ type conformanceCase struct {
 	as     string // a user id, "bot" for b1, "" for nobody
 	target string
 	body   string
+	// header holds name, value pairs of extra headers.
+	header []string
 	// setup changes the world or the client before the call.
 	setup func(t *testing.T, w *world, h http.Handler, c *client)
 }
@@ -207,12 +210,104 @@ func archived(t *testing.T, w *world, _ http.Handler, _ *client) {
 
 const subscriptionBody = `{"name":"X","vendor":"other","price":{"amount":"1.00","currency":"PLN"},"cycle":{"unit":"month","anchor":"2026-01-01"}}`
 
+// upload is a multipart body with a file and options, and its
+// Content-Type header.
+func upload(file, options string) (string, []string) {
+	var b strings.Builder
+	mw := multipart.NewWriter(&b)
+	if file != "-" {
+		fw, _ := mw.CreateFormFile("file", "wyciag.csv")
+		fw.Write([]byte(file))
+	}
+	if options != "-" {
+		mw.WriteField("options", options)
+	}
+	mw.Close()
+	return b.String(), []string{"Content-Type", mw.FormDataContentType()}
+}
+
+func uploadCase(status int, as, target, file, options string, setup setupFunc) conformanceCase {
+	body, header := upload(file, options)
+	return conformanceCase{status: status, as: as, target: target, body: body, header: header, setup: setup}
+}
+
+const statement = "2026-10-01;-10.00;Lidl\n2026-10-02;-20.00;Aldi;X-1\n!broken\n"
+
+// imported imports the statement into w1 as member: {import} is the batch.
+func imported(t *testing.T, w *world, _ http.Handler, _ *client) {
+	t.Helper()
+	res, err := w.deps.ImportCSV.Do(context.Background(), usecase.Principal{User: mustUser(t, w, "member")}, "h1",
+		usecase.CSVImportInput{WalletID: "w1", FileName: "a.csv", Data: []byte("2026-10-01;-10.00;Lidl\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.vars["import"] = string(res.Outcome.Batch.ID)
+}
+
+func reverted(t *testing.T, w *world, h http.Handler, c *client) {
+	imported(t, w, h, c)
+	if _, err := w.deps.RevertImport.Do(context.Background(), usecase.Principal{User: mustUser(t, w, "member")}, "h1",
+		domainID(w.vars["import"])); err != nil {
+		t.Fatal(err)
+	}
+}
+
 const badLogin = `{"email":"owner@example.com","password":"not the password"}`
 
 // conformanceCases covers, for every operation, every response the
 // contract declares. The 401 of an operation that needs credentials is
 // added by the test itself.
 var conformanceCases = map[string][]conformanceCase{
+	"listImportPresets": {{status: 200, as: "viewer", target: "/api/import-presets"}, {status: 200, as: "bot", target: "/api/import-presets"}},
+	"previewCsvImport": {
+		uploadCase(200, "member", "/api/households/h1/imports/csv/preview", statement, `{"wallet_id":"w1","preset":"mbank","delimiter":";",
+			"columns":{"date":["Data operacji"],"memo":["Tytuł","3"]},"preview_limit":1}`, nil),
+		uploadCase(403, "viewer", "/api/households/h1/imports/csv/preview", statement, `{"wallet_id":"w1"}`, nil),
+		uploadCase(404, "outsider", "/api/households/h1/imports/csv/preview", statement, `{"wallet_id":"w1"}`, nil),
+		uploadCase(409, "member", "/api/households/h1/imports/csv/preview", statement, `{"wallet_id":"w1"}`, archived),
+		uploadCase(422, "member", "/api/households/h1/imports/csv/preview", statement, "-", nil),
+		uploadCase(422, "member", "/api/households/h1/imports/csv/preview", statement, `{"wallet_id":"w1","preset":"citi"}`, nil),
+		uploadCase(422, "member", "/api/households/h1/imports/csv/preview", statement, `not json`, nil),
+		{status: 422, as: "member", target: "/api/households/h1/imports/csv/preview", body: `{"wallet_id":"w1"}`},
+	},
+	"importCsv": {
+		uploadCase(201, "member", "/api/households/h1/imports/csv", statement, `{"wallet_id":"w1"}`, nil),
+		uploadCase(201, "bot", "/api/households/h1/imports/csv", statement, `{"wallet_id":"w1"}`, botScopes(bot.ScopeTransactionsWrite)),
+		uploadCase(403, "bot", "/api/households/h1/imports/csv", statement, `{"wallet_id":"w1"}`, nil),
+		uploadCase(404, "member", "/api/households/h1/imports/csv", statement, `{"wallet_id":"w2"}`, nil),
+		uploadCase(409, "member", "/api/households/h1/imports/csv", statement, `{"wallet_id":"w1"}`, archived),
+		uploadCase(422, "member", "/api/households/h1/imports/csv", "", `{"wallet_id":"w1"}`, nil),
+		uploadCase(422, "member", "/api/households/h1/imports/csv", "-", `{"wallet_id":"w1"}`, nil),
+		uploadCase(422, "member", "/api/households/h1/imports/csv", statement, `{}`, nil),
+	},
+	"listImports": {
+		{status: 200, as: "viewer", target: "/api/households/h1/imports?wallet_id=w1&limit=1", setup: then(imported, imported)},
+		{status: 200, as: "bot", target: "/api/households/h1/imports", setup: botScopes(bot.ScopeTransactionsRead)},
+		{status: 403, as: "bot", target: "/api/households/h1/imports"},
+		{status: 404, as: "member", target: "/api/households/h1/imports?wallet_id=w2"},
+		{status: 422, as: "member", target: "/api/households/h1/imports?cursor=garbage"},
+	},
+	"getImport": {
+		{status: 200, as: "viewer", target: "/api/households/h1/imports/{import}", setup: imported},
+		{status: 200, as: "member", target: "/api/households/h1/imports/{import}", setup: reverted},
+		{status: 403, as: "bot", target: "/api/households/h1/imports/{import}", setup: imported},
+		{status: 404, as: "member", target: "/api/households/h1/imports/nope"},
+	},
+	"revertImport": {
+		{status: 200, as: "member", target: "/api/households/h1/imports/{import}", setup: imported},
+		{status: 403, as: "viewer", target: "/api/households/h1/imports/{import}", setup: imported},
+		{status: 404, as: "member", target: "/api/households/h1/imports/nope"},
+		{status: 409, as: "member", target: "/api/households/h1/imports/{import}", setup: reverted},
+	},
+	"listConnectionProviders": {
+		{status: 200, as: "viewer", target: "/api/connection-providers"},
+		{status: 403, as: "bot", target: "/api/connection-providers"},
+	},
+	"listConnections": {
+		{status: 200, as: "owner", target: "/api/households/h1/connections"},
+		{status: 403, as: "member", target: "/api/households/h1/connections"},
+		{status: 404, as: "outsider", target: "/api/households/h1/connections"},
+	},
 	"listNotifications": {
 		{status: 200, as: "member", target: "/api/me/notifications?household_id=h1&unread=true&limit=1"},
 		{status: 200, as: "bot", target: "/api/me/notifications", setup: botScopes(bot.ScopeNotificationsRead)},
@@ -801,7 +896,7 @@ func (c conformanceCase) run(t *testing.T, op specOperation) {
 		t.Fatalf("target %s is not an instance of %s", target, op.path)
 	}
 
-	rec := cl.do(op.method, target, body)
+	rec := cl.do(op.method, target, body, c.header...)
 
 	if rec.Code != c.status {
 		t.Fatalf("status = %d, want %d; body %s", rec.Code, c.status, rec.Body)

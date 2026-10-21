@@ -133,4 +133,13 @@ type Deps struct {
 	TestChannel                *usecase.TestChannel
 	GetNotificationPreferences *usecase.GetNotificationPreferences
 	SetNotificationPreferences *usecase.SetNotificationPreferences
+
+	ListImportPresets       *usecase.ListImportPresets
+	PreviewCSVImport        *usecase.PreviewCSVImport
+	ImportCSV               *usecase.ImportCSV
+	ListImports             *usecase.ListImports
+	GetImport               *usecase.GetImport
+	RevertImport            *usecase.RevertImport
+	ListConnectionProviders *usecase.ListConnectionProviders
+	ListConnections         *usecase.ListConnections
 }

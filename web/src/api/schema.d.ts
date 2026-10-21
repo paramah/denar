@@ -1184,6 +1184,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/import-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Presety importu CSV (generic, mbank, ing, pko, revolut) z domyślnymi opcjami */
+        get: operations["listImportPresets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/imports/csv/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Podgląd importu CSV bez zapisu (transactions:write)
+         * @description multipart/form-data: część file (plik CSV, maks. 5 MiB) i część options
+         *     (JSON CsvImportOptions; wallet_id wymagany). Zwraca liczniki, pierwsze
+         *     wiersze ze statusem new/duplicate, błędy wierszy i to, co parser wykrył.
+         *     Błędy wierszy nie dają 422 — trafiają do errors.
+         */
+        post: operations["previewCsvImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/imports/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importuje plik CSV do portfela (transactions:write); duplikaty pomijane, potem auto-dopasowanie subskrypcji
+         * @description multipart/form-data jak w previewCsvImport (bez preview_limit). Auto-dopasowanie
+         *     obciążeń subskrypcji działa, gdy wywołujący ma też subscriptions:write i
+         *     transactions:read (matched_count).
+         */
+        post: operations["importCsv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Partie importu widocznych portfeli od najnowszych (transactions:read) */
+        get: operations["listImports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/imports/{importId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        /** Partia importu (transactions:read) */
+        get: operations["getImport"];
+        put?: never;
+        post?: never;
+        /** Cofa partię — usuwa jej istniejące transakcje i odpina ich obciążenia (transactions:write) */
+        delete: operations["revertImport"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connection-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Providerzy połączeń dostępni na serwerze (tylko ludzie; pusta lista bez konektorów) */
+        get: operations["listConnectionProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/households/{householdId}/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        /** Połączenia gospodarstwa z kontami, bez poświadczeń (owner/admin) */
+        get: operations["listConnections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2199,6 +2341,184 @@ export interface components {
         NotificationPreferences: {
             items: components["schemas"]["NotificationPreference"][];
         };
+        /** @description Alternatywy kolumny — nazwy nagłówka (bez wielkości liter i wiodącego */
+        ColumnRefs: string[];
+        /**
+         * @description Mapowanie kolumn. date, amount, debit, credit, external_id, currency, fee,
+         *     state — pierwsza istniejąca kolumna; payee — pierwsza niepusta wartość
+         *     wiersza; memo — wszystkie istniejące, złączone " · " (z kolejnymi
+         *     kolumnami bez nagłówka). Pole podane zastępuje wartość presetu.
+         */
+        CsvColumns: {
+            date?: components["schemas"]["ColumnRefs"];
+            amount?: components["schemas"]["ColumnRefs"];
+            debit?: components["schemas"]["ColumnRefs"];
+            credit?: components["schemas"]["ColumnRefs"];
+            payee?: components["schemas"]["ColumnRefs"];
+            memo?: components["schemas"]["ColumnRefs"];
+            external_id?: components["schemas"]["ColumnRefs"];
+            currency?: components["schemas"]["ColumnRefs"];
+            fee?: components["schemas"]["ColumnRefs"];
+            state?: components["schemas"]["ColumnRefs"];
+        };
+        /** @description Opcje parsera; brak pola = wartość presetu (pusta w presecie = wykrywanie) */
+        CsvParseOptions: {
+            /**
+             * @description generic (domyślnie), mbank, ing, pko, revolut
+             * @example mbank
+             */
+            preset?: string;
+            /** @description ; , | albo tab */
+            delimiter?: string;
+            /** @description utf-8 albo windows-1250 */
+            encoding?: string;
+            /**
+             * @description Tokeny YYYY, YY, MM, M, DD, D, HH, mm, ss
+             * @example DD.MM.YYYY
+             */
+            date_format?: string;
+            /** @description , albo . */
+            decimal_separator?: string;
+            /** @description Linie pominięte przed szukaniem nagłówka */
+            skip_rows?: number;
+            has_header?: boolean;
+            invert_amount?: boolean;
+            /** @description Z kolumną state — importowane stany (np. COMPLETED) */
+            accept_states?: string[];
+            columns?: components["schemas"]["CsvColumns"];
+        };
+        /** @description Część options żądania multipart (JSON) */
+        CsvImportOptions: components["schemas"]["CsvParseOptions"] & {
+            wallet_id: string;
+            /** @description Tylko podgląd; domyślnie 20 */
+            preview_limit?: number;
+        };
+        CsvImportUpload: {
+            /**
+             * Format: binary
+             * @description Plik CSV
+             */
+            file: string;
+            /** @description JSON CsvImportOptions */
+            options: string;
+        };
+        ImportPreset: {
+            /** @example mbank */
+            key: string;
+            name: string;
+            description: string;
+            options: components["schemas"]["CsvParseOptions"];
+        };
+        ImportPresetList: {
+            items: components["schemas"]["ImportPreset"][];
+        };
+        ImportRowError: {
+            /** @description Linia pliku (1-based); 0 — cały plik */
+            row: number;
+            /** @example amount */
+            field: string;
+            message: string;
+        };
+        ImportPreviewRow: {
+            row: number;
+            /** Format: date */
+            date: string;
+            amount: components["schemas"]["Money"];
+            payee_raw: string;
+            memo: string;
+            /** @description Z pliku albo hash h:… */
+            external_id: string;
+            /** @enum {string} */
+            kind: "expense" | "income";
+            /** @enum {string} */
+            status: "new" | "duplicate";
+            payee_id: string | null;
+            payee_name: string | null;
+            envelope_id: string | null;
+        };
+        ImportDetected: {
+            delimiter: string;
+            encoding: string;
+            header_line: number | null;
+            headers: string[];
+        };
+        ImportPreview: {
+            wallet_id: string;
+            preset: string;
+            detected: components["schemas"]["ImportDetected"];
+            total_rows: number;
+            new_count: number;
+            duplicate_count: number;
+            error_count: number;
+            rows: components["schemas"]["ImportPreviewRow"][];
+            /** @description Pierwsze 100 błędów wierszy */
+            errors: components["schemas"]["ImportRowError"][];
+        };
+        ImportBatch: {
+            id: string;
+            wallet_id: string;
+            /** @enum {string} */
+            source: "csv" | "connection";
+            /** @description Nazwa pliku albo id połączenia */
+            source_ref: string;
+            preset: string | null;
+            /** @enum {string} */
+            status: "completed" | "reverted";
+            total_rows: number;
+            created_count: number;
+            duplicate_count: number;
+            error_count: number;
+            /** @description Nowe transakcje dopasowane do obciążeń subskrypcji */
+            matched_count: number;
+            reverted_count: number;
+            /** @description Pierwsze 100 błędów wierszy */
+            errors: components["schemas"]["ImportRowError"][];
+            created_by: components["schemas"]["Actor"];
+            /** Format: date-time */
+            created_at: string;
+            reverted_by: components["schemas"]["Actor"] | null;
+            /** Format: date-time */
+            reverted_at: string | null;
+        };
+        ImportBatchPage: {
+            items: components["schemas"]["ImportBatch"][];
+            next_cursor: string | null;
+        };
+        ConnectionProvider: {
+            key: string;
+            name: string;
+            /** @enum {string} */
+            kind: "bank" | "billing";
+        };
+        ConnectionProviderList: {
+            items: components["schemas"]["ConnectionProvider"][];
+        };
+        ConnectionAccount: {
+            external_id: string;
+            name: string;
+            currency: string | null;
+            wallet_id: string | null;
+        };
+        Connection: {
+            id: string;
+            provider: string;
+            provider_name: string;
+            /** @enum {string} */
+            kind: "bank" | "billing";
+            /** @enum {string} */
+            status: "active" | "error" | "disabled";
+            display_name: string;
+            has_credentials: boolean;
+            /** Format: date-time */
+            last_sync_at: string | null;
+            last_error: string | null;
+            accounts: components["schemas"]["ConnectionAccount"][];
+            /** Format: date-time */
+            created_at: string;
+        };
+        ConnectionList: {
+            items: components["schemas"]["Connection"][];
+        };
     };
     responses: {
         /** @description Błąd w formacie RFC 7807 */
@@ -2232,6 +2552,7 @@ export interface components {
         SubscriptionId: string;
         ChannelId: string;
         ChargeId: string;
+        ImportId: string;
         /** @description Miesiąc budżetowy YYYY-MM (2000-01…2100-12) */
         Month: string;
     };
@@ -4715,6 +5036,219 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
+        };
+    };
+    listImportPresets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Presety, generic pierwszy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPresetList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    previewCsvImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["CsvImportUpload"];
+            };
+        };
+        responses: {
+            /** @description Podgląd */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    importCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["CsvImportUpload"];
+            };
+        };
+        responses: {
+            /** @description Zapisana partia */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listImports: {
+        parameters: {
+            query?: {
+                wallet_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Strona partii */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Partia */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    revertImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+                importId: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cofnięta partia (status reverted, reverted_count) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    listConnectionProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Providerzy wg klucza */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionProviderList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    listConnections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                householdId: components["parameters"]["HouseholdId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Połączenia wg nazwy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
 }

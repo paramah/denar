@@ -18,6 +18,7 @@ import (
 	"git.eiac.dev/tools/denar/internal/domain"
 	"git.eiac.dev/tools/denar/internal/domain/bot"
 	"git.eiac.dev/tools/denar/internal/domain/budget"
+	"git.eiac.dev/tools/denar/internal/domain/connection"
 	"git.eiac.dev/tools/denar/internal/domain/event"
 	"git.eiac.dev/tools/denar/internal/domain/household"
 	"git.eiac.dev/tools/denar/internal/domain/membership"
@@ -63,6 +64,8 @@ func newWorld(t *testing.T) *world {
 		notification.Telegram: w.notifier, notification.Matrix: w.notifier}
 	d.Secrets = fakes.SecretBox{}
 	d.BaseURL = baseURL
+	// Imports: the fake CSV parser and one bank provider.
+	d.Connectors = map[string]usecase.ConnectorProvider{"fakebank": fakes.BankProvider("fakebank", &fakes.Connector{})}
 	inv := usecase.InvitationConfig{TTL: inviteTTL, SessionTTL: sessionTTL}
 	w.deps = Deps{
 		BaseURL:         baseURL,
@@ -174,6 +177,15 @@ func newWorld(t *testing.T) *world {
 		TestChannel:                usecase.NewTestChannel(d),
 		GetNotificationPreferences: usecase.NewGetNotificationPreferences(d),
 		SetNotificationPreferences: usecase.NewSetNotificationPreferences(d),
+
+		ListImportPresets:       usecase.NewListImportPresets(d),
+		PreviewCSVImport:        usecase.NewPreviewCSVImport(d),
+		ImportCSV:               usecase.NewImportCSV(d),
+		ListImports:             usecase.NewListImports(d),
+		GetImport:               usecase.NewGetImport(d),
+		RevertImport:            usecase.NewRevertImport(d),
+		ListConnectionProviders: usecase.NewListConnectionProviders(d),
+		ListConnections:         usecase.NewListConnections(d),
 	}
 	owner := w.addUser("owner")
 	w.addHousehold("h1", owner)
@@ -188,6 +200,7 @@ func newWorld(t *testing.T) *world {
 	w.addFinances()
 	w.addSubscriptions()
 	w.addNotifications()
+	w.addConnections()
 	return w
 }
 
@@ -285,6 +298,19 @@ func (w *world) addFinances() {
 		Source: transaction.SourceManual, Tags: []string{"food"}, Note: "zakupy", ExternalID: "ext-1",
 		Splits: []transaction.Split{}, CreatedBy: domain.Actor{Kind: domain.ActorUser, ID: "member"}, CreatedAt: now, UpdatedAt: now}))
 	w.Rates.Set("USD", "2026-10-20", "4.0000")
+}
+
+// addConnections gives h1 a connection cn1 "mBank" of fakebank with an
+// account mapped to w1.
+func (w *world) addConnections() {
+	w.t.Helper()
+	ctx := context.Background()
+	now := w.Clock.Now()
+	w.must(w.Connections.Create(ctx, connection.Connection{ID: "cn1", HouseholdID: "h1", Provider: "fakebank", Kind: connection.Bank,
+		Status: connection.Active, DisplayName: "mBank", SealedCredentials: []byte("sealed"), LastError: "", CreatedBy: "owner",
+		CreatedAt: now, UpdatedAt: now}))
+	w.must(w.Connections.PutAccount(ctx, "h1", connection.Account{ConnectionID: "cn1", ExternalID: "acc-1", Name: "eKonto",
+		Currency: "PLN", WalletID: "w1"}))
 }
 
 func (w *world) must(err error) {
