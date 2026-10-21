@@ -1,4 +1,5 @@
-import { reasonMessages, translateFieldMessage } from './messages.ts'
+import { tk } from '../i18n/translate.ts'
+import { reasonMessage, translateFieldMessage } from './messages.ts'
 import type { components } from './schema.d.ts'
 
 type Problem = components['schemas']['Problem']
@@ -104,30 +105,30 @@ export function fieldErrors(err: unknown): Record<string, string> {
 }
 
 /** Komunikat dla człowieka; `fallback` dla błędów bez lepszego opisu. */
-export function errorMessage(err: unknown, fallback = 'Coś poszło nie tak. Spróbuj ponownie.'): string {
+export function errorMessage(err: unknown, fallback?: string): string {
   switch (classify(err)) {
     case 'network':
-      return 'Brak połączenia z serwerem. Sprawdź sieć i spróbuj ponownie.'
+      return tk('errors:generic.network')
     case 'server':
-      return 'Serwer nie mógł wykonać operacji. Spróbuj ponownie za chwilę.'
+      return tk('errors:generic.server')
     case 'rateLimited': {
       const seconds = (err as ApiError).retryAfter
-      return seconds ? `Za dużo prób. Spróbuj ponownie za ${seconds} s.` : 'Za dużo prób. Spróbuj ponownie za chwilę.'
+      return seconds ? tk('errors:generic.rateLimitedFor', { seconds }) : tk('errors:generic.rateLimited')
     }
     case 'forbidden':
-      return 'Nie masz uprawnień do tej operacji.'
+      return tk('errors:generic.forbidden')
     case 'notFound':
-      return 'Nie znaleziono — mogło zostać usunięte.'
+      return tk('errors:generic.notFound')
     case 'unauthenticated':
-      return 'Sesja wygasła. Zaloguj się ponownie.'
+      return tk('errors:generic.unauthenticated')
     default: {
-      // Opis z serwera jest po angielsku; po polsku znamy przyczyny (`type`).
+      // Opis z serwera jest po angielsku; w języku interfejsu znamy przyczyny (`type`).
       const api = err as ApiError
       const first = api.status === 422 ? api.errors[0] : undefined
       if (first) {
         return translateFieldMessage(first.message)
       }
-      return reasonMessages[api.reason] ?? fallback
+      return reasonMessage(api.reason) ?? fallback ?? tk('errors:generic.fallback')
     }
   }
 }

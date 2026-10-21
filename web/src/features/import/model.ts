@@ -1,4 +1,5 @@
 import type { CsvColumns, CsvImportOptions, CsvParseOptions, ImportBatch, ImportPreset } from '../../api/types.ts'
+import { formatNumber } from '../../lib/intl.ts'
 
 /** Limit pliku po stronie serwera (008 FR-812). */
 export const maxFileBytes = 5 * 1024 * 1024
@@ -172,8 +173,8 @@ export const fileProblemMessages: Record<FileProblem, string> = {
 
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} KiB`
-  return `${(bytes / 1024 / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} MiB`
+  if (bytes < 1024 * 1024) return `${formatNumber(bytes / 1024, { maximumFractionDigits: 1 })} KiB`
+  return `${formatNumber(bytes / 1024 / 1024, { maximumFractionDigits: 1 })} MiB`
 }
 
 /** Pole błędu wiersza po polsku. */

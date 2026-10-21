@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { useMarkNotificationRead } from '../../api/hooks/notifications.ts'
 import type { Notification } from '../../api/types.ts'
 import { Icon } from '../../components/Icon/Icon.tsx'
+import { intlLocale } from '../../i18n/locale.ts'
 import { formatRelative } from '../../lib/format.ts'
 import { eventTypeLabels } from '../../lib/labels.ts'
 import { formatTime, notificationIcon, notificationLink, notificationTone } from './model.ts'
@@ -50,7 +51,7 @@ export function NotificationItem({ notification: n, householdName, compact, onOp
         </Link>
         {n.body && <p className={styles.itemText}>{n.body}</p>}
         <p className={styles.itemMeta}>
-          <time dateTime={n.created_at} title={new Date(n.created_at).toLocaleString('pl-PL')}>
+          <time dateTime={n.created_at} title={new Date(n.created_at).toLocaleString(intlLocale())}>
             {compact ? formatRelative(n.created_at) : formatTime(n.created_at)}
           </time>
           {' · '}

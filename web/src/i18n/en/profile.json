@@ -1,0 +1,16 @@
+{
+  "title": "Profile",
+  "description": "Your account and interface settings.",
+  "account": {
+    "heading": "Account",
+    "name": "Name",
+    "email": "E-mail"
+  },
+  "language": {
+    "heading": "Language",
+    "label": "Language of the interface and notifications",
+    "hint": "“Automatic” follows your browser settings; notifications are then in Polish.",
+    "saved": "Language saved."
+  },
+  "back": "Back to the app"
+}

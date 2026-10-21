@@ -1,5 +1,6 @@
 import type { EventType, Notification } from '../../api/types.ts'
 import type { IconName } from '../../components/Icon/Icon.tsx'
+import { perLocale } from '../../lib/intl.ts'
 import { safeReturnTo } from '../../lib/returnTo.ts'
 
 export const eventTypeIcons: Record<EventType, IconName> = {
@@ -33,9 +34,9 @@ function localDay(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-const weekdayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })
-const yearFormat = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })
-const timeFormat = new Intl.DateTimeFormat('pl-PL', { hour: '2-digit', minute: '2-digit' })
+const weekdayFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }))
+const yearFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }))
+const timeFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }))
 
 /** „Dziś”, „Wczoraj”, „poniedziałek, 19 października”, w innym roku — z rokiem. */
 export function dayLabel(day: string, now: Date = new Date()): string {
@@ -46,7 +47,7 @@ export function dayLabel(day: string, now: Date = new Date()): string {
   if (day === localDay(yesterday)) return 'Wczoraj'
   const [y, m, d] = day.split('-').map(Number)
   const date = new Date(y!, m! - 1, d!)
-  const text = y === now.getFullYear() ? weekdayFormat.format(date) : yearFormat.format(date)
+  const text = y === now.getFullYear() ? weekdayFormat().format(date) : yearFormat().format(date)
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
@@ -68,5 +69,5 @@ export function groupByDay(items: Notification[], now: Date = new Date()): DayGr
 }
 
 export function formatTime(value: string): string {
-  return timeFormat.format(new Date(value))
+  return timeFormat().format(new Date(value))
 }

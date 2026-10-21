@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { errorMessage } from '../../api/errors.ts'
+import { translateDeliveryError } from '../../api/messages.ts'
 import {
   useChannels,
   useChannelTypes,
@@ -158,7 +159,7 @@ function ChannelRow({
         </div>
         {channel.last_error && (
           <p className={styles.channelError}>
-            Ostatni błąd{channel.last_error_at && ` (${formatDateTime(channel.last_error_at)})`}: {channel.last_error}
+            Ostatni błąd{channel.last_error_at && ` (${formatDateTime(channel.last_error_at)})`}: {translateDeliveryError(channel.last_error)}
           </p>
         )}
         <div role="status" className={styles.testResult}>
@@ -166,7 +167,7 @@ function ChannelRow({
             (result.ok ? (
               <span className={styles.testOk}>Test wysłany — sprawdź, czy wiadomość dotarła.</span>
             ) : (
-              <span className={styles.testFail}>Test nieudany: {result.error ?? 'nieznany błąd'}</span>
+              <span className={styles.testFail}>Test nieudany: {translateDeliveryError(result.error)}</span>
             ))}
         </div>
       </div>

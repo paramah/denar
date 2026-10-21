@@ -9,288 +9,261 @@ import type {
   TransactionStatus,
   WalletType,
 } from '../api/types.ts'
+import { tk } from '../i18n/translate.ts'
 
-export const roleLabels: Record<Role, string> = {
-  owner: 'Właściciel',
-  admin: 'Administrator',
-  member: 'Domownik',
-  viewer: 'Podgląd',
+// Nazwy wartości z API w aktywnym języku (i18n/{pl,en}/labels.json). Mapy
+// zachowują dawny kształt `Record<klucz, string>`: każda właściwość to getter
+// czytający tłumaczenie w chwili odczytu, więc `roleLabels[role]` po zmianie
+// języka daje nowy tekst. Kropki w kodach (np. `household.created`) są w JSON
+// zapisane jako `/`, bo kropka rozdziela poziomy kluczy i18next.
+
+function labelMap<K extends string>(group: string, keys: readonly K[]): Record<K, string> {
+  const map = {} as Record<K, string>
+  for (const key of keys) {
+    Object.defineProperty(map, key, {
+      enumerable: true,
+      get: () => tk(`labels:${group}.${key.replaceAll('.', '/')}`),
+    })
+  }
+  return map
 }
 
-export const roleDescriptions: Record<Role, string> = {
-  owner: 'Pełna kontrola, w tym usunięcie gospodarstwa',
-  admin: 'Zarządza członkami, zaproszeniami i botami',
-  member: 'Prowadzi finanse i tworzy własne boty',
-  viewer: 'Tylko przegląda dane',
-}
+export const roleLabels: Record<Role, string> = labelMap('role', ['owner', 'admin', 'member', 'viewer'])
+
+export const roleDescriptions: Record<Role, string> = labelMap('roleDescription', ['owner', 'admin', 'member', 'viewer'])
 
 export const roleOrder: Role[] = ['owner', 'admin', 'member', 'viewer']
 
-export const actorKindLabels: Record<ActorKind, string> = {
-  user: 'Człowiek',
-  bot: 'Bot',
-  system: 'System',
-}
+export const actorKindLabels: Record<ActorKind, string> = labelMap('actorKind', ['user', 'bot', 'system'])
 
-const actionLabels: Record<string, string> = {
-  'household.created': 'Założenie gospodarstwa',
-  'household.updated': 'Zmiana ustawień gospodarstwa',
-  'membership.joined': 'Dołączenie do gospodarstwa',
-  'membership.role_changed': 'Zmiana roli',
-  'membership.removed': 'Usunięcie członka',
-  'invitation.created': 'Wysłanie zaproszenia',
-  'invitation.revoked': 'Odwołanie zaproszenia',
-  'bot.created': 'Utworzenie bota',
-  'bot.updated': 'Zmiana bota',
-  'bot.disabled': 'Wyłączenie bota',
-  'bot.token_rotated': 'Nowy token bota',
-  'bot.deleted': 'Usunięcie bota',
-  'wallet.created': 'Utworzenie portfela',
-  'wallet.updated': 'Zmiana portfela',
-  'transaction.created': 'Dodanie transakcji',
-  'transaction.updated': 'Zmiana transakcji',
-  'transaction.deleted': 'Usunięcie transakcji',
-  'transaction.rate_filled': 'Uzupełnienie kursu transakcji',
-  'payee.created': 'Dodanie kontrahenta',
-  'payee.updated': 'Zmiana kontrahenta',
-  'payee.deleted': 'Usunięcie kontrahenta',
-  'fx_rate.set': 'Ręczny kurs waluty',
-  'household.deleted': 'Usunięcie gospodarstwa',
-  'envelope_group.created': 'Utworzenie grupy kopert',
-  'envelope_group.updated': 'Zmiana grupy kopert',
-  'envelope_group.deleted': 'Usunięcie grupy kopert',
-  'envelope.created': 'Utworzenie koperty',
-  'envelope.updated': 'Zmiana koperty',
-  'envelope.deleted': 'Usunięcie koperty',
-  'assignment.set': 'Przydział do koperty',
-  'subscription.created': 'Dodanie subskrypcji',
-  'subscription.updated': 'Zmiana subskrypcji',
-  'subscription.deleted': 'Usunięcie subskrypcji',
-  'subscription.price_changed': 'Zmiana ceny subskrypcji',
-  'charge.matched': 'Dopasowanie płatności subskrypcji',
-  'charge.unmatched': 'Cofnięcie dopasowania płatności',
-  'charge.skipped': 'Pominięcie płatności subskrypcji',
-  'charge.posted': 'Zaksięgowanie płatności subskrypcji',
-  'import.created': 'Import transakcji',
-  'import.reverted': 'Cofnięcie importu',
-  'connection.created': 'Dodanie połączenia',
-  'connection.account_mapped': 'Przypisanie konta połączenia',
-  'connection.synced': 'Synchronizacja połączenia',
-}
+const actionLabels: Record<string, string> = labelMap('action', [
+  'household.created',
+  'household.updated',
+  'membership.joined',
+  'membership.role_changed',
+  'membership.removed',
+  'invitation.created',
+  'invitation.revoked',
+  'bot.created',
+  'bot.updated',
+  'bot.disabled',
+  'bot.token_rotated',
+  'bot.deleted',
+  'wallet.created',
+  'wallet.updated',
+  'transaction.created',
+  'transaction.updated',
+  'transaction.deleted',
+  'transaction.rate_filled',
+  'payee.created',
+  'payee.updated',
+  'payee.deleted',
+  'fx_rate.set',
+  'household.deleted',
+  'envelope_group.created',
+  'envelope_group.updated',
+  'envelope_group.deleted',
+  'envelope.created',
+  'envelope.updated',
+  'envelope.deleted',
+  'assignment.set',
+  'subscription.created',
+  'subscription.updated',
+  'subscription.deleted',
+  'subscription.price_changed',
+  'charge.matched',
+  'charge.unmatched',
+  'charge.skipped',
+  'charge.posted',
+  'import.created',
+  'import.reverted',
+  'connection.created',
+  'connection.account_mapped',
+  'connection.synced',
+])
 
 /** Czytelna nazwa akcji audytu; nieznana (z kolejnych etapów) — surowy kod. */
 export function actionLabel(action: string): string {
-  return actionLabels[action] ?? action
+  return Object.hasOwn(actionLabels, action) ? actionLabels[action]! : action
 }
 
-export const resourceTypeLabels: Record<string, string> = {
-  household: 'Gospodarstwo',
-  membership: 'Członkostwo',
-  invitation: 'Zaproszenie',
-  bot: 'Bot',
-  wallet: 'Portfel',
-  transaction: 'Transakcja',
-  payee: 'Kontrahent',
-  fx_rate: 'Kurs waluty',
-  envelope_group: 'Grupa kopert',
-  envelope: 'Koperta',
-  assignment: 'Przydział',
-  subscription: 'Subskrypcja',
-  charge: 'Płatność subskrypcji',
-  import: 'Import',
-  connection: 'Połączenie',
-}
+export const resourceTypeLabels: Record<string, string> = labelMap('resourceType', [
+  'household',
+  'membership',
+  'invitation',
+  'bot',
+  'wallet',
+  'transaction',
+  'payee',
+  'fx_rate',
+  'envelope_group',
+  'envelope',
+  'assignment',
+  'subscription',
+  'charge',
+  'import',
+  'connection',
+])
 
 export function resourceTypeLabel(type: string): string {
-  return resourceTypeLabels[type] ?? type
+  return Object.hasOwn(resourceTypeLabels, type) ? resourceTypeLabels[type]! : type
 }
 
-const fieldLabels: Record<string, string> = {
-  name: 'nazwa',
-  enabled: 'włączony',
-  'config.address': 'adres e-mail',
-  'config.url': 'adres URL',
-  'config.server': 'serwer ntfy',
-  'config.topic': 'temat',
-  'config.chat_id': 'chat_id',
-  'config.homeserver': 'serwer domowy',
-  'config.room_id': 'room_id',
-  'secrets.secret': 'sekret podpisu',
-  'secrets.token': 'token dostępu',
-  'secrets.bot_token': 'token bota',
-  'secrets.access_token': 'token dostępu',
-  'items.type': 'typ zdarzenia',
-  'items.channel_ids': 'kanały',
-  send_email: 'wysyłka e-mailem',
-  role: 'rola',
-  timezone: 'strefa czasowa',
-  month_start_day: 'dzień startu miesiąca',
-  base_currency: 'waluta',
-  scopes: 'uprawnienia',
-  wallet_ids: 'portfele',
-  expires_at: 'wygaśnięcie',
-  disabled: 'wyłączony',
-  email: 'e-mail',
-  type: 'typ',
-  currency: 'waluta',
-  on_budget: 'w budżecie',
-  visibility: 'widoczność',
-  member_ids: 'członkowie',
-  opening_balance: 'saldo otwarcia',
-  opened_on: 'data otwarcia',
-  archived: 'archiwizacja',
-  amount: 'kwota',
-  to_amount: 'kwota docelowa',
-  date: 'data',
-  payee_id: 'kontrahent',
-  payee_name: 'kontrahent',
-  envelope_id: 'koperta',
-  kind: 'rodzaj',
-  status: 'status',
-  tags: 'tagi',
-  note: 'notatka',
-  external_id: 'identyfikator zewnętrzny',
-  splits: 'podział',
-  wallet_id: 'portfel',
-  from_wallet_id: 'portfel źródłowy',
-  to_wallet_id: 'portfel docelowy',
-  patterns: 'wzorce',
-  rate: 'kurs',
-  base_amount: 'kwota bazowa',
-  count: 'liczba',
-  created_by: 'autor',
-  cycle: 'cykl',
-  fx_rate: 'kurs',
-  goal: 'cel',
-  'goal.type': 'rodzaj celu',
-  'goal.amount': 'kwota celu',
-  'goal.amount.amount': 'kwota celu',
-  'goal.target_date': 'data celu',
-  group_id: 'grupa',
-  hidden: 'ukryta',
-  invitation_id: 'zaproszenie',
-  month: 'miesiąc',
-  position: 'kolejność',
-  price: 'cena',
-  reminder_offsets: 'przypomnienia',
-  score: 'trafność',
-  subscription_id: 'subskrypcja',
-  vendor: 'dostawca',
-  via: 'sposób',
-  gone: 'usunięto',
-  trial_ends_at: 'koniec okresu próbnego',
-  ends_at: 'koniec',
-  manage_url: 'adres zarządzania',
-  'match_rule.payee_pattern': 'wzorzec kontrahenta',
-  'match_rule.amount_tolerance_pct': 'tolerancja kwoty',
-  'match_rule.date_window_days': 'okno dat',
-  'cycle.unit': 'jednostka cyklu',
-  'cycle.every': 'co ile',
-  'cycle.anchor': 'dzień płatności',
-  default_envelope_id: 'domyślna koperta',
-  from_envelope_id: 'koperta źródłowa',
-  to_envelope_id: 'koperta docelowa',
-  transaction_id: 'transakcja',
-  effective_from: 'od dnia',
-  'amount.amount': 'kwota',
-  'to_amount.amount': 'kwota docelowa',
-  'opening_balance.amount': 'saldo otwarcia',
-  'price.amount': 'cena',
-  password: 'hasło',
-  // Import (008): opcje parsera, części multipart i zmiany w dzienniku.
-  file: 'plik',
-  options: 'opcje importu',
-  body: 'treść żądania',
-  preview_limit: 'liczba wierszy podglądu',
-  'options.wallet_id': 'portfel',
-  'options.preset': 'preset',
-  'options.delimiter': 'separator pól',
-  'options.encoding': 'kodowanie',
-  'options.date_format': 'format daty',
-  'options.decimal_separator': 'separator dziesiętny',
-  'options.skip_rows': 'pomijane wiersze',
-  'options.accept_states': 'importowane stany',
-  'options.columns.date': 'kolumna daty',
-  'options.columns.amount': 'kolumna kwoty',
-  'options.columns.debit': 'kolumna obciążeń',
-  'options.columns.credit': 'kolumna uznań',
-  'options.columns.payee': 'kolumna kontrahenta',
-  'options.columns.memo': 'kolumna opisu',
-  'options.columns.external_id': 'kolumna identyfikatora',
-  'options.columns.currency': 'kolumna waluty',
-  'options.columns.fee': 'kolumna opłaty',
-  'options.columns.state': 'kolumna stanu',
-  source: 'źródło',
-  source_ref: 'plik lub połączenie',
-  preset: 'preset',
-  rows: 'wiersze',
-  created: 'utworzone',
-  duplicates: 'duplikaty',
-  failed: 'błędy',
-  matched: 'dopasowane',
-  reverted: 'cofnięte',
-  import_id: 'import',
-  provider: 'dostawca',
-  display_name: 'nazwa',
-  connection_id: 'połączenie',
-  account: 'konto',
-}
+const fieldLabels: Record<string, string> = labelMap('field', [
+  'name',
+  'enabled',
+  'config.address',
+  'config.url',
+  'config.server',
+  'config.topic',
+  'config.chat_id',
+  'config.homeserver',
+  'config.room_id',
+  'secrets.secret',
+  'secrets.token',
+  'secrets.bot_token',
+  'secrets.access_token',
+  'items.type',
+  'items.channel_ids',
+  'send_email',
+  'role',
+  'timezone',
+  'month_start_day',
+  'base_currency',
+  'scopes',
+  'wallet_ids',
+  'expires_at',
+  'disabled',
+  'email',
+  'type',
+  'currency',
+  'on_budget',
+  'visibility',
+  'member_ids',
+  'opening_balance',
+  'opened_on',
+  'archived',
+  'amount',
+  'to_amount',
+  'date',
+  'payee_id',
+  'payee_name',
+  'envelope_id',
+  'kind',
+  'status',
+  'tags',
+  'note',
+  'external_id',
+  'splits',
+  'wallet_id',
+  'from_wallet_id',
+  'to_wallet_id',
+  'patterns',
+  'rate',
+  'base_amount',
+  'count',
+  'created_by',
+  'cycle',
+  'fx_rate',
+  'goal',
+  'goal.type',
+  'goal.amount',
+  'goal.amount.amount',
+  'goal.target_date',
+  'group_id',
+  'hidden',
+  'invitation_id',
+  'month',
+  'position',
+  'price',
+  'reminder_offsets',
+  'score',
+  'subscription_id',
+  'vendor',
+  'via',
+  'gone',
+  'trial_ends_at',
+  'ends_at',
+  'manage_url',
+  'match_rule.payee_pattern',
+  'match_rule.amount_tolerance_pct',
+  'match_rule.date_window_days',
+  'cycle.unit',
+  'cycle.every',
+  'cycle.anchor',
+  'default_envelope_id',
+  'from_envelope_id',
+  'to_envelope_id',
+  'transaction_id',
+  'effective_from',
+  'amount.amount',
+  'to_amount.amount',
+  'opening_balance.amount',
+  'price.amount',
+  'password',
+  'file',
+  'options',
+  'body',
+  'preview_limit',
+  'options.wallet_id',
+  'options.preset',
+  'options.delimiter',
+  'options.encoding',
+  'options.date_format',
+  'options.decimal_separator',
+  'options.skip_rows',
+  'options.accept_states',
+  'options.columns.date',
+  'options.columns.amount',
+  'options.columns.debit',
+  'options.columns.credit',
+  'options.columns.payee',
+  'options.columns.memo',
+  'options.columns.external_id',
+  'options.columns.currency',
+  'options.columns.fee',
+  'options.columns.state',
+  'source',
+  'source_ref',
+  'preset',
+  'rows',
+  'created',
+  'duplicates',
+  'failed',
+  'matched',
+  'reverted',
+  'import_id',
+  'provider',
+  'display_name',
+  'connection_id',
+  'account',
+])
 
 export function fieldLabel(field: string): string {
-  const known = fieldLabels[field]
-  if (known) {
-    return known
+  if (Object.hasOwn(fieldLabels, field)) {
+    return fieldLabels[field]!
   }
   // splits[2].amount → „podział 3: kwota”
   const split = /^splits\[(\d+)\]\.(.+)$/.exec(field)
   if (split?.[1] && split[2]) {
-    return `podział ${Number(split[1]) + 1}: ${fieldLabel(split[2])}`
+    return tk('labels:splitField', { line: Number(split[1]) + 1, field: fieldLabel(split[2]) })
   }
   return field
 }
 
-export const walletTypeLabels: Record<WalletType, string> = {
-  cash: 'Gotówka',
-  checking: 'Konto bieżące',
-  card: 'Karta',
-  savings: 'Oszczędności',
-  investment: 'Inwestycje',
-  loan: 'Kredyt',
-}
+export const walletTypeLabels: Record<WalletType, string> = labelMap('walletType', ['cash', 'checking', 'card', 'savings', 'investment', 'loan'])
 
 export const walletTypeOrder: WalletType[] = ['checking', 'cash', 'card', 'savings', 'investment', 'loan']
 
-export const kindLabels: Record<TransactionKind, string> = {
-  expense: 'Wydatek',
-  income: 'Wpływ',
-  transfer: 'Przelew',
-}
+export const kindLabels: Record<TransactionKind, string> = labelMap('kind', ['expense', 'income', 'transfer'])
 
-export const statusLabels: Record<TransactionStatus, string> = {
-  pending: 'Oczekująca',
-  cleared: 'Rozliczona',
-  reconciled: 'Uzgodniona',
-}
+export const statusLabels: Record<TransactionStatus, string> = labelMap('status', ['pending', 'cleared', 'reconciled'])
 
-export const statusDescriptions: Record<TransactionStatus, string> = {
-  pending: 'Jeszcze nie ma jej na wyciągu',
-  cleared: 'Widać ją na wyciągu',
-  reconciled: 'Sprawdzona z wyciągiem i zamknięta',
-}
+export const statusDescriptions: Record<TransactionStatus, string> = labelMap('statusDescription', ['pending', 'cleared', 'reconciled'])
 
-export const sourceLabels: Record<TransactionSource, string> = {
-  manual: 'Ręcznie',
-  import: 'Import',
-  subscription: 'Subskrypcja',
-  bot: 'Bot',
-}
+export const sourceLabels: Record<TransactionSource, string> = labelMap('source', ['manual', 'import', 'subscription', 'bot'])
 
-export const fxSourceLabels: Record<FxSource, string> = {
-  identity: 'waluta bazowa',
-  manual: 'kurs ręczny',
-  nbp: 'NBP',
-  unavailable: 'brak kursu',
-}
+export const fxSourceLabels: Record<FxSource, string> = labelMap('fxSource', ['identity', 'manual', 'nbp', 'unavailable'])
 
 /** Typy zdarzeń powiadomień w kolejności serwera (`event.Types`). */
 export const eventTypeOrder: EventType[] = [
@@ -302,46 +275,30 @@ export const eventTypeOrder: EventType[] = [
   'envelope.goal_due',
 ]
 
-export const eventTypeLabels: Record<EventType, string> = {
-  'subscription.renewal_upcoming': 'Zbliżające się odnowienie',
-  'subscription.trial_ending': 'Koniec okresu próbnego',
-  'subscription.price_changed': 'Zmiana ceny subskrypcji',
-  'subscription.charge_missed': 'Przegapiona płatność',
-  'envelope.overspent': 'Przekroczona koperta',
-  'envelope.goal_due': 'Zbliża się termin celu',
-}
+export const eventTypeLabels: Record<EventType, string> = labelMap('eventType', [
+  'subscription.renewal_upcoming',
+  'subscription.trial_ending',
+  'subscription.price_changed',
+  'subscription.charge_missed',
+  'envelope.overspent',
+  'envelope.goal_due',
+])
 
-export const eventTypeDescriptions: Record<EventType, string> = {
-  'subscription.renewal_upcoming': 'Według przypomnień ustawionych w subskrypcji',
-  'subscription.trial_ending': 'Przed końcem okresu próbnego',
-  'subscription.price_changed': 'Gdy ktoś zapisze nową cenę',
-  'subscription.charge_missed': 'Gdy nie znajdziemy płatności subskrypcji',
-  'envelope.overspent': 'Raz w miesiącu dla każdej koperty na minusie',
-  'envelope.goal_due': 'Gdy do terminu celu zostaje tydzień, a brakuje pieniędzy',
-}
+export const eventTypeDescriptions: Record<EventType, string> = labelMap('eventTypeDescription', [
+  'subscription.renewal_upcoming',
+  'subscription.trial_ending',
+  'subscription.price_changed',
+  'subscription.charge_missed',
+  'envelope.overspent',
+  'envelope.goal_due',
+])
 
 export const channelTypeOrder: ChannelType[] = ['email', 'webhook', 'ntfy', 'telegram', 'matrix']
 
-export const channelTypeLabels: Record<ChannelType, string> = {
-  email: 'E-mail',
-  webhook: 'Webhook',
-  ntfy: 'ntfy',
-  telegram: 'Telegram',
-  matrix: 'Matrix',
-}
+export const channelTypeLabels: Record<ChannelType, string> = labelMap('channelType', ['email', 'webhook', 'ntfy', 'telegram', 'matrix'])
 
-export const unavailableReasonLabels: Record<string, string> = {
-  smtp_not_configured: 'Serwer nie ma skonfigurowanej poczty (SMTP).',
-  secrets_unavailable: 'Serwer nie ma klucza DENAR_MASTER_KEY do szyfrowania tokenów.',
-}
+export const unavailableReasonLabels: Record<string, string> = labelMap('unavailableReason', ['smtp_not_configured', 'secrets_unavailable'])
 
-export const connectionKindLabels: Record<'bank' | 'billing', string> = {
-  bank: 'Bank',
-  billing: 'Rachunki dostawcy',
-}
+export const connectionKindLabels: Record<'bank' | 'billing', string> = labelMap('connectionKind', ['bank', 'billing'])
 
-export const connectionStatusLabels: Record<'active' | 'error' | 'disabled', string> = {
-  active: 'Aktywne',
-  error: 'Błąd',
-  disabled: 'Wyłączone',
-}
+export const connectionStatusLabels: Record<'active' | 'error' | 'disabled', string> = labelMap('connectionStatus', ['active', 'error', 'disabled'])

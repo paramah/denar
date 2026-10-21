@@ -3,7 +3,9 @@
 // przez Intl.NumberFormat na stringu (dokładny dziesiętny), a arytmetyka —
 // gdyby UI jej potrzebowało — na bigint jednostek minimalnych.
 
-export const locale = 'pl-PL'
+import { intlLocale } from '../i18n/locale.ts'
+import { tk } from '../i18n/translate.ts'
+import { decimalSeparator } from './intl.ts'
 
 const decimalPattern = /^([+-]?)(\d+)(?:\.(\d+))?$/
 
@@ -33,7 +35,8 @@ export function toneOf(value: string): Tone {
 const formatters = new Map<string, Intl.NumberFormat>()
 
 function formatter(currency: string, signed: boolean): Intl.NumberFormat {
-  const key = `${currency}|${signed}`
+  const locale = intlLocale()
+  const key = `${locale}|${currency}|${signed}`
   let nf = formatters.get(key)
   if (!nf) {
     nf = new Intl.NumberFormat(locale, {
@@ -57,7 +60,8 @@ export function currencyDecimals(currency: string): number {
 }
 
 /**
- * Formatuje kwotę w locale pl-PL, np. "-1234.5" PLN → "−1234,50 zł".
+ * Formatuje kwotę w języku interfejsu, np. "-1234.5" PLN → "−1234,50 zł"
+ * (po angielsku, en-GB: "−PLN 1,234.50").
  * Minus to U+2212 (czytelniejszy w cyfrach tabelarycznych). Niepoprawny
  * string zwraca null — wywołujący pokazuje wtedy surową wartość.
  */
@@ -124,29 +128,29 @@ export function parseAmountInput(
 ): AmountInput {
   const cleaned = text.replace(/[\s\u00a0\u202f]/g, '').replace(',', '.').replace('\u2212', '-')
   if (cleaned === '') {
-    return { ok: false, error: 'Podaj kwotę.' }
+    return { ok: false, error: tk('common:amount.required') }
   }
   const match = /^(-?)(\d+)(?:\.(\d*))?$/.exec(cleaned)
   if (!match || (match[1] === '-' && !options.allowNegative)) {
-    return { ok: false, error: options.allowNegative ? 'Wpisz liczbę, np. 1250,00.' : 'Wpisz kwotę bez znaku, np. 12,50.' }
+    return { ok: false, error: tk(options.allowNegative ? 'common:amount.number' : 'common:amount.unsigned') }
   }
   const [, sign = '', whole = '0', fraction = ''] = match
   if (fraction.length > decimals) {
     return {
       ok: false,
-      error: decimals === 0 ? 'Ta waluta nie ma części ułamkowej.' : `Najwyżej ${decimals} miejsca po przecinku.`,
+      error: decimals === 0 ? tk('common:amount.noFraction') : tk('common:amount.maxDecimals', { n: decimals }),
     }
   }
   const minor = toMinor(`${sign}${whole}${fraction ? `.${fraction}` : ''}`, decimals)
   if (minor === null) {
-    return { ok: false, error: 'Wpisz poprawną kwotę.' }
+    return { ok: false, error: tk('common:amount.invalid') }
   }
   if (minor === 0n && !options.allowZero) {
-    return { ok: false, error: 'Kwota musi być większa od zera.' }
+    return { ok: false, error: tk('common:amount.positive') }
   }
   // Granica int64 jednostek minimalnych po stronie serwera.
   if (minor > 9_223_372_036_854_775_807n || minor < -9_223_372_036_854_775_807n) {
-    return { ok: false, error: 'Kwota jest za duża.' }
+    return { ok: false, error: tk('common:amount.tooLarge') }
   }
   return { ok: true, value: fromMinor(minor, decimals) }
 }
@@ -168,9 +172,9 @@ export function absDecimal(value: string): string {
   return parsed ? `${parsed.whole}${parsed.fraction ? `.${parsed.fraction}` : ''}` : value
 }
 
-/** Kwota dla pola formularza: bez znaku, z przecinkiem („-12.50” → „12,50”). */
+/** Kwota dla pola formularza: bez znaku, z separatorem języka („-12.50” → „12,50” / „12.50”). */
 export function amountForInput(value: string): string {
-  return absDecimal(value).replace('.', ',')
+  return absDecimal(value).replace('.', decimalSeparator())
 }
 
 /**
@@ -194,28 +198,28 @@ export type RateInput = { ok: true; value: string } | { ok: false; error: string
 export function parseRateInput(text: string): RateInput {
   const cleaned = text.replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')
   if (cleaned === '') {
-    return { ok: false, error: 'Podaj kurs.' }
+    return { ok: false, error: tk('common:rate.required') }
   }
   const match = /^(\d+)(?:\.(\d{1,12}))?$/.exec(cleaned)
   if (!match) {
-    return { ok: false, error: 'Wpisz kurs dodatni, najwyżej 12 miejsc po przecinku, np. 4,2512.' }
+    return { ok: false, error: tk('common:rate.invalid') }
   }
   const [, whole = '0', fraction = ''] = match
   if (/^0+$/.test(whole) && /^0*$/.test(fraction)) {
-    return { ok: false, error: 'Kurs musi być większy od zera.' }
+    return { ok: false, error: tk('common:rate.positive') }
   }
   const trimmedWhole = whole.replace(/^0+(?=\d)/, '')
   return { ok: true, value: fraction ? `${trimmedWhole}.${fraction}` : trimmedWhole }
 }
 
-/** Kurs do wyświetlenia: przecinek dziesiętny, bez końcowych zer („4.25120000” → „4,2512”). */
+/** Kurs do wyświetlenia: separator języka, bez końcowych zer („4.25120000” → „4,2512” / „4.2512”). */
 export function formatRate(rate: string): string {
   const parsed = parseDecimal(rate)
   if (!parsed) {
     return rate
   }
   const fraction = parsed.fraction.replace(/0+$/, '')
-  return `${parsed.whole}${fraction ? `,${fraction}` : ''}`
+  return `${parsed.whole}${fraction ? `${decimalSeparator()}${fraction}` : ''}`
 }
 
 /**

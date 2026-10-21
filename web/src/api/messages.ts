@@ -1,175 +1,191 @@
 /**
- * Komunikaty serwera po polsku. Serwer zwraca błędy walidacji pól
- * (`errors[].message`) i opisy problemów po angielsku; interfejs pokazuje je
- * po polsku. Reguły pokrywają komunikaty z `internal/domain` i
- * `internal/usecase`; nieznany angielski komunikat zamienia się w ogólny,
- * a tekst już polski (np. z testów) przechodzi bez zmian.
+ * Komunikaty serwera w języku interfejsu. Serwer zwraca błędy walidacji pól
+ * (`errors[].message`), opisy problemów i błędy dostarczania powiadomień po
+ * angielsku; reguły niżej zamieniają je na klucz `errors:…` z parametrami
+ * (i18n/{pl,en}/errors.json). Reguły pokrywają komunikaty z `internal/domain`
+ * i `internal/usecase`; nieznany angielski komunikat zamienia się w ogólny, a
+ * tekst już polski (np. ze starszego serwera) przechodzi bez zmian.
  */
 
-type Rule = [RegExp, string | ((...groups: string[]) => string)]
+import { hasKey, tk } from '../i18n/translate.ts'
 
-const charactersRange = (n: string) => `${n} ${plural(Number(n), 'znak', 'znaki', 'znaków')}`
+export type Message = { key: string; params?: Record<string, string | number> }
 
-function plural(n: number, one: string, few: string, many: string): string {
-  if (n === 1) return one
-  const tens = n % 100
-  const units = n % 10
-  return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? few : many
-}
+type Out = string | ((...groups: string[]) => Message)
+type Rule = [RegExp, Out]
+
+const count = (key: string) => (_: string, n: string) => ({ key, params: { count: Number(n) } })
 
 const rules: Rule[] = [
   // Import CSV (etap 008): plik, opcje parsera i błędy wierszy.
-  [/^is larger than 5 MiB$/, 'Plik jest większy niż 5 MiB — wyeksportuj krótszy okres.'],
-  [/^is empty$/, 'Pusta wartość.'],
-  [/^has no transactions$/, 'W pliku nie ma żadnych operacji.'],
-  [/^has more than (\d+) rows$/, (_, n) => `Plik ma więcej niż ${n} wierszy — podziel go na części.`],
-  [/^must be multipart\/form-data/, 'Nieprawidłowe żądanie wysyłki pliku. Odśwież stronę i spróbuj ponownie.'],
-  [/^must be a JSON object of CsvImportOptions$/, 'Nieprawidłowe opcje importu. Odśwież stronę i spróbuj ponownie.'],
-  [/^is not a known preset$/, 'Nieznany preset banku.'],
-  [/^must be ;, , , \| or tab$/, 'Wybierz separator: średnik, przecinek, kreskę pionową albo tabulator.'],
-  [/^must be utf-8 or windows-1250$/, 'Wybierz kodowanie UTF-8 albo Windows-1250.'],
-  [/^may hold only YYYY, YY, MM, M, DD, D, HH, mm, ss and separators$/,
-    'Format daty: tylko YYYY, YY, MM, M, DD, D, HH, mm, ss i separatory (np. DD.MM.YYYY).'],
-  [/^needs a year, a month and a day/, 'Format daty musi mieć rok, miesiąc i dzień (YYYY, MM, DD).'],
-  [/^must be , or \.$/, 'Wybierz przecinek albo kropkę.'],
-  [/^must be (\d+) to (\d+)$/, (_, a, b) => `Podaj wartość od ${a} do ${b}.`],
-  [/^is required, or debit and credit$/, 'Wskaż kolumnę kwoty albo kolumny obciążeń i uznań.'],
-  [/^no header row has the date column "(.*)"$/, (_, name) =>
-    `Nie znaleziono wiersza nagłówka z kolumną daty (${name}). Wskaż kolumnę daty, zmień separator albo kodowanie.`],
-  [/^is not a column of the file, nor are debit and credit$/,
-    'Nie ma w pliku kolumny kwoty ani kolumn obciążeń i uznań — wskaż je.'],
-  [/^is not a column of the file$/, 'Nie ma takiej kolumny w pliku — wybierz inną.'],
+  [/^is larger than 5 MiB$/, 'fileTooLarge'],
+  [/^is empty$/, 'emptyValue'],
+  [/^has no transactions$/, 'noTransactions'],
+  [/^has more than (\d+) rows$/, (_, n) => ({ key: 'tooManyRows', params: { n: n! } })],
+  [/^must be multipart\/form-data/, 'badUpload'],
+  [/^must be a JSON object of CsvImportOptions$/, 'badImportOptions'],
+  [/^is not a known preset$/, 'unknownPreset'],
+  [/^must be ;, , , \| or tab$/, 'delimiter'],
+  [/^must be utf-8 or windows-1250$/, 'encoding'],
+  [/^may hold only YYYY, YY, MM, M, DD, D, HH, mm, ss and separators$/, 'dateFormatTokens'],
+  [/^needs a year, a month and a day/, 'dateFormatParts'],
+  [/^must be , or \.$/, 'decimalSeparator'],
+  [/^must be (\d+) to (\d+)$/, (_, a, b) => ({ key: 'range', params: { min: a!, max: b! } })],
+  [/^is required, or debit and credit$/, 'amountColumns'],
+  [/^no header row has the date column "(.*)"$/, (_, name) => ({ key: 'noHeaderRow', params: { name: name! } })],
+  [/^is not a column of the file, nor are debit and credit$/, 'noAmountColumns'],
+  [/^is not a column of the file$/, 'noSuchColumn'],
   [/^is "(.*)"; only (.+) rows are imported$/, (_, state, accepted) =>
-    `Stan „${state}” — importowane są tylko: ${accepted}.`],
-  [/^is not a date: "(.*)"$/, (_, value) => `„${value}” to nie data w tym formacie.`],
-  [/^is empty: neither debit nor credit is given$/, 'Brak kwoty: puste obciążenie i uznanie.'],
-  [/^is not a number: "(.*)"$/, (_, value) => `„${value}” to nie liczba.`],
-  [/^must not be zero$/, 'Kwota nie może być zerem.'],
-  [/^is not an amount$/, 'To nie jest kwota.'],
-  [/^is (\w{3}), not the wallet's (\w{3})$/, (_, c, w) => `Waluta ${c} — portfel jest w ${w}.`],
-  [/^is not valid CSV$/, 'Wiersz nie jest poprawnym CSV (np. niedomknięty cudzysłów).'],
-  [/^is not a valid transaction$/, 'Z tego wiersza nie powstanie poprawna transakcja.'],
+    ({ key: 'rowState', params: { state: state!, accepted: accepted! } })],
+  [/^is not a date: "(.*)"$/, (_, value) => ({ key: 'notADate', params: { value: value! } })],
+  [/^is empty: neither debit nor credit is given$/, 'noAmount'],
+  [/^is not a number: "(.*)"$/, (_, value) => ({ key: 'notANumber', params: { value: value! } })],
+  [/^must not be zero$/, 'zeroAmount'],
+  [/^is not an amount$/, 'notAnAmount'],
+  [/^is (\w{3}), not the wallet's (\w{3})$/, (_, c, w) => ({ key: 'rowCurrency', params: { currency: c!, wallet: w! } })],
+  [/^is not valid CSV$/, 'invalidCsv'],
+  [/^is not a valid transaction$/, 'invalidRow'],
   [/^is required: no exchange rate from (\w+) to (\w+) is known for the due date$/, (_, from, to) =>
-    `Podaj kwotę — nie znamy kursu ${from} → ${to} z dnia płatności.`],
-  [/^is required: the subscription (?:names no|has no) wallet$/, 'Wybierz portfel — subskrypcja nie ma portfela płatności.'],
-  [/^is required between wallets of different currencies$/, 'Podaj kwotę — portfele mają różne waluty.'],
-  [/^is required for a target_by_date goal$/, 'Podaj datę celu.'],
-  [/^is required$/, 'To pole jest wymagane.'],
-  [/^must not be (?:empty|blank)$/, 'To pole nie może być puste.'],
-  [/^must be 1 to (\d+) characters$/, (_, n) => `Wpisz od 1 do ${charactersRange(n)}.`],
-  [/^must be at most (\d+) characters$/, (_, n) => `Najwyżej ${charactersRange(n)}.`],
-  [/^must be at least (\d+) characters$/, (_, n) => `Co najmniej ${charactersRange(n)}.`],
-  [/^must each be 1 to (\d+) characters$/, (_, n) => `Każda pozycja: od 1 do ${charactersRange(n)}.`],
-  [/^must each be at most (\d+) characters$/, (_, n) => `Każda pozycja: najwyżej ${charactersRange(n)}.`],
-  [/^must not contain control characters$/, 'Usuń znaki sterujące (np. tabulatory).'],
-  [/^must be between (-?\d+) and (-?\d+)$/, (_, a, b) => `Podaj wartość od ${a} do ${b}.`],
-  [/^must be greater than zero and at most 10\^13$/, 'Kwota musi być większa od zera i nie za duża.'],
-  [/^must be greater than zero, without a sign$/, 'Podaj kwotę większą od zera, bez znaku.'],
-  [/^must be greater than zero: what was paid$/, 'Podaj zapłaconą kwotę, większą od zera.'],
-  [/^must be greater than zero$/, 'Wartość musi być większa od zera.'],
+    ({ key: 'noRateForDueDate', params: { from: from!, to: to! } })],
+  [/^is required: the subscription (?:names no|has no) wallet$/, 'subscriptionWallet'],
+  [/^is required between wallets of different currencies$/, 'transferAmount'],
+  [/^is required for a target_by_date goal$/, 'goalDate'],
+  [/^is required$/, 'required'],
+  [/^must not be (?:empty|blank)$/, 'notEmpty'],
+  [/^must be 1 to (\d+) characters$/, count('lengthRange')],
+  [/^must be at most (\d+) characters$/, count('lengthMax')],
+  [/^must be at least (\d+) characters$/, count('lengthMin')],
+  [/^must each be 1 to (\d+) characters$/, count('eachLengthRange')],
+  [/^must each be at most (\d+) characters$/, count('eachLengthMax')],
+  [/^must not contain control characters$/, 'controlCharacters'],
+  [/^must be between (-?\d+) and (-?\d+)$/, (_, a, b) => ({ key: 'range', params: { min: a!, max: b! } })],
+  [/^must be greater than zero and at most 10\^13$/, 'amountPositiveLimited'],
+  [/^must be greater than zero, without a sign$/, 'amountPositiveUnsigned'],
+  [/^must be greater than zero: what was paid$/, 'amountPaid'],
+  [/^must be greater than zero$/, 'positive'],
   [/^must be a decimal amount with at most (\d+) decimal places$/, (_, n) =>
-    n === '0' ? 'Podaj kwotę bez części ułamkowej.' : `Podaj kwotę z najwyżej ${n} ${plural(Number(n), 'miejscem', 'miejscami', 'miejscami')} po przecinku.`],
-  [/^must be a positive decimal number with at most 12 decimal places$/, 'Podaj liczbę dodatnią (najwyżej 12 miejsc po przecinku).'],
-  [/^is out of range in the base currency$/, 'Kwota w walucie bazowej jest poza zakresem.'],
-  [/^is out of range$/, 'Wartość jest poza zakresem.'],
-  [/^makes the assignment too large$/, 'Przydział byłby za duży.'],
-  [/^must be (\w{3}), the currency of the wallet$/, (_, c) => `Waluta musi być ${c} — waluta portfela.`],
-  [/^must be (\w{3}), the base currency of the household$/, (_, c) => `Waluta musi być ${c} — waluta bazowa gospodarstwa.`],
-  [/^has an unsupported currency$|^is not supported$|^must be a supported ISO 4217 currency code$/, 'Nieobsługiwana waluta.'],
-  [/^is the base currency, whose rate is always 1$/, 'To waluta bazowa — jej kurs to zawsze 1.'],
-  [/^must be a date written YYYY-MM-DD$|^must be a date$/, 'Podaj poprawną datę.'],
-  [/^must be a month written as YYYY-MM/, 'Podaj miesiąc w postaci RRRR-MM (2000–2100).'],
-  [/^must not be before from$/, 'Data końcowa nie może być wcześniejsza niż początkowa.'],
-  [/^the period may be at most 366 days long$/, 'Okres może mieć najwyżej 366 dni.'],
-  [/^must be in the future$/, 'Wybierz datę w przyszłości.'],
-  [/^must be an email address$/, 'Podaj poprawny adres e-mail.'],
-  [/^must be an IANA time zone/, 'Wybierz strefę czasową z listy.'],
-  [/^must be an http or https URL/, 'Podaj adres zaczynający się od http:// lub https:// (najwyżej 500 znaków).'],
-  [/^must be one of the known vendors$/, 'Wybierz dostawcę z listy.'],
-  [/^must name at least one scope$/, 'Wybierz co najmniej jedno uprawnienie.'],
-  [/^contains an unknown scope/, 'Lista zawiera nieznane uprawnienie.'],
-  [/^contains a wallet that is not one of yours/, 'Lista zawiera portfel, którego nie widzisz.'],
-  [/^contains someone who is not a member/, 'Lista zawiera osobę spoza gospodarstwa.'],
-  [/^must hold at most (\d+) (?:wallets|values)$/, (_, n) => `Najwyżej ${n} pozycji.`],
-  [/^may (?:name|have) at most (\d+) (\w+)$/, (_, n) => `Najwyżej ${n} pozycji.`],
-  [/^must hold days between 0 and 60$/, 'Przypomnienia: od 0 do 60 dni przed płatnością.'],
-  [/^must differ from from_wallet_id$/, 'Wybierz inny portfel niż źródłowy.'],
-  [/^must differ from from_envelope_id$/, 'Wybierz inną kopertę niż źródłowa.'],
-  [/^must equal amount between wallets of one currency$/, 'Przy tej samej walucie kwoty muszą być równe.'],
-  [/^must add up to the amount of the transaction$/, 'Suma podziału musi być równa kwocie transakcji.'],
-  [/^only an expense can be split$/, 'Na koperty można dzielić tylko wydatki.'],
-  [/^a split transaction takes its envelopes from its lines$/, 'Przy podziale koperty wybiera się w liniach podziału.'],
-  [/^a transfer has no payee$|^a transfer is made with the transfer operation$/, 'Przelew zapisuje się osobno („Przelew”).'],
-  [/^only a transfer between an on-budget and an off-budget wallet has an envelope$/,
-    'Kopertę ma tylko przelew między portfelem budżetowym a portfelem poza budżetem.'],
-  [/^cannot change on a transfer leg/, 'Tego nie zmienisz w przelewie — usuń go i zapisz ponownie.'],
-  [/^give payee_id or payee_name, not both$/, 'Podaj kontrahenta tylko raz.'],
-  [/^is not a payee of this household$/, 'Nie ma takiego kontrahenta.'],
-  [/^is not an envelope (?:id|of this household)$/, 'Nie ma takiej koperty.'],
-  [/^is not an envelope group of this household$/, 'Nie ma takiej grupy kopert.'],
-  [/^is not a transaction you can see$/, 'Nie ma takiej transakcji.'],
-  [/^must be an expense, not a transfer or an income$/, 'Powiązać można tylko wydatek.'],
-  [/^is only for a target_by_date goal$/, 'Data dotyczy tylko celu „kwota do daty”.'],
-  [/^is set by cancelling the subscription$/, 'Datę końca ustawia anulowanie subskrypcji.'],
-  [/^is (?:not a valid cursor|not a cursor) of this query$/, 'Lista się zmieniła — odśwież stronę.'],
-  [/^the household already has the (\d+) bots it may have$/, (_, n) => `Gospodarstwo ma już ${n} botów — więcej się nie da.`],
-  [/^a viewer cannot create bots$/, 'Osoba z rolą „Podgląd” nie tworzy botów.'],
-  [/^is ambiguous/, 'Nazwa pasuje do kilku pozycji — podaj pełną nazwę.'],
-  [/^has the wrong (?:type|format)$|^must be valid JSON$|^must be given once$/, 'Nieprawidłowy format wartości.'],
+    n === '0' ? { key: 'noDecimals' } : { key: 'decimalPlaces', params: { count: Number(n) } }],
+  [/^must be a positive decimal number with at most 12 decimal places$/, 'rate'],
+  [/^is out of range in the base currency$/, 'baseOutOfRange'],
+  [/^is out of range$/, 'outOfRange'],
+  [/^makes the assignment too large$/, 'assignmentTooLarge'],
+  [/^must be (\w{3}), the currency of the wallet$/, (_, c) => ({ key: 'walletCurrency', params: { currency: c! } })],
+  [/^must be (\w{3}), the base currency of the household$/, (_, c) => ({ key: 'baseCurrency', params: { currency: c! } })],
+  [/^has an unsupported currency$|^is not supported$|^must be a supported ISO 4217 currency code$/, 'unsupportedCurrency'],
+  [/^is the base currency, whose rate is always 1$/, 'baseCurrencyRate'],
+  [/^must be a date written YYYY-MM-DD$|^must be a date$/, 'date'],
+  [/^must be a month written as YYYY-MM/, 'month'],
+  [/^must not be before from$/, 'endBeforeStart'],
+  [/^the period may be at most 366 days long$/, 'periodTooLong'],
+  [/^must be in the future$/, 'future'],
+  [/^must be an email address$/, 'email'],
+  [/^must be an IANA time zone/, 'timeZone'],
+  [/^must be an http or https URL/, 'urlLimited'],
+  [/^must be one of the known vendors$/, 'vendor'],
+  [/^must name at least one scope$/, 'scopeRequired'],
+  [/^contains an unknown scope/, 'unknownScope'],
+  [/^contains a wallet that is not one of yours/, 'foreignWallet'],
+  [/^contains someone who is not a member/, 'nonMember'],
+  [/^must hold at most (\d+) (?:wallets|values)$/, (_, n) => ({ key: 'maxItems', params: { n: n! } })],
+  [/^may (?:name|have) at most (\d+) (\w+)$/, (_, n) => ({ key: 'maxItems', params: { n: n! } })],
+  [/^must hold days between 0 and 60$/, 'reminderDays'],
+  [/^must differ from from_wallet_id$/, 'sameWallet'],
+  [/^must differ from from_envelope_id$/, 'sameEnvelope'],
+  [/^must equal amount between wallets of one currency$/, 'sameCurrencyAmounts'],
+  [/^must add up to the amount of the transaction$/, 'splitSum'],
+  [/^only an expense can be split$/, 'splitExpenseOnly'],
+  [/^a split transaction takes its envelopes from its lines$/, 'splitEnvelopes'],
+  [/^a transfer has no payee$|^a transfer is made with the transfer operation$/, 'transferSeparate'],
+  [/^only a transfer between an on-budget and an off-budget wallet has an envelope$/, 'transferEnvelope'],
+  [/^cannot change on a transfer leg/, 'transferLeg'],
+  [/^give payee_id or payee_name, not both$/, 'payeeTwice'],
+  [/^is not a payee of this household$/, 'unknownPayee'],
+  [/^is not an envelope (?:id|of this household)$/, 'unknownEnvelope'],
+  [/^is not an envelope group of this household$/, 'unknownEnvelopeGroup'],
+  [/^is not a transaction you can see$/, 'unknownTransaction'],
+  [/^must be an expense, not a transfer or an income$/, 'expenseOnly'],
+  [/^is only for a target_by_date goal$/, 'targetDateOnly'],
+  [/^is set by cancelling the subscription$/, 'endsByCancel'],
+  [/^is (?:not a valid cursor|not a cursor) of this query$/, 'staleCursor'],
+  [/^the household already has the (\d+) bots it may have$/, (_, n) => ({ key: 'botLimit', params: { n: n! } })],
+  [/^a viewer cannot create bots$/, 'viewerBots'],
+  [/^is ambiguous/, 'ambiguous'],
+  [/^has the wrong (?:type|format)$|^must be valid JSON$|^must be given once$/, 'format'],
   // Powiadomienia (etap 005): kanały i preferencje.
-  [/^must have 1 to (\d+) characters$/, (_, n) => `Wpisz od 1 do ${charactersRange(n)}.`],
-  [/^must be an e-mail address$/, 'Podaj poprawny adres e-mail.'],
-  [/^must be an http\(s\) URL$/, 'Podaj adres zaczynający się od http:// lub https://.'],
-  [/^must have 1 to 64 letters, digits, - or _$/, 'Temat: od 1 do 64 liter, cyfr, „-” lub „_”, bez spacji.'],
-  [/^must be a chat id such as/, 'Podaj chat_id: liczbę (np. 123456789, dla grup z minusem) albo @nazwa_kanału.'],
-  [/^must be a room id such as/, 'Podaj identyfikator pokoju zaczynający się od „!”, np. !abc:example.org.'],
-  [/^is not a setting of an? \w+ channel$/, 'Tego ustawienia nie ma w tym typie kanału.'],
-  [/^is not a secret of an? \w+ channel$/, 'Tego sekretu nie ma w tym typie kanału.'],
-  [/^is too long$/, 'Za długa wartość.'],
-  [/^is not one of your channels/, 'Ten kanał nie istnieje — odśwież stronę.'],
-  [/^is not a known event type/, 'Nieznany typ zdarzenia — odśwież stronę.'],
-  [/^is given twice/, 'Typ zdarzenia podany dwa razy.'],
-  [/^has too many channels$/, 'Za dużo kanałów dla jednego zdarzenia.'],
-  [/^is too large$/, 'Za dużo danych.'],
-  [/^must be (?:one of [a-z_]+(?:, [a-z_]+)+|[a-z_]+(?:, [a-z_]+)* or [a-z_]+)$/, 'Wybierz wartość z listy.'],
+  [/^must have 1 to (\d+) characters$/, count('lengthRange')],
+  [/^must be an e-mail address$/, 'email'],
+  [/^must be an http\(s\) URL$/, 'url'],
+  [/^must have 1 to 64 letters, digits, - or _$/, 'topic'],
+  [/^must be a chat id such as/, 'chatId'],
+  [/^must be a room id such as/, 'roomId'],
+  [/^is not a setting of an? \w+ channel$/, 'channelSetting'],
+  [/^is not a secret of an? \w+ channel$/, 'channelSecret'],
+  [/^is too long$/, 'tooLong'],
+  [/^is not one of your channels/, 'unknownChannel'],
+  [/^is not a known event type/, 'unknownEventType'],
+  [/^is given twice/, 'eventTypeTwice'],
+  [/^has too many channels$/, 'tooManyChannels'],
+  [/^is too large$/, 'tooLarge'],
+  [/^must be (?:one of [a-z_]+(?:, [a-z_]+)+|[a-z_]+(?:, [a-z_]+)* or [a-z_]+)$/, 'oneOf'],
 ]
 
 const english = /^(?:must|is|has|may|contains|cannot|give|a|an|the|only|makes|needs|no)\b/
 
-/** Komunikat błędu pola po polsku. */
-export function translateFieldMessage(message: string): string {
-  for (const [pattern, out] of rules) {
-    const match = pattern.exec(message)
-    if (match) {
-      return typeof out === 'string' ? out : out(...match)
+function match(rulesList: Rule[], message: string, prefix: string): Message | null {
+  for (const [pattern, out] of rulesList) {
+    const found = pattern.exec(message)
+    if (found) {
+      const msg = typeof out === 'string' ? { key: out } : out(...found)
+      return { ...msg, key: `${prefix}${msg.key}` }
     }
   }
-  return english.test(message) ? 'Nieprawidłowa wartość.' : message
+  return null
 }
 
-/** Opisy konfliktów (409) i odmów (403) po ostatnim segmencie `type`. */
-export const reasonMessages: Record<string, string> = {
-  'duplicate-name': 'Ta nazwa jest już zajęta. Wybierz inną.',
-  'duplicate-email': 'Ten adres e-mail jest już używany.',
-  'duplicate-external-id': 'Ta transakcja jest już zapisana.',
-  'duplicate-charge': 'Ta płatność już istnieje.',
-  'last-owner': 'Gospodarstwo musi mieć co najmniej jednego właściciela.',
-  'already-member': 'Ta osoba już należy do gospodarstwa.',
-  'invitation-used': 'To zaproszenie zostało już wykorzystane.',
-  'invitation-expired': 'To zaproszenie wygasło.',
-  'wallet-archived': 'Portfel jest zarchiwizowany — przywróć go, żeby coś w nim zmienić.',
-  'group-not-empty': 'W grupie są koperty — przenieś je albo ukryj.',
-  'envelope-in-use': 'Koperta ma transakcje — możesz ją ukryć zamiast usuwać.',
-  'charge-state': 'Ta płatność została już rozliczona albo pominięta. Odśwież stronę.',
-  'transaction-linked': 'Ta transakcja opłaca już inną płatność subskrypcji.',
-  'secrets-unavailable':
-    'Serwer nie ma klucza DENAR_MASTER_KEY, więc nie zapisze tokenów ani sekretów. Poproś administratora o jego ustawienie.',
-  'smtp-not-configured': 'Serwer nie ma skonfigurowanej poczty (SMTP) — e-maili nie da się wysłać.',
-  'too-many-channels': 'Masz już 20 kanałów — usuń któryś, żeby dodać nowy.',
-  'human-only': 'Tę operację wykonuje tylko człowiek, nie bot.',
-  'import-reverted': 'Ten import został już cofnięty.',
-  'provider-unavailable': 'Dostawca tego połączenia nie jest dostępny na tym serwerze.',
-  conflict: 'Dane się zmieniły w międzyczasie. Odśwież stronę i spróbuj ponownie.',
-  validation: 'Popraw dane i spróbuj ponownie.',
-  'bad-request': 'Nieprawidłowe żądanie. Odśwież stronę i spróbuj ponownie.',
+/** Klucz i parametry dla komunikatu pola; null — komunikat nie po angielsku (pokazujemy go bez zmian). */
+export function fieldMessage(message: string): Message | null {
+  return match(rules, message, 'errors:field.') ?? (english.test(message) ? { key: 'errors:field.invalid' } : null)
+}
+
+/** Komunikat błędu pola w języku interfejsu. */
+export function translateFieldMessage(message: string): string {
+  const msg = fieldMessage(message)
+  return msg ? tk(msg.key, msg.params) : message
+}
+
+/** Opis konfliktu (409) lub odmowy (403) po ostatnim segmencie `type`; undefined dla nieznanego. */
+export function reasonMessage(reason: string): string | undefined {
+  const key = `errors:reason.${reason}`
+  return reason && hasKey(key) ? tk(key) : undefined
+}
+
+// Błędy dostarczania powiadomień (`last_error` kanału, wynik testu). Serwer
+// zapisuje je po angielsku (013); dawne polskie (starszy serwer, zapisane
+// wcześniej w bazie) przechodzą bez zmian, bo żadna reguła ich nie łapie.
+const deliveryRules: Rule[] = [
+  [/^HTTP (\d{3})$/, (_, status) => ({ key: 'http', params: { status: status! } })],
+  [/^connection timed out$/i, 'timeout'],
+  [/^connection failed: (.+)$/i, (_, cause) => ({ key: 'connectionFailedWith', params: { cause: cause! } })],
+  [/^connection failed$/i, 'connectionFailed'],
+  [/^target (?:address )?not allowed \(private network\)/i, 'targetForbidden'],
+  [/^invalid recipient address$/i, 'invalidRecipient'],
+  [/^SMTP: connection failed: (.+)$/i, (_, cause) => ({ key: 'smtpConnect', params: { cause: cause! } })],
+  [/^SMTP: (?:the )?server does not support STARTTLS$/i, 'smtpNoStarttls'],
+  [/^SMTP: (?:the )?server does not support AUTH$/i, 'smtpNoAuth'],
+  [/^SMTP: login failed: (.+)$/i, (_, cause) => ({ key: 'smtpLogin', params: { cause: cause! } })],
+  [/^invalid Bot API address$/i, 'telegramBadUrl'],
+  [/^Telegram: response without ok$/i, 'telegramNotOk'],
+  [/^invalid Matrix server address$/i, 'matrixBadUrl'],
+  [/^(?:the )?channel is disabled$/i, 'channelDisabled'],
+  [/^DENAR_MASTER_KEY is (?:missing|not set)/i, 'noMasterKey'],
+  [/^(?:the )?channel secrets cannot be (?:read|opened)/i, 'secretsUnreadable'],
+]
+
+/** Błąd dostarczania w języku interfejsu; nieznany tekst (np. opis z Telegrama) bez zmian. */
+export function translateDeliveryError(message: string | null | undefined): string {
+  if (!message) {
+    return tk('errors:delivery.unknown')
+  }
+  const msg = match(deliveryRules, message, 'errors:delivery.')
+  return msg ? tk(msg.key, msg.params) : message
 }

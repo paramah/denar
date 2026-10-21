@@ -1,0 +1,78 @@
+{
+  "appName": "Denar",
+  "language": {
+    "label": "Language",
+    "auto": "Automatic",
+    "pl": "Polski",
+    "en": "English"
+  },
+  "amount": {
+    "required": "Enter an amount.",
+    "number": "Enter a number, e.g. 1250.00.",
+    "unsigned": "Enter an amount without a sign, e.g. 12.50.",
+    "noFraction": "This currency has no fractional part.",
+    "maxDecimals": "At most {{n}} decimal places.",
+    "invalid": "Enter a valid amount.",
+    "positive": "The amount must be greater than zero.",
+    "tooLarge": "The amount is too large."
+  },
+  "rate": {
+    "required": "Enter a rate.",
+    "invalid": "Enter a positive rate with at most 12 decimal places, e.g. 4.2512.",
+    "positive": "The rate must be greater than zero."
+  },
+  "time": {
+    "now": "now"
+  },
+  "nav": {
+    "label": "Main",
+    "dashboard": "Dashboard",
+    "wallets": "Wallets",
+    "transactions": "Transactions",
+    "budget": "Budget",
+    "subscriptions": "Subscriptions",
+    "notifications": "Notifications",
+    "settings": "Settings"
+  },
+  "shell": {
+    "appMenu": "App menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "household": "Household",
+    "switchHousehold": "— switch household",
+    "yourHouseholds": "Your households",
+    "newHousehold": "New household"
+  },
+  "theme": {
+    "legend": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "userMenu": {
+    "open": "— account menu",
+    "profile": "Profile",
+    "logout": "Sign out"
+  },
+  "session": {
+    "checking": "Checking the session…",
+    "checkFailed": "Could not check the session"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "explanation": "The address is incomplete or the page has moved. Check the link or go back to the app.",
+    "toStart": "Go to the start page",
+    "toDashboard": "Back to the dashboard"
+  },
+  "missingHousehold": {
+    "title": "Household not found",
+    "explanation": "The household does not exist or you are no longer a member.",
+    "back": "Back to your households"
+  },
+  "welcome": {
+    "documentTitle": "Welcome",
+    "title": "Welcome, {{name}}",
+    "create": "Create a household",
+    "body": "You do not belong to any household yet. Create your own — in the currency you budget in — or ask a household member for an invitation link."
+  }
+}

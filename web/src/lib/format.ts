@@ -1,14 +1,19 @@
-import { locale } from './money.ts'
+import { tk } from '../i18n/translate.ts'
+import { perLocale } from './intl.ts'
 
-const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' })
-const dateTimeFormat = new Intl.DateTimeFormat(locale, {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-})
-const relativeFormat = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+// Formattery w języku interfejsu, tworzone raz na locale (lib/intl.ts).
+const dateFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }))
+const dateTimeFormat = perLocale(
+  (locale) =>
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+)
+const relativeFormat = perLocale((locale) => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }))
 
 function parse(value: string | Date): Date | null {
   const date = value instanceof Date ? value : new Date(value)
@@ -18,13 +23,13 @@ function parse(value: string | Date): Date | null {
 /** „21 paź 2026”. */
 export function formatDate(value: string | Date): string {
   const date = parse(value)
-  return date ? dateFormat.format(date) : String(value)
+  return date ? dateFormat().format(date) : String(value)
 }
 
 /** „21 paź 2026, 14:05”. */
 export function formatDateTime(value: string | Date): string {
   const date = parse(value)
-  return date ? dateTimeFormat.format(date) : String(value)
+  return date ? dateTimeFormat().format(date) : String(value)
 }
 
 const units: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -45,10 +50,10 @@ export function formatRelative(value: string | Date, now: Date = new Date()): st
   const seconds = Math.round((date.getTime() - now.getTime()) / 1000)
   for (const [unit, size] of units) {
     if (Math.abs(seconds) >= size) {
-      return relativeFormat.format(Math.trunc(seconds / size), unit)
+      return relativeFormat().format(Math.trunc(seconds / size), unit)
     }
   }
-  return 'teraz'
+  return tk('common:time.now')
 }
 
 /** Wartość dla <input type="date"> (lokalna data). */
@@ -105,5 +110,5 @@ export function formatDay(value: string): string {
   if (!match) {
     return value
   }
-  return dateFormat.format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  return dateFormat().format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
 }

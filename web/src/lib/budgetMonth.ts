@@ -1,5 +1,5 @@
 import { todayIn } from './format.ts'
-import { locale } from './money.ts'
+import { perLocale } from './intl.ts'
 
 // Miesiąc budżetowy (003 FR-200): etykieta YYYY-MM miesiąca kalendarzowego,
 // w którym się zaczyna. Przy month_start_day = 10 dzień 2026-10-05 należy do
@@ -46,7 +46,7 @@ export function currentBudgetMonth(timeZone: string, startDay: number, now: Date
   return monthOfDay(todayIn(timeZone, now), startDay)
 }
 
-const monthFormat = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' })
+const monthFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }))
 
 /** „2026-10” → „październik 2026”. */
 export function formatMonth(month: string): string {
@@ -54,5 +54,5 @@ export function formatMonth(month: string): string {
   if (!match) {
     return month
   }
-  return monthFormat.format(new Date(Number(match[1]), Number(match[2]) - 1, 1))
+  return monthFormat().format(new Date(Number(match[1]), Number(match[2]) - 1, 1))
 }

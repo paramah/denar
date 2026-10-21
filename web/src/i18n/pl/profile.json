@@ -1,0 +1,16 @@
+{
+  "title": "Profil",
+  "description": "Twoje konto i ustawienia interfejsu.",
+  "account": {
+    "heading": "Konto",
+    "name": "Imię i nazwisko",
+    "email": "E-mail"
+  },
+  "language": {
+    "heading": "Język",
+    "label": "Język interfejsu i powiadomień",
+    "hint": "„Automatycznie” — według ustawień przeglądarki; powiadomienia wtedy po polsku.",
+    "saved": "Zapisano język."
+  },
+  "back": "Wróć do aplikacji"
+}
