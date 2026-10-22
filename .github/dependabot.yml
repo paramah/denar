@@ -22,6 +22,10 @@ updates:
       # typescript-eslint supports TS 7: typescript-eslint/typescript-eslint#10940.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # @types/node describes the Node.js runtime, so its major follows
+      # web/.nvmrc (and the node image in the Dockerfile); bump them together.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       react:
         patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
